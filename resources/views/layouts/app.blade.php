@@ -318,6 +318,15 @@
                         </a>
                     </li>
                     @endif
+                    @can('create', \App\Models\Dokumen::class)
+                    <li>
+                        <a href="{{ route('imbas-arkib.create') }}" class="nav-link {{ request()->routeIs('imbas-arkib.*') ? 'active' : '' }}">
+                            <i class="bi bi-magic" aria-hidden="true"></i>
+                            <span>Imbas &amp; Arkib</span>
+                            @if(request()->routeIs('imbas-arkib.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    @endcan
                     @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN'))
                     <li>
                         <a href="{{ route('bahagian.index') }}" class="nav-link {{ request()->routeIs('bahagian.*') ? 'active' : '' }}">

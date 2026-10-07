@@ -326,7 +326,7 @@ class DokumenController extends Controller
      * Peraturan validasi dinamik bagi nilai medan EAV (dikongsi store & update):
      * wajib/pilihan, jenis data, dan senarai pilihan dropdown.
      */
-    private function peraturanMedan(JenisDokumen $jenisDokumen): array
+    protected function peraturanMedan(JenisDokumen $jenisDokumen): array
     {
         $peraturanMedan = [];
         foreach ($jenisDokumen->fields as $field) {
@@ -359,7 +359,7 @@ class DokumenController extends Controller
      * yang telah dipadam), bukan count(), supaya padam dokumen tidak
      * menyebabkan nombor bertembung atau digunakan semula.
      */
-    private function janaNoRujukan(JenisDokumen $jenisDokumen, string $tarikhDokumen): string
+    protected function janaNoRujukan(JenisDokumen $jenisDokumen, string $tarikhDokumen): string
     {
         $tahun = date('Y', strtotime($tarikhDokumen));
         $awalan = "{$jenisDokumen->kod_dokumen}/{$tahun}/";

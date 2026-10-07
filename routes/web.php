@@ -10,6 +10,7 @@ use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImbasArkibController;
 
 // Paparan utama akan terus pergi ke halaman login
 Route::get('/', [AuthController::class, 'paparkanLogin'])->name('login');
@@ -38,6 +39,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('dokumen', DokumenController::class);
     Route::get('/dokumen/scan/{id}/papar', [DokumenController::class, 'paparScan'])->name('dokumen.scan.papar');
     Route::post('/dokumen/scan/{id}/ocr', [DokumenController::class, 'jalankanOcr'])->name('dokumen.scan.ocr');
+
+    // ---- Imbas & Arkib: dokumen fizikal SEDIA LULUS, OCR+AI isi borang ----
+    Route::get('/imbas-arkib', [ImbasArkibController::class, 'create'])->name('imbas-arkib.create');
+    Route::post('/imbas-arkib/analisis', [ImbasArkibController::class, 'analisis'])->name('imbas-arkib.analisis');
+    Route::post('/imbas-arkib/simpan', [ImbasArkibController::class, 'simpan'])->name('imbas-arkib.simpan');
 
     // ---- Aliran Kelulusan (versi asas — lihat nota dalam BorangController) ----
     Route::post('/dokumen/{id}/kelulusan/hantar', [BorangController::class, 'hantar'])->name('kelulusan.hantar');

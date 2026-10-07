@@ -41,4 +41,9 @@ return [
         'pdftoppm_bin' => env('OCR_PDFTOPPM_BIN', 'pdftoppm'),
     ],
 
+    'ollama' => [
+        'url' => env('OLLAMA_URL', 'http://127.0.0.1:11434'),
+        'model' => env('OLLAMA_MODEL', 'sea-lion-local'),
+    ],
+
 ];
