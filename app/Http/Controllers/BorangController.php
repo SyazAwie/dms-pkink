@@ -69,6 +69,14 @@ class BorangController extends Controller
         $dokumen = Dokumen::findOrFail($dokumenId);
         Gate::authorize('update', $dokumen);
 
+        // Hantar hanya jika belum pernah dihantar, atau selepas ditolak. Tanpa semakan
+        // ini, POST terus boleh menetapkan semula borang Disokong/Diluluskan (termasuk
+        // arkib Imbas & Arkib) kepada "Dalam Proses" dan memadam rekod kelulusannya.
+        $sedia = Borang::where('dokumen_id', $dokumen->dokumen_id)->first();
+        if ($sedia && $sedia->status_permohonan !== 'Ditolak') {
+            abort(409, "Permohonan ini kini berstatus \"{$sedia->status_permohonan}\" dan tidak boleh dihantar semula. Hanya permohonan yang ditolak boleh dihantar semula.");
+        }
+
         $borang = Borang::updateOrCreate(
             ['dokumen_id' => $dokumen->dokumen_id],
             [
