@@ -70,12 +70,14 @@ class Dokumen extends Model
 
     public function bahagian()
     {
-        return $this->belongsTo(Bahagian::class, 'bahagian_id', 'bahagian_id');
+        // withTrashed: dokumen lama masih papar nama bahagian walaupun bahagian telah dipadam
+        return $this->belongsTo(Bahagian::class, 'bahagian_id', 'bahagian_id')->withTrashed();
     }
 
     public function pemuatNaik()
     {
-        return $this->belongsTo(User::class, 'created_by', 'user_id');
+        // withTrashed: dokumen lama masih papar nama pemuat naik walaupun akaun telah dipadam
+        return $this->belongsTo(User::class, 'created_by', 'user_id')->withTrashed();
     }
 
     /**
