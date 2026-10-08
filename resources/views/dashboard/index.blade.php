@@ -15,7 +15,8 @@
     $adaCartaKategori = isset($pecahanKategori) && count($pecahanKategori['label']);
     $adaCartaTindakan = isset($pecahanTindakan);
     $adaCartaTrend = isset($trendBulanan);
-    $bilCarta = (int) $adaCartaKategori + (int) $adaCartaTindakan + (int) $adaCartaTrend;
+    $adaCartaBahagian = isset($pecahanBahagian) && count($pecahanBahagian['label']);
+    $bilCarta = (int) $adaCartaKategori + (int) $adaCartaTindakan + (int) $adaCartaTrend + (int) $adaCartaBahagian;
 @endphp
 
 <!-- Bahagian Pengenalan Halaman -->
@@ -64,7 +65,7 @@
             </div>
             <div class="summary-icon summary-icon-amber"><i class="bi bi-exclamation-triangle"></i></div>
         </div>
-        <div class="summary-detail text-muted">Enjin OCR belum disepadukan</div>
+        <div class="summary-detail text-muted">daripada {{ $jumlahFailDiimbas }} jumlah fail diimbas</div>
     </div>
     @endif
 
@@ -111,6 +112,39 @@
                 <div class="summary-icon summary-icon-mint"><i class="bi bi-stopwatch"></i></div>
             </div>
             <div class="summary-detail text-muted">{{ $purataMasaKelulusan !== null ? 'Hantar hingga diluluskan' : 'Belum ada kelulusan' }}</div>
+        </div>
+
+        <div class="summary-card glass-panel">
+            <div class="summary-head">
+                <div>
+                    <div class="summary-label">Diarkibkan Terus (AI)</div>
+                    <div class="summary-value">{{ $arkibTerusAi }}</div>
+                </div>
+                <div class="summary-icon summary-icon-ai"><i class="bi bi-magic"></i></div>
+            </div>
+            <div class="summary-detail"><a href="{{ route('imbas-arkib.create') }}">Guna Imbas &amp; Arkib <i class="bi bi-arrow-right"></i></a></div>
+        </div>
+
+        <div class="summary-card glass-panel">
+            <div class="summary-head">
+                <div>
+                    <div class="summary-label">Kelulusan Biasa</div>
+                    <div class="summary-value">{{ $kelulusanBiasa }}</div>
+                </div>
+                <div class="summary-icon summary-icon-primary"><i class="bi bi-signpost-split"></i></div>
+            </div>
+            <div class="summary-detail text-muted">Melalui Sokong &amp; Lulus</div>
+        </div>
+
+        <div class="summary-card glass-panel">
+            <div class="summary-head">
+                <div>
+                    <div class="summary-label">Purata Keyakinan OCR</div>
+                    <div class="summary-value">{{ $purataSkorOcr !== null ? $purataSkorOcr . '%' : '-' }}</div>
+                </div>
+                <div class="summary-icon summary-icon-mint"><i class="bi bi-patch-question"></i></div>
+            </div>
+            <div class="summary-detail text-muted">{{ $purataSkorOcr !== null ? 'Purata semua fail di-OCR' : 'Belum ada fail di-OCR' }}</div>
         </div>
     @endif
 
@@ -225,6 +259,15 @@
     </div>
     @endif
 
+    @if($adaCartaBahagian)
+    <div class="col-12">
+        <div class="glass-panel chart-panel">
+            <div class="section-header px-4 pt-3 pb-3"><h3>Dokumen Mengikut Bahagian</h3></div>
+            <div class="chart-body chart-body-wide"><canvas id="cartaBahagian"></canvas></div>
+        </div>
+    </div>
+    @endif
+
     @if($adaCartaTindakan)
     <div class="col-12">
         <div class="glass-panel chart-panel">
@@ -302,6 +345,7 @@
     .summary-icon-amber { color: var(--dms-danger); background: rgba(196, 61, 78, .1); }
     .summary-icon-gold { color: #b45309; background: rgba(234, 179, 8, .12); }
     .summary-icon-primary { color: var(--dms-primary); background: rgba(23, 105, 210, .1); }
+    .summary-icon-ai { color: #7c3aed; background: rgba(124, 58, 237, .1); }
 
     .summary-detail a { color: var(--dms-primary); text-decoration: none; font-weight: 600; }
     .summary-detail a:hover { text-decoration: underline; }
@@ -392,6 +436,26 @@
             scales: {
                 y: { beginAtZero: true, ticks: { stepSize: 1, font: fontKecil } },
                 x: { ticks: { font: fontKecil } }
+            }
+        }
+    });
+    @endif
+
+    @if($adaCartaBahagian)
+    new Chart(document.getElementById('cartaBahagian'), {
+        type: 'bar',
+        data: {
+            labels: @json($pecahanBahagian['label']),
+            datasets: [{ data: @json($pecahanBahagian['nilai']), backgroundColor: palet, borderRadius: 4 }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { stepSize: 1, font: fontKecil } },
+                y: { ticks: { font: fontKecil } }
             }
         }
     });

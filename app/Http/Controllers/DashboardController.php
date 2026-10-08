@@ -6,6 +6,7 @@ use App\Models\Bahagian;
 use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\DokumenScan;
+use App\Models\DokumenOcr;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Models\User;
@@ -31,8 +32,9 @@ class DashboardController extends Controller
             $skop = Dokumen::bolehDilihat($user);
 
             $data['jumlahDokumen'] = (clone $skop)->count();
-            $data['ocrPending'] = DokumenScan::whereHas('dokumen', fn ($q) => $q->bolehDilihat($user))
-                ->where('status_ocr', 'Pending')->count();
+            $skopScan = DokumenScan::whereHas('dokumen', fn ($q) => $q->bolehDilihat($user));
+            $data['ocrPending'] = (clone $skopScan)->where('status_ocr', 'Pending')->count();
+            $data['jumlahFailDiimbas'] = (clone $skopScan)->count();
             $data['dokumenTerkini'] = (clone $skop)->with(['jenisDokumen', 'pemuatNaik'])
                 ->latest('dokumen_id')->limit(5)->get();
             $data['trendBulanan'] = $this->trendBulanan(clone $skop);
@@ -88,6 +90,23 @@ class DashboardController extends Controller
                 ->groupBy('status_permohonan')->pluck('jumlah', 'status_permohonan');
             $data['purataMasaKelulusan'] = $this->purataMasaKelulusanJam();
             $data['pecahanKategori'] = $this->pecahanKategori(Dokumen::query());
+            $data['pecahanBahagian'] = $this->pecahanBahagian();
+
+            // Dokumen yang diarkibkan TERUS melalui "Imbas & Arkib" (AI auto-isi):
+            // dikenal pasti sebab TIADA Penyokong/Pelulus sebenar terlibat,
+            // berbanding dokumen yang betul-betul melalui aliran Sokong->Lulus.
+            $data['arkibTerusAi'] = Borang::where('status_permohonan', 'Diluluskan')
+                ->whereNull('pegawai_penyokong_id')
+                ->whereNull('pegawai_pelulus_id')
+                ->count();
+            $data['kelulusanBiasa'] = Borang::where('status_permohonan', 'Diluluskan')
+                ->where(fn ($q) => $q->whereNotNull('pegawai_penyokong_id')->orWhereNotNull('pegawai_pelulus_id'))
+                ->count();
+
+            $data['purataSkorOcr'] = DokumenOcr::whereNotNull('skor_padanan')->avg('skor_padanan');
+            if ($data['purataSkorOcr'] !== null) {
+                $data['purataSkorOcr'] = round((float) $data['purataSkorOcr'], 1);
+            }
         }
 
         return view('dashboard.index', $data);
@@ -126,6 +145,20 @@ class DashboardController extends Controller
             ->join('jenis_dokumen', 'dokumen.jenis_dokumen_id', '=', 'jenis_dokumen.jenis_dokumen_id')
             ->selectRaw('jenis_dokumen.nama_dokumen as label, COUNT(*) as jumlah')
             ->groupBy('jenis_dokumen.nama_dokumen')
+            ->orderByDesc('jumlah')
+            ->limit(6)
+            ->get();
+
+        return ['label' => $baris->pluck('label')->all(), 'nilai' => $baris->pluck('jumlah')->all()];
+    }
+
+    /** Pecahan bilangan dokumen ikut Bahagian (top 6), untuk carta bar eksekutif. */
+    private function pecahanBahagian(): array
+    {
+        $baris = Dokumen::query()
+            ->join('bahagian', 'dokumen.bahagian_id', '=', 'bahagian.bahagian_id')
+            ->selectRaw('bahagian.nama_bahagian as label, COUNT(*) as jumlah')
+            ->groupBy('bahagian.nama_bahagian')
             ->orderByDesc('jumlah')
             ->limit(6)
             ->get();
