@@ -19,6 +19,11 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/lupa-kata-laluan', [PasswordResetController::class, 'paparBorangRequest'])->name('password.request');
 Route::post('/lupa-kata-laluan', [PasswordResetController::class, 'hantarPautanReset'])->name('password.email');
 
+// Reset kata laluan MESTI di luar middleware 'auth': pengguna yang terlupa
+// kata laluan belum log masuk, jadi pautan dari emel perlu boleh dibuka terus.
+Route::get('/reset-kata-laluan/{token}', [PasswordResetController::class, 'paparBorangReset'])->name('password.reset');
+Route::post('/reset-kata-laluan', [PasswordResetController::class, 'kemaskiniKataLaluan'])->name('password.update');
+
 // Kumpulan laluan yang dilindungi (Hanya boleh diakses jika dah login)
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -59,8 +64,4 @@ Route::middleware('auth')->group(function () {
         ->middleware('peranan:SUPERADMIN,AUDIT')
         ->name('log-audit.index');
 
-    // Laluan klik dari emel
-    Route::get('/reset-kata-laluan/{token}', [PasswordResetController::class, 'paparBorangReset'])->name('password.reset');
-    // Laluan hantar borang kemas kini
-    Route::post('/reset-kata-laluan', [PasswordResetController::class, 'kemaskiniKataLaluan'])->name('password.update');
 });

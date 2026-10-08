@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
 
@@ -16,7 +17,7 @@ class PasswordResetController extends Controller
         return view('auth.forgot-password');
     }
 
-    // 2. Proses jana token dan hantar pautan
+    // 2. Proses jana token dan hantar pautan ke emel pengguna
     public function hantarPautanReset(Request $request)
     {
         $request->validate([
@@ -25,16 +26,31 @@ class PasswordResetController extends Controller
             'email.exists' => 'Rekod emel ini tidak dijumpai dalam pangkalan data PKINK.'
         ]);
 
-        // Laravel akan secara automatik jana token dan simpan dalam password_reset_tokens
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        try {
+            // Laravel jana token, simpan dalam password_reset_tokens, dan hantar emel
+            // (kandungan emel ditetapkan dalam AppServiceProvider -> ResetPassword::toMailUsing)
+            $status = Password::sendResetLink($request->only('email'));
+        } catch (\Throwable $e) {
+            // Biasanya masalah tetapan SMTP (.env MAIL_*): kata laluan aplikasi salah, port disekat, dll.
+            Log::error('Gagal hantar emel tetapan semula kata laluan: ' . $e->getMessage());
 
-        if ($status === Password::RESET_LINK_SENT) {
-            return back()->with('success', 'Pautan pemulihan kata laluan telah dihantar. (Sila semak fail laravel.log)');
+            return back()->withInput()->withErrors([
+                'email' => 'Emel gagal dihantar. Sila semak tetapan emel sistem. (' . $e->getMessage() . ')',
+            ]);
         }
 
-        return back()->withErrors(['email' => 'Gagal menghantar pautan pemulihan.']);
+        return match ($status) {
+            Password::RESET_LINK_SENT => back()->with(
+                'success',
+                'Pautan tetapan semula kata laluan telah dihantar ke emel anda. Sila semak peti masuk (dan folder Spam).'
+            ),
+            Password::RESET_THROTTLED => back()->withInput()->withErrors([
+                'email' => 'Permintaan terlalu kerap. Sila tunggu seminit sebelum mencuba semula.',
+            ]),
+            default => back()->withInput()->withErrors([
+                'email' => 'Gagal menghantar pautan pemulihan. Sila cuba semula.',
+            ]),
+        };
     }
 
     // 3. Papar borang tukar kata laluan (selepas klik pautan di emel)
