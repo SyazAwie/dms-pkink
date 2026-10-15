@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
 
@@ -20,6 +21,24 @@ class PasswordResetController extends Controller
     // 2. Proses jana token dan hantar pautan ke emel pengguna
     public function hantarPautanReset(Request $request)
     {
+        // Had 5 permintaan seminit bagi setiap gabungan emel + IP. Disemak sebelum
+        // validasi supaya permintaan yang ditolak pun turut dikira.
+        $kunciHad = 'lupa-kata-laluan|' . Str::lower((string) $request->input('email')) . '|' . $request->ip();
+        // Lapisan kedua ikut IP sahaja: 10 permintaan setiap 10 minit, supaya banyak
+        // emel berbeza tidak boleh dicuba dari IP yang sama.
+        $kunciHadIp = 'lupa-kata-laluan-ip|' . $request->ip();
+        foreach ([$kunciHad => 5, $kunciHadIp => 10] as $kunci => $maksimum) {
+            if (RateLimiter::tooManyAttempts($kunci, $maksimum)) {
+                $saat = RateLimiter::availableIn($kunci);
+
+                return back()->withInput()->withErrors([
+                    'email' => "Terlalu banyak permintaan. Cuba lagi dalam {$saat} saat.",
+                ]);
+            }
+        }
+        RateLimiter::hit($kunciHad, 60);
+        RateLimiter::hit($kunciHadIp, 600);
+
         $request->validate([
             'email' => 'required|email|exists:users,email',
         ], [
