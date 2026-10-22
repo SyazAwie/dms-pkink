@@ -170,7 +170,7 @@
 
         .topbar-actions { display: flex; align-items: center; gap: 9px; }
         .notification { position: relative; }
-        .notification::after { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border: 2px solid #fff; border-radius: 50%; background: var(--dms-danger); content: ""; }
+        .notification-badge { position: absolute; top: -6px; right: -6px; display: inline-grid; min-width: 19px; height: 19px; padding: 0 5px; place-items: center; border: 2px solid #fff; border-radius: 10px; background: var(--dms-danger); color: #fff; font-size: 10px; font-weight: 800; line-height: 1; }
         .top-user { min-width: 0; max-width: 200px; text-align: right; }
         .top-user strong, .top-user small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .top-user strong { font-size: 12px; }
@@ -393,9 +393,31 @@
                 </div>
 
                 <div class="topbar-actions">
-                    <button type="button" class="icon-button notification" aria-label="Pemberitahuan" title="Pemberitahuan">
+                    @php
+                        // Loceng: bilangan permohonan yang menunggu tindakan pengguna ini
+                        // (PENYOKONG = Dalam Proses, PELULUS = Disokong, Admin = kedua-duanya).
+                        // Bukan sistem notifikasi penuh; hanya giliran kelulusan semasa.
+                        $penggunaSemasa = Auth::user();
+                        $tunjukLoceng = $penggunaSemasa->hasAnyRole('PENYOKONG', 'PELULUS', 'SUPERADMIN', 'ADMIN');
+                        $bilGiliran = 0;
+                        if ($penggunaSemasa->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN')) {
+                            $bilGiliran += \App\Models\Borang::dokumenAktif()->where('status_permohonan', 'Dalam Proses')->count();
+                        }
+                        if ($penggunaSemasa->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN')) {
+                            $bilGiliran += \App\Models\Borang::dokumenAktif()->where('status_permohonan', 'Disokong')->count();
+                        }
+                        $labelLoceng = $bilGiliran > 0
+                            ? "Pemberitahuan: {$bilGiliran} permohonan menunggu tindakan anda"
+                            : 'Pemberitahuan: tiada permohonan menunggu tindakan anda';
+                    @endphp
+                    @if($tunjukLoceng)
+                    <a href="{{ route('kelulusan.index') }}" class="icon-button notification text-decoration-none" aria-label="{{ $labelLoceng }}" title="{{ $labelLoceng }}">
                         <i class="bi bi-bell" aria-hidden="true"></i>
-                    </button>
+                        @if($bilGiliran > 0)
+                            <span class="notification-badge" aria-hidden="true">{{ $bilGiliran > 99 ? '99+' : $bilGiliran }}</span>
+                        @endif
+                    </a>
+                    @endif
                     <div class="top-user">
                         <strong>{{ Auth::user()->nama_staff }}</strong>
                         <small>{{ $perananPengguna->first() ?? 'Tiada peranan' }}{{ $perananPengguna->count() > 1 ? ' +' . ($perananPengguna->count() - 1) : '' }}</small>
