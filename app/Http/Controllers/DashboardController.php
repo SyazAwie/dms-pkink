@@ -42,7 +42,7 @@ class DashboardController extends Controller
 
         // ---- STAFF: status permohonan sendiri ----
         if ($user->hasRole('STAFF')) {
-            $data['permohonanSaya'] = Borang::where('pemohon_id', $user->user_id)
+            $data['permohonanSaya'] = Borang::dokumenAktif()->where('pemohon_id', $user->user_id)
                 ->selectRaw('status_permohonan, COUNT(*) as jumlah')
                 ->groupBy('status_permohonan')->pluck('jumlah', 'status_permohonan');
         }
@@ -54,22 +54,22 @@ class DashboardController extends Controller
 
         // ---- PENYOKONG: giliran sokongan ----
         if ($user->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN')) {
-            $data['menungguSokongan'] = Borang::where('status_permohonan', 'Dalam Proses')->count();
-            $data['disokongBulanIni'] = Borang::where('pegawai_penyokong_id', $user->user_id)
+            $data['menungguSokongan'] = Borang::dokumenAktif()->where('status_permohonan', 'Dalam Proses')->count();
+            $data['disokongBulanIni'] = Borang::dokumenAktif()->where('pegawai_penyokong_id', $user->user_id)
                 ->whereMonth('tarikh_sokongan', now()->month)->whereYear('tarikh_sokongan', now()->year)->count();
         }
 
         // ---- PELULUS: giliran kelulusan ----
         if ($user->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN')) {
-            $data['menungguKelulusan'] = Borang::where('status_permohonan', 'Disokong')->count();
-            $data['diluluskanBulanIni'] = Borang::where('pegawai_pelulus_id', $user->user_id)
+            $data['menungguKelulusan'] = Borang::dokumenAktif()->where('status_permohonan', 'Disokong')->count();
+            $data['diluluskanBulanIni'] = Borang::dokumenAktif()->where('pegawai_pelulus_id', $user->user_id)
                 ->whereMonth('tarikh_kelulusan', now()->month)->whereYear('tarikh_kelulusan', now()->year)->count();
         }
 
         // Senarai ringkas untuk Penyokong/Pelulus semak terus dari dashboard
         if ($user->hasAnyRole('PENYOKONG', 'PELULUS')) {
             $statusDikehendaki = $user->hasRole('PELULUS') ? 'Disokong' : 'Dalam Proses';
-            $data['senaraiMenunggu'] = Borang::with(['dokumen.jenisDokumen', 'pemohon'])
+            $data['senaraiMenunggu'] = Borang::dokumenAktif()->with(['dokumen.jenisDokumen', 'pemohon'])
                 ->where('status_permohonan', $statusDikehendaki)
                 ->latest('borang_id')->limit(5)->get();
         }
@@ -86,7 +86,7 @@ class DashboardController extends Controller
             $data['jumlahKategori'] = JenisDokumen::count();
             $data['jumlahKakitangan'] = User::count();
             $data['logHariIni'] = LogAudit::whereDate('created_at', today())->count();
-            $data['permohonanBreakdown'] = Borang::selectRaw('status_permohonan, COUNT(*) as jumlah')
+            $data['permohonanBreakdown'] = Borang::dokumenAktif()->selectRaw('status_permohonan, COUNT(*) as jumlah')
                 ->groupBy('status_permohonan')->pluck('jumlah', 'status_permohonan');
             $data['purataMasaKelulusan'] = $this->purataMasaKelulusanJam();
             $data['pecahanKategori'] = $this->pecahanKategori(Dokumen::query());
@@ -95,11 +95,11 @@ class DashboardController extends Controller
             // Dokumen yang diarkibkan TERUS melalui "Imbas & Arkib" (AI auto-isi):
             // dikenal pasti sebab TIADA Penyokong/Pelulus sebenar terlibat,
             // berbanding dokumen yang betul-betul melalui aliran Sokong->Lulus.
-            $data['arkibTerusAi'] = Borang::where('status_permohonan', 'Diluluskan')
+            $data['arkibTerusAi'] = Borang::dokumenAktif()->where('status_permohonan', 'Diluluskan')
                 ->whereNull('pegawai_penyokong_id')
                 ->whereNull('pegawai_pelulus_id')
                 ->count();
-            $data['kelulusanBiasa'] = Borang::where('status_permohonan', 'Diluluskan')
+            $data['kelulusanBiasa'] = Borang::dokumenAktif()->where('status_permohonan', 'Diluluskan')
                 ->where(fn ($q) => $q->whereNotNull('pegawai_penyokong_id')->orWhereNotNull('pegawai_pelulus_id'))
                 ->count();
 
@@ -189,7 +189,7 @@ class DashboardController extends Controller
     /** Purata masa (jam) dari dihantar hingga diluluskan, bagi borang yang sudah Diluluskan. */
     private function purataMasaKelulusanJam(): ?float
     {
-        $purata = Borang::where('status_permohonan', 'Diluluskan')
+        $purata = Borang::dokumenAktif()->where('status_permohonan', 'Diluluskan')
             ->whereNotNull('tarikh_kelulusan')
             ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, tarikh_permohonan, tarikh_kelulusan)) as purata')
             ->value('purata');
