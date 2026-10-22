@@ -75,6 +75,21 @@ trait SkemaUjian
             $t->timestamp('created_at')->nullable();
         });
 
+        Schema::create('pendaftaran_staf', function (Blueprint $t) {
+            $t->id('pendaftaran_staf_id');
+            $t->string('ic_pekerja', 20);
+            $t->string('nama_staff');
+            $t->string('email');
+            $t->unsignedBigInteger('bahagian_id');
+            $t->string('status', 20)->default('Menunggu');
+            $t->text('sebab_tolak')->nullable();
+            $t->unsignedBigInteger('disemak_oleh')->nullable();
+            $t->timestamp('disemak_pada')->nullable();
+            $t->unsignedBigInteger('user_id')->nullable();
+            $t->string('alamat_ip', 45)->nullable();
+            $t->timestamps();
+        });
+
         // Diperlukan oleh loceng dalam layout (kiraan giliran kelulusan)
         Schema::create('dokumen', function (Blueprint $t) {
             $t->id('dokumen_id');

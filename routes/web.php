@@ -12,6 +12,7 @@ use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\PendaftaranStafController;
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -27,6 +28,9 @@ Route::middleware('guest')->group(function () {
     // kata laluan belum log masuk, jadi pautan dari emel perlu boleh dibuka terus.
     Route::get('/reset-kata-laluan/{token}', [PasswordResetController::class, 'paparBorangReset'])->name('password.reset');
     Route::post('/reset-kata-laluan', [PasswordResetController::class, 'kemaskiniKataLaluan'])->name('password.update');
+
+    // Permohonan pendaftaran staf baharu (modal "Daftar Akaun Baharu" di halaman log masuk)
+    Route::post('/daftar', [PendaftaranStafController::class, 'simpan'])->name('pendaftaran.simpan');
 });
 
 // Kumpulan laluan yang dilindungi (Hanya boleh diakses jika dah login).
@@ -49,6 +53,11 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
         Route::resource('jenis-dokumen', JenisDokumenController::class)->except('show');   // Kategori Dokumen
         Route::resource('bahagian', BahagianController::class)->except('show');            // Pengurusan Bahagian
         Route::resource('users', UserController::class)->except('show');                   // Pengurusan Kakitangan
+
+        // Pengesahan Pendaftaran staf baharu
+        Route::get('/pendaftaran', [PendaftaranStafController::class, 'index'])->name('pendaftaran.index');
+        Route::post('/pendaftaran/{id}/lulus', [PendaftaranStafController::class, 'lulus'])->name('pendaftaran.lulus');
+        Route::post('/pendaftaran/{id}/tolak', [PendaftaranStafController::class, 'tolak'])->name('pendaftaran.tolak');
     });
 
     // ---- Dokumen: kebenaran dikawal oleh DokumenPolicy dalam controller (ikut peranan & skop) ----

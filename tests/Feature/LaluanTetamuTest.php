@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Tests\SkemaUjian;
 use Tests\TestCase;
 
 /**
@@ -14,6 +15,14 @@ use Tests\TestCase;
  */
 class LaluanTetamuTest extends TestCase
 {
+    use SkemaUjian;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->sediakanSkema(); // halaman log masuk membaca senarai bahagian
+    }
+
     public function test_tetamu_boleh_buka_halaman_log_masuk_dan_lupa_kata_laluan(): void
     {
         $this->get('/')->assertOk();

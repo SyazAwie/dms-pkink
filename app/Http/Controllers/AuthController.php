@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Bahagian;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -9,10 +10,12 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    // Paparkan halaman login
+    // Paparkan halaman login (termasuk senarai bahagian untuk modal Daftar Akaun Baharu)
     public function paparkanLogin()
     {
-        return view('auth.login');
+        $senaraiBahagian = Bahagian::orderBy('nama_bahagian')->get(['bahagian_id', 'kod_bahagian', 'nama_bahagian']);
+
+        return view('auth.login', compact('senaraiBahagian'));
     }
 
     // Proses semakan data login menggunakan IC
