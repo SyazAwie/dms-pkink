@@ -20,6 +20,14 @@ class LaluanTetamuTest extends TestCase
         $this->get('/lupa-kata-laluan')->assertOk();
     }
 
+    public function test_halaman_log_masuk_papar_mesej_berjaya(): void
+    {
+        $this->withSession(['success' => 'Kemas kini berjaya! Sila log masuk.'])
+            ->get('/')
+            ->assertOk()
+            ->assertSee('Kemas kini berjaya! Sila log masuk.');
+    }
+
     public function test_pengguna_log_masuk_dibawa_ke_papan_pemuka(): void
     {
         $pengguna = new User(['nama_staff' => 'Pengguna Ujian']);

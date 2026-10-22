@@ -119,6 +119,15 @@
             font-size: .8rem;
         }
 
+        .alert-berjaya {
+            margin-bottom: 1.25rem;
+            border: 1px solid rgba(37, 169, 121, .35);
+            border-radius: 1rem;
+            background: rgba(236, 253, 245, .85);
+            color: #047857;
+            font-size: .8rem;
+        }
+
         .alert-title { margin-bottom: .3rem; font-weight: 700; }
         .alert-custom ul { margin: 0; padding-left: 1.15rem; }
         .form-group { margin-bottom: 1.25rem; }
@@ -228,6 +237,13 @@
                 </header>
 
                 <div class="login-body">
+                    {{-- Mesej berjaya (cth. selepas tetapan semula kata laluan) --}}
+                    @if(session('success'))
+                        <div class="alert alert-berjaya" role="status" aria-live="polite">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
                     @if($errors->any())
                         <div class="alert alert-custom" role="alert" aria-live="polite">
                             <div class="alert-title">Maklumat tidak sah</div>
