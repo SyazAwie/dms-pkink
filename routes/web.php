@@ -42,6 +42,11 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/tukar-kata-laluan', [ProfilController::class, 'paparWajibTukar'])->name('kata-laluan.tukar');
     Route::put('/tukar-kata-laluan', [ProfilController::class, 'simpanWajibTukar'])->name('kata-laluan.simpan');
 
+    // ---- Profil pengguna sendiri (nama, emel, kata laluan) ----
+    Route::get('/profil', [ProfilController::class, 'index'])->name('profil.index');
+    Route::put('/profil', [ProfilController::class, 'kemaskiniMaklumat'])->name('profil.kemaskini');
+    Route::put('/profil/kata-laluan', [ProfilController::class, 'kemaskiniKataLaluan'])->name('profil.kata-laluan');
+
     // ---- Endpoint JSON: senarai medan EAV bagi satu Jenis Dokumen (borang muat naik dokumen) ----
     Route::get('/jenis-dokumen/{id}/medan', [JenisDokumenController::class, 'medanJson'])
         ->middleware('peranan:SUPERADMIN,ADMIN,KERANI,PENGURUS,STAFF')

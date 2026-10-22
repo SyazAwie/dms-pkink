@@ -170,6 +170,9 @@
 
         .topbar-actions { display: flex; align-items: center; gap: 9px; }
         .notification { position: relative; }
+        .pautan-profil { color: inherit; text-decoration: none; transition: background .2s ease, color .2s ease; }
+        .pautan-profil:hover { color: var(--dms-primary); }
+        .sidebar-user.pautan-profil:hover, .sidebar-user.pautan-profil.aktif { background: rgba(23, 105, 210, .1); }
         .nav-bil { min-width: 22px; padding: 2px 7px; border-radius: 10px; background: var(--dms-danger); color: #fff; font-size: 10.5px; font-weight: 800; text-align: center; }
         .loceng-menu { min-width: 250px; padding: 6px; border: 1px solid var(--dms-line); border-radius: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, .12); }
         .loceng-menu .dropdown-header { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
@@ -408,7 +411,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="sidebar-user">
+                <a href="{{ route('profil.index') }}" class="sidebar-user pautan-profil {{ request()->routeIs('profil.*') ? 'aktif' : '' }}" title="Profil Saya">
                     <div class="avatar" aria-hidden="true">
                         {{ strtoupper(substr(Auth::user()->nama_staff, 0, 1)) }}
                     </div>
@@ -417,7 +420,7 @@
                         @php $perananPengguna = Auth::user()->roles->pluck('nama_roles'); @endphp
                         <div class="user-role">{{ $perananPengguna->first() ?? 'Tiada peranan' }}{{ $perananPengguna->count() > 1 ? ' +' . ($perananPengguna->count() - 1) : '' }}</div>
                     </div>
-                </div>
+                </a>
             </div>
         </aside>
 
@@ -463,10 +466,10 @@
                         </ul>
                     </div>
                     @endif
-                    <div class="top-user">
+                    <a href="{{ route('profil.index') }}" class="top-user pautan-profil" title="Profil Saya">
                         <strong>{{ Auth::user()->nama_staff }}</strong>
                         <small>{{ $perananPengguna->first() ?? 'Tiada peranan' }}{{ $perananPengguna->count() > 1 ? ' +' . ($perananPengguna->count() - 1) : '' }}</small>
-                    </div>
+                    </a>
                     <form method="POST" action="{{ route('logout') }}" class="logout-form">
                         @csrf
                         <button type="submit" class="icon-button" aria-label="Log keluar" title="Log keluar">
