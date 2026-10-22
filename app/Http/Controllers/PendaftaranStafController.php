@@ -39,12 +39,19 @@ class PendaftaranStafController extends Controller
     /** Tempoh sah kata laluan sementara (jam). */
     private const JAM_SAH_KATA_LALUAN = 72;
 
-    /** Had permohonan bagi setiap IP: 3 setiap 10 minit. */
-    private const HAD_PERMOHONAN = 3;
+    /** Had cubaan permohonan bagi setiap IP (termasuk yang gagal validasi): 5 setiap 10 minit. */
+    private const HAD_PERMOHONAN = 5;
 
     private const TEMPOH_HAD_SAAT = 600;
 
     // ---- (1) Awam: hantar permohonan dari modal halaman log masuk ----
+    //
+    // Respons SERAGAM: permohonan baharu, pendua akaun sedia ada dan pendua
+    // permohonan "Menunggu" semuanya mendapat mesej berjaya yang sama, supaya
+    // borang awam ini tidak boleh digunakan untuk menyemak sama ada sesuatu
+    // No. KP / emel berdaftar. Pendua akaun ditandakan kepada admin di
+    // halaman pengesahan; hanya ralat FORMAT (tidak bergantung pada data DB)
+    // dipaparkan kepada pemohon.
     public function simpan(Request $request)
     {
         $mesejBerjaya = 'Permohonan pendaftaran anda telah dihantar. Anda akan dimaklumkan melalui emel selepas permohonan disemak oleh pentadbir.';
@@ -58,40 +65,42 @@ class PendaftaranStafController extends Controller
             ], 'pendaftaran');
         }
 
+        // Kira SETIAP cubaan (sah, gagal validasi atau perangkap bot) sebelum validasi
+        RateLimiter::hit($kunciHad, self::TEMPOH_HAD_SAAT);
+
         // Perangkap bot: medan tersembunyi ini tidak kelihatan kepada manusia.
         // Jika diisi, buat seolah-olah berjaya tetapi jangan simpan apa-apa.
         if ($request->filled('laman_web')) {
-            RateLimiter::hit($kunciHad, self::TEMPOH_HAD_SAAT);
-
             return redirect()->route('login')->with('success', $mesejBerjaya);
         }
 
         $data = $request->validateWithBag('pendaftaran', [
-            'ic_pekerja' => [
-                'required', 'digits:12',
-                Rule::unique('users', 'ic_pekerja')->whereNull('deleted_at'),
-                Rule::unique('pendaftaran_staf', 'ic_pekerja')->where('status', PendaftaranStaf::MENUNGGU),
-            ],
+            'ic_pekerja' => ['required', 'digits:12'],
             'nama_staff' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required', 'email', 'max:255',
-                Rule::unique('users', 'email')->whereNull('deleted_at'),
-                Rule::unique('pendaftaran_staf', 'email')->where('status', PendaftaranStaf::MENUNGGU),
-            ],
+            'email' => ['required', 'email', 'max:255'],
             'bahagian_id' => ['required', Rule::exists('bahagian', 'bahagian_id')->whereNull('deleted_at')],
         ], [
             'ic_pekerja.required' => 'Sila masukkan No. Kad Pengenalan.',
             'ic_pekerja.digits' => 'No. Kad Pengenalan mesti 12 digit nombor tanpa sengkang (-).',
-            'ic_pekerja.unique' => 'No. Kad Pengenalan ini sudah berdaftar atau mempunyai permohonan yang sedang menunggu pengesahan.',
             'nama_staff.required' => 'Sila masukkan nama penuh.',
             'nama_staff.max' => 'Nama penuh terlalu panjang.',
             'email.required' => 'Sila masukkan alamat emel.',
             'email.email' => 'Format alamat emel tidak sah.',
             'email.max' => 'Alamat emel terlalu panjang.',
-            'email.unique' => 'Emel ini sudah berdaftar atau mempunyai permohonan yang sedang menunggu pengesahan.',
             'bahagian_id.required' => 'Sila pilih bahagian.',
             'bahagian_id.exists' => 'Bahagian yang dipilih tidak sah.',
         ]);
+
+        // Sudah ada permohonan "Menunggu" bagi IC/emel ini: jangan simpan baris kedua
+        // (lajur janaan UNIQUE juga menolaknya), tetapi balas dengan mesej yang sama.
+        $menunggu = PendaftaranStaf::where('status', PendaftaranStaf::MENUNGGU)
+            ->where(fn ($q) => $q->where('ic_pekerja', $data['ic_pekerja'])->orWhere('email', $data['email']))
+            ->exists();
+        if ($menunggu) {
+            $this->logPenduaMenunggu($request, $data);
+
+            return redirect()->route('login')->with('success', $mesejBerjaya);
+        }
 
         try {
             DB::transaction(function () use ($request, $data) {
@@ -115,14 +124,29 @@ class PendaftaranStafController extends Controller
                 throw $e;
             }
 
-            return back()->withInput()->withErrors([
-                'pendaftaran' => 'No. Kad Pengenalan atau emel ini sudah mempunyai permohonan yang sedang menunggu pengesahan.',
-            ], 'pendaftaran');
+            $this->logPenduaMenunggu($request, $data);
         }
 
-        RateLimiter::hit($kunciHad, self::TEMPOH_HAD_SAAT);
-
         return redirect()->route('login')->with('success', $mesejBerjaya);
+    }
+
+    /**
+     * Jejak permohonan pendua yang tidak disimpan (IC/emel sudah ada permohonan
+     * "Menunggu"), untuk siasatan jika berlaku percubaan berulang.
+     */
+    private function logPenduaMenunggu(Request $request, array $data): void
+    {
+        LogAudit::create([
+            'user_id' => null,
+            'tindakan' => 'Mohon Pendaftaran (Pendua Menunggu)',
+            'nama_jadual' => 'pendaftaran_staf',
+            'rekod_id' => null,
+            'data_lama' => null,
+            'data_baharu' => $data,
+            'alamat_ip' => $request->ip(),
+            'peranti_pengguna' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
     }
 
     // ---- (2) Admin: senarai permohonan ----
@@ -143,7 +167,20 @@ class PendaftaranStafController extends Controller
         $bilMenunggu = PendaftaranStaf::where('status', PendaftaranStaf::MENUNGGU)->count();
         $senaraiRole = Auth::user()->hasRole('SUPERADMIN') ? Role::orderBy('roles_id')->get() : collect();
 
-        return view('pendaftaran.index', compact('senarai', 'status', 'bilMenunggu', 'senaraiRole'));
+        // Tanda permohonan "Menunggu" yang No. KP / emelnya sudah digunakan oleh akaun aktif
+        // (pemohon tidak dimaklumkan tentang ini; admin perlu menolaknya).
+        $menunggu = $senarai->getCollection()->where('status', PendaftaranStaf::MENUNGGU);
+        $penduaIc = [];
+        $penduaEmel = [];
+        if ($menunggu->isNotEmpty()) {
+            $akaun = User::whereIn('ic_pekerja', $menunggu->pluck('ic_pekerja'))
+                ->orWhereIn('email', $menunggu->pluck('email'))
+                ->get(['ic_pekerja', 'email']);
+            $penduaIc = $akaun->pluck('ic_pekerja')->all();
+            $penduaEmel = $akaun->pluck('email')->map(fn ($e) => Str::lower($e))->all();
+        }
+
+        return view('pendaftaran.index', compact('senarai', 'status', 'bilMenunggu', 'senaraiRole', 'penduaIc', 'penduaEmel'));
     }
 
     public function lulus(Request $request, $id)

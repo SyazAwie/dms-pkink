@@ -85,17 +85,68 @@ class PendaftaranStafTest extends TestCase
         $this->assertNull($log->user_id);
     }
 
-    public function test_permohonan_ditolak_jika_ic_atau_emel_sudah_wujud(): void
+    public function test_respons_sama_untuk_permohonan_baharu_dan_pendua(): void
     {
-        $this->buatPengguna(['STAFF'], ['ic_pekerja' => '950505035555']);
-        $this->from('/')->post(route('pendaftaran.simpan'), $this->dataMohon())
-            ->assertSessionHasErrorsIn('pendaftaran', ['ic_pekerja']);
+        $this->buatPengguna(['STAFF'], ['ic_pekerja' => '950505031111', 'email' => 'akaun@pkink.test']);
+        $this->buatPermohonan(['ic_pekerja' => '950505032222', 'email' => 'menunggu@pkink.test']);
 
-        $this->buatPermohonan(['ic_pekerja' => '950505036666', 'email' => 'menunggu@pkink.test']);
-        $this->from('/')->post(route('pendaftaran.simpan'), $this->dataMohon(['ic_pekerja' => '950505037777', 'email' => 'menunggu@pkink.test']))
-            ->assertSessionHasErrorsIn('pendaftaran', ['email']);
+        $kes = [
+            'baharu' => $this->dataMohon(['ic_pekerja' => '950505033333', 'email' => 'baharu@pkink.test']),
+            'pendua_akaun_ic' => $this->dataMohon(['ic_pekerja' => '950505031111', 'email' => 'lain1@pkink.test']),
+            'pendua_akaun_emel' => $this->dataMohon(['ic_pekerja' => '950505034444', 'email' => 'akaun@pkink.test']),
+            'pendua_menunggu' => $this->dataMohon(['ic_pekerja' => '950505035555', 'email' => 'menunggu@pkink.test']),
+        ];
 
-        $this->assertSame(1, PendaftaranStaf::count());
+        $respons = [];
+        foreach ($kes as $nama => $data) {
+            $r = $this->from('/')->post(route('pendaftaran.simpan'), $data);
+            $r->assertRedirect(route('login'))->assertSessionHasNoErrors();
+            $respons[$nama] = session('success');
+        }
+
+        // Mesej berjaya sama tepat untuk semua kes: tiada petunjuk IC/emel berdaftar
+        $this->assertCount(1, array_unique($respons));
+        $this->assertStringContainsString('Permohonan pendaftaran anda telah dihantar', reset($respons));
+
+        // Baharu + 2 pendua akaun disimpan (untuk ditanda kepada admin); pendua Menunggu tidak
+        $this->assertSame(4, PendaftaranStaf::count());
+        $this->assertSame(1, PendaftaranStaf::where('email', 'menunggu@pkink.test')->count());
+        $this->assertTrue(LogAudit::where('tindakan', 'Mohon Pendaftaran (Pendua Menunggu)')->exists());
+    }
+
+    public function test_senarai_admin_tanda_pendua_dan_nyahaktif_lulus(): void
+    {
+        $this->buatPengguna(['STAFF'], ['ic_pekerja' => '950505031111', 'email' => 'akaun@pkink.test']);
+        $penduaIc = $this->buatPermohonan(['ic_pekerja' => '950505031111', 'email' => 'lain@pkink.test', 'nama_staff' => 'Pendua IC']);
+        $penduaEmel = $this->buatPermohonan(['ic_pekerja' => '950505032222', 'email' => 'AKAUN@pkink.test', 'nama_staff' => 'Pendua Emel']);
+        $biasa = $this->buatPermohonan(['ic_pekerja' => '950505033333', 'email' => 'biasa@pkink.test', 'nama_staff' => 'Pemohon Biasa']);
+
+        $html = $this->actingAs($this->buatPengguna(['ADMIN']))
+            ->get(route('pendaftaran.index'))
+            ->assertOk()
+            ->assertSee('No. KP sudah berdaftar')
+            ->assertSee('Emel sudah berdaftar')
+            ->getContent();
+
+        // Butang Lulus aktif (dengan URL) hanya untuk permohonan biasa
+        $this->assertStringContainsString(route('pendaftaran.lulus', $biasa->pendaftaran_staf_id), $html);
+        $this->assertStringNotContainsString(route('pendaftaran.lulus', $penduaIc->pendaftaran_staf_id), $html);
+        $this->assertStringNotContainsString(route('pendaftaran.lulus', $penduaEmel->pendaftaran_staf_id), $html);
+        $this->assertSame(2, substr_count($html, 'No. KP / emel sudah berdaftar. Sila tolak permohonan ini.'));
+    }
+
+    public function test_pelayan_tetap_tolak_kelulusan_pendua(): void
+    {
+        Notification::fake();
+        $this->buatPengguna(['STAFF'], ['ic_pekerja' => '950505031111']);
+        $p = $this->buatPermohonan(['ic_pekerja' => '950505031111']);
+
+        $this->actingAs($this->buatPengguna(['ADMIN']))
+            ->post(route('pendaftaran.lulus', $p->pendaftaran_staf_id))
+            ->assertSessionHas('error');
+
+        $this->assertSame('Menunggu', $p->fresh()->status);
+        Notification::assertNothingSent();
     }
 
     public function test_validasi_medan_dengan_mesej_bm(): void
@@ -117,17 +168,21 @@ class PendaftaranStafTest extends TestCase
         $this->assertSame(0, PendaftaranStaf::count());
     }
 
-    public function test_had_tiga_permohonan_bagi_setiap_ip(): void
+    public function test_had_lima_cubaan_termasuk_yang_gagal_validasi(): void
     {
-        for ($i = 1; $i <= 3; $i++) {
-            $this->post(route('pendaftaran.simpan'), $this->dataMohon(['ic_pekerja' => "95050503000{$i}", 'email' => "staf{$i}@pkink.test"]))
-                ->assertSessionHas('success');
+        // 4 cubaan gagal validasi format + 1 permohonan sah = 5 cubaan
+        for ($i = 1; $i <= 4; $i++) {
+            $this->from('/')->post(route('pendaftaran.simpan'), $this->dataMohon(['ic_pekerja' => '123']))
+                ->assertSessionHasErrorsIn('pendaftaran', ['ic_pekerja']);
         }
+        $this->post(route('pendaftaran.simpan'), $this->dataMohon(['ic_pekerja' => '950505030001', 'email' => 'staf1@pkink.test']))
+            ->assertSessionHas('success');
 
-        $this->from('/')->post(route('pendaftaran.simpan'), $this->dataMohon(['ic_pekerja' => '950505030004', 'email' => 'staf4@pkink.test']))
+        // Cubaan ke-6 disekat walaupun data sah
+        $this->from('/')->post(route('pendaftaran.simpan'), $this->dataMohon(['ic_pekerja' => '950505030002', 'email' => 'staf2@pkink.test']))
             ->assertSessionHasErrorsIn('pendaftaran', ['pendaftaran']);
 
-        $this->assertSame(3, PendaftaranStaf::count());
+        $this->assertSame(1, PendaftaranStaf::count());
     }
 
     // ------------------------------------------------------------- Akses

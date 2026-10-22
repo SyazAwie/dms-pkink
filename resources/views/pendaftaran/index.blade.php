@@ -56,11 +56,18 @@
             </thead>
             <tbody>
                 @forelse($senarai as $p)
+                    @php
+                        $icWujud = $p->status === 'Menunggu' && in_array($p->ic_pekerja, $penduaIc, true);
+                        $emelWujud = $p->status === 'Menunggu' && in_array(\Illuminate\Support\Str::lower($p->email), $penduaEmel, true);
+                        $pendua = $icWujud || $emelWujud;
+                    @endphp
                     <tr>
                         <td>{{ $p->created_at?->format('d/m/Y h:i A') }}</td>
                         <td>
                             <div class="fw-bold">{{ $p->nama_staff }}</div>
                             <div class="dms-hint">{{ $p->email }}</div>
+                            @if($icWujud)<span class="badge pendua-badge mt-1">No. KP sudah berdaftar</span>@endif
+                            @if($emelWujud)<span class="badge pendua-badge mt-1">Emel sudah berdaftar</span>@endif
                         </td>
                         <td>{{ $p->ic_pekerja }}</td>
                         <td>{{ $p->bahagian->nama_bahagian ?? '-' }}</td>
@@ -76,10 +83,19 @@
                         <td class="text-end">
                             @if($p->status === 'Menunggu')
                                 <div class="d-inline-flex gap-2">
-                                    <button type="button" class="btn-aksi lulus" data-bs-toggle="modal" data-bs-target="#modalLulus"
-                                            data-url="{{ route('pendaftaran.lulus', $p->pendaftaran_staf_id) }}" data-nama="{{ $p->nama_staff }}">
-                                        <i class="bi bi-check2-circle"></i> Lulus
-                                    </button>
+                                    @if($pendua)
+                                        {{-- Pelayan juga menolak kelulusan pendua dalam lulus() --}}
+                                        <span title="No. KP / emel sudah berdaftar. Sila tolak permohonan ini.">
+                                            <button type="button" class="btn-aksi lulus" disabled aria-disabled="true">
+                                                <i class="bi bi-check2-circle"></i> Lulus
+                                            </button>
+                                        </span>
+                                    @else
+                                        <button type="button" class="btn-aksi lulus" data-bs-toggle="modal" data-bs-target="#modalLulus"
+                                                data-url="{{ route('pendaftaran.lulus', $p->pendaftaran_staf_id) }}" data-nama="{{ $p->nama_staff }}">
+                                            <i class="bi bi-check2-circle"></i> Lulus
+                                        </button>
+                                    @endif
                                     <button type="button" class="btn-aksi tolak" data-bs-toggle="modal" data-bs-target="#modalTolak"
                                             data-url="{{ route('pendaftaran.tolak', $p->pendaftaran_staf_id) }}" data-nama="{{ $p->nama_staff }}">
                                         <i class="bi bi-x-circle"></i> Tolak
@@ -196,6 +212,9 @@
     }
     .btn-aksi.lulus { color: var(--dms-mint); border-color: var(--dms-mint); }
     .btn-aksi.lulus:hover { background: rgba(37,169,121,.1); }
+    .btn-aksi:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-aksi.lulus:disabled:hover { background: transparent; }
+    .pendua-badge { display: inline-block; margin-right: 4px; padding: 4px 8px; border-radius: 6px; background: rgba(220,53,69,.1); color: var(--dms-danger); font-size: 10.5px; font-weight: 700; }
     .btn-aksi.tolak { color: var(--dms-danger); border-color: var(--dms-danger); }
     .btn-aksi.tolak:hover { background: rgba(220,53,69,.08); }
 
