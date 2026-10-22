@@ -65,7 +65,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Waktu Malaysia: selari dengan zon sesi MySQL (SYSTEM = +08:00), nilai lalai
+    // CURRENT_TIMESTAMP dan suntingan dalam HeidiSQL (isu #39).
+    'timezone' => env('APP_TIMEZONE', 'Asia/Kuala_Lumpur'),
 
     /*
     |--------------------------------------------------------------------------
