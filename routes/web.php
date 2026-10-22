@@ -12,17 +12,21 @@ use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImbasArkibController;
 
-// Paparan utama akan terus pergi ke halaman login
-Route::get('/', [AuthController::class, 'paparkanLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'prosesLogin'])->name('login.proses');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-Route::get('/lupa-kata-laluan', [PasswordResetController::class, 'paparBorangRequest'])->name('password.request');
-Route::post('/lupa-kata-laluan', [PasswordResetController::class, 'hantarPautanReset'])->name('password.email');
 
-// Reset kata laluan MESTI di luar middleware 'auth': pengguna yang terlupa
-// kata laluan belum log masuk, jadi pautan dari emel perlu boleh dibuka terus.
-Route::get('/reset-kata-laluan/{token}', [PasswordResetController::class, 'paparBorangReset'])->name('password.reset');
-Route::post('/reset-kata-laluan', [PasswordResetController::class, 'kemaskiniKataLaluan'])->name('password.update');
+// Laluan tetamu: pengguna yang sudah log masuk akan dibawa ke papan pemuka
+Route::middleware('guest')->group(function () {
+    // Paparan utama akan terus pergi ke halaman login
+    Route::get('/', [AuthController::class, 'paparkanLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'prosesLogin'])->name('login.proses');
+    Route::get('/lupa-kata-laluan', [PasswordResetController::class, 'paparBorangRequest'])->name('password.request');
+    Route::post('/lupa-kata-laluan', [PasswordResetController::class, 'hantarPautanReset'])->name('password.email');
+
+    // Reset kata laluan MESTI di luar middleware 'auth': pengguna yang terlupa
+    // kata laluan belum log masuk, jadi pautan dari emel perlu boleh dibuka terus.
+    Route::get('/reset-kata-laluan/{token}', [PasswordResetController::class, 'paparBorangReset'])->name('password.reset');
+    Route::post('/reset-kata-laluan', [PasswordResetController::class, 'kemaskiniKataLaluan'])->name('password.update');
+});
 
 // Kumpulan laluan yang dilindungi (Hanya boleh diakses jika dah login)
 Route::middleware('auth')->group(function () {
