@@ -56,6 +56,23 @@ class ProfilTest extends TestCase
         $this->assertSame($bahagian->bahagian_id, (int) $user->bahagian_id);
     }
 
+    public function test_nama_profil_ikut_peraturan_nama(): void
+    {
+        $user = $this->buatPengguna();
+
+        $this->actingAs($user)->from(route('profil.index'))->put(route('profil.kemaskini'), [
+            'nama_staff' => '[Klik](https://evil.test)',
+            'email' => $user->email,
+        ])->assertSessionHasErrorsIn('maklumat', ['nama_staff']);
+
+        $this->actingAs($user)->put(route('profil.kemaskini'), [
+            'nama_staff' => 'Siti a/p Muthu',
+            'email' => $user->email,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('Siti a/p Muthu', $user->fresh()->nama_staff);
+    }
+
     public function test_tukar_emel_wajib_kata_laluan_semasa_yang_betul(): void
     {
         $user = $this->buatPengguna(['STAFF'], ['email' => 'lama@pkink.test']);

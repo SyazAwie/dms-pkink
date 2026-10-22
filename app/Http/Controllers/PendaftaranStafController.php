@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Notifications\PendaftaranDiluluskan;
 use App\Notifications\PendaftaranDitolak;
+use App\Support\PeraturanNama;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -76,14 +77,12 @@ class PendaftaranStafController extends Controller
 
         $data = $request->validateWithBag('pendaftaran', [
             'ic_pekerja' => ['required', 'digits:12'],
-            'nama_staff' => ['required', 'string', 'max:255'],
+            'nama_staff' => PeraturanNama::peraturan(),
             'email' => ['required', 'email', 'max:255'],
             'bahagian_id' => ['required', Rule::exists('bahagian', 'bahagian_id')->whereNull('deleted_at')],
-        ], [
+        ], PeraturanNama::mesej() + [
             'ic_pekerja.required' => 'Sila masukkan No. Kad Pengenalan.',
             'ic_pekerja.digits' => 'No. Kad Pengenalan mesti 12 digit nombor tanpa sengkang (-).',
-            'nama_staff.required' => 'Sila masukkan nama penuh.',
-            'nama_staff.max' => 'Nama penuh terlalu panjang.',
             'email.required' => 'Sila masukkan alamat emel.',
             'email.email' => 'Format alamat emel tidak sah.',
             'email.max' => 'Alamat emel terlalu panjang.',

@@ -122,9 +122,15 @@ trait SkemaUjian
         static $kiraan = 0;
         $kiraan++;
 
+        // Akhiran huruf (A, B, ... AA) supaya nama lulus PeraturanNama (tiada digit)
+        $akhiran = '';
+        for ($n = $kiraan; $n > 0; $n = intdiv($n - 1, 26)) {
+            $akhiran = chr(65 + ($n - 1) % 26) . $akhiran;
+        }
+
         $user = new User(array_merge([
             'ic_pekerja' => str_pad((string) $kiraan, 12, '9', STR_PAD_LEFT),
-            'nama_staff' => "Pengguna Ujian {$kiraan}",
+            'nama_staff' => "Pengguna Ujian {$akhiran}",
             'email' => "ujian{$kiraan}@pkink.test",
             'password' => Hash::make('Lama1234'),
         ], array_intersect_key($atribut, array_flip(['ic_pekerja', 'nama_staff', 'email', 'password', 'bahagian_id']))));

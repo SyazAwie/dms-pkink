@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\PendaftaranStaf;
+use App\Support\TeksEmel;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -29,7 +30,7 @@ class PendaftaranDiluluskan extends Notification
     {
         return (new MailMessage)
             ->subject('Pendaftaran Akaun Diluluskan - Sistem Arkib Digital PKINK')
-            ->greeting('Salam Sejahtera, ' . $this->pendaftaran->nama_staff)
+            ->greeting('Salam Sejahtera, ' . TeksEmel::selamat($this->pendaftaran->nama_staff))
             ->line('Permohonan pendaftaran akaun anda dalam Sistem Arkib Digital PKINK telah **diluluskan**.')
             ->line('Gunakan maklumat berikut untuk log masuk:')
             ->line('**No. Kad Pengenalan:** ' . $this->pendaftaran->ic_pekerja)

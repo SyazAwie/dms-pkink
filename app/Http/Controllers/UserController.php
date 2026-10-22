@@ -6,6 +6,7 @@ use App\Models\Bahagian;
 use App\Models\LogAudit;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\PeraturanNama;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,7 @@ class UserController extends Controller
     {
         $request->validate([
             'ic_pekerja' => ['required', Rule::unique('users')->whereNull('deleted_at')],
-            'nama_staff' => 'required',
+            'nama_staff' => PeraturanNama::peraturan(),
             'email' => ['required', 'email', Rule::unique('users')->whereNull('deleted_at')],
             'bahagian_id' => $this->peraturanBahagian(),
             'password' => 'required|min:6',
@@ -88,7 +89,7 @@ class UserController extends Controller
 
         $request->validate([
             'ic_pekerja' => ['required', Rule::unique('users')->ignore($id, 'user_id')->whereNull('deleted_at')],
-            'nama_staff' => 'required',
+            'nama_staff' => PeraturanNama::peraturan(),
             'email' => ['required', 'email', Rule::unique('users')->ignore($id, 'user_id')->whereNull('deleted_at')],
             'bahagian_id' => $this->peraturanBahagian(),
             'roles' => 'nullable|array',
@@ -201,7 +202,7 @@ class UserController extends Controller
 
     private function mesejBahagian(): array
     {
-        return [
+        return PeraturanNama::mesej() + [
             'bahagian_id.required' => 'Sila pilih Penempatan Bahagian.',
             'bahagian_id.exists' => 'Bahagian yang dipilih tidak sah atau telah dipadam. Sila pilih bahagian lain.',
         ];

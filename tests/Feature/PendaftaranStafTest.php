@@ -10,6 +10,7 @@ use App\Notifications\PendaftaranDiluluskan;
 use App\Notifications\PendaftaranDitolak;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\SkemaUjian;
 use Tests\TestCase;
 
@@ -157,6 +158,44 @@ class PendaftaranStafTest extends TestCase
                 'email' => 'Format alamat emel tidak sah.',
                 'bahagian_id' => 'Bahagian yang dipilih tidak sah.',
             ]);
+    }
+
+    public function test_nama_sah_diterima_dan_nama_berbahaya_ditolak(): void
+    {
+        $sah = ['Ahmad bin Ali', 'Siti a/p Muthu', 'Lee @ Ali', "O'Brien", 'Nur’Aini binti Abu', 'Mohd. Faiz Al-Amin'];
+        foreach ($sah as $i => $nama) {
+            RateLimiter::clear('daftar-staf|127.0.0.1'); // ujian validasi nama, bukan had kadar
+            $this->post(route('pendaftaran.simpan'), $this->dataMohon([
+                'ic_pekerja' => '95050503100' . $i, 'email' => "sah{$i}@pkink.test", 'nama_staff' => $nama,
+            ]))->assertSessionHasNoErrors();
+        }
+        $this->assertSame(count($sah), PendaftaranStaf::count());
+
+        RateLimiter::clear('daftar-staf|127.0.0.1');
+        $mesej = "Nama hanya boleh mengandungi huruf, ruang dan aksara ' . - @ /";
+        foreach (['[Klik di sini](https://evil.test)', 'Ali 123', '<b>Ali</b>'] as $nama) {
+            $this->from('/')->post(route('pendaftaran.simpan'), $this->dataMohon(['nama_staff' => $nama]))
+                ->assertSessionHasErrorsIn('pendaftaran', ['nama_staff' => $mesej]);
+        }
+        $this->assertSame(count($sah), PendaftaranStaf::count());
+    }
+
+    public function test_emel_tidak_mengandungi_pautan_suntikan_markdown(): void
+    {
+        // Rekod lama / sebab tolak ditulis admin: escape mesti berlaku walaupun validasi dilangkau
+        $p = $this->buatPermohonan(['nama_staff' => "O'Brien [Klik](https://evil.test)"]);
+        $p->sebab_tolak = "Tidak lengkap.\n[Sahkan semula](https://evil.test/sah)";
+        $notifiable = Notification::route('mail', $p->email);
+
+        $htmlLulus = (string) (new PendaftaranDiluluskan($p, 'Sementara12', 72))->toMail($notifiable)->render();
+        $htmlTolak = (string) (new PendaftaranDitolak($p))->toMail($notifiable)->render();
+
+        foreach ([$htmlLulus, $htmlTolak] as $html) {
+            $this->assertStringNotContainsString('href="https://evil.test', $html);
+            $this->assertStringContainsString('[Klik](https://evil.test)', html_entity_decode($html, ENT_QUOTES));
+            $this->assertStringContainsString("O'Brien", html_entity_decode($html, ENT_QUOTES));
+        }
+        $this->assertStringContainsString('[Sahkan semula](https://evil.test/sah)', html_entity_decode($htmlTolak, ENT_QUOTES));
     }
 
     public function test_honeypot_diisi_tidak_disimpan(): void
@@ -322,7 +361,8 @@ class PendaftaranStafTest extends TestCase
         $this->assertSame(1, User::count()); // tiada akaun baharu
 
         Notification::assertSentOnDemand(PendaftaranDitolak::class, function ($notifikasi, $saluran, $notifiable) {
-            $kandungan = implode(' ', $notifikasi->toMail($notifiable)->introLines);
+            // Semak HTML yang dirender (teks mentah kini mengandungi escape Markdown)
+            $kandungan = html_entity_decode((string) $notifikasi->toMail($notifiable)->render(), ENT_QUOTES);
 
             return $notifiable->routes['mail'] === 'aminah@pkink.test'
                 && str_contains($kandungan, 'Bukan kakitangan PKINK.');

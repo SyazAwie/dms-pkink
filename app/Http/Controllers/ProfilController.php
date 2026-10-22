@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LogAudit;
+use App\Support\PeraturanNama;
 use App\Support\PolisiKataLaluan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,13 +38,11 @@ class ProfilController extends Controller
         $tukarEmel = Str::lower(trim((string) $request->email)) !== Str::lower($user->email);
 
         $data = $request->validateWithBag('maklumat', [
-            'nama_staff' => ['required', 'string', 'max:255'],
+            'nama_staff' => PeraturanNama::peraturan(),
             'email' => ['required', 'email', 'max:255',
                 Rule::unique('users', 'email')->ignore($user->user_id, 'user_id')->whereNull('deleted_at')],
             'kata_laluan_semasa' => [$tukarEmel ? 'required' : 'nullable', 'current_password'],
-        ], [
-            'nama_staff.required' => 'Sila masukkan nama penuh.',
-            'nama_staff.max' => 'Nama penuh terlalu panjang.',
+        ], PeraturanNama::mesej() + [
             'email.required' => 'Sila masukkan alamat emel.',
             'email.email' => 'Format alamat emel tidak sah.',
             'email.max' => 'Alamat emel terlalu panjang.',
