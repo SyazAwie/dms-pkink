@@ -94,6 +94,7 @@
                                 <i class="bi bi-eye" id="togglePasswordIcon"></i>
                             </button>
                         </div>
+                        <div class="dms-hint">Kakitangan wajib menukar kata laluan ini pada log masuk pertama.</div>
                         @error('password') <div class="dms-error">{{ $message }}</div> @enderror
                     </div>
                 </div>

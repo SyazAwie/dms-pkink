@@ -381,7 +381,7 @@
                                 </button>
                             </div>
 
-                            <p class="hint-text">Gunakan sekurang-kurangnya 8 aksara untuk kata laluan yang lebih selamat.</p>
+                            <p class="hint-text">Sekurang-kurangnya 8 aksara, mengandungi huruf dan nombor.</p>
 
                             @error('password')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>

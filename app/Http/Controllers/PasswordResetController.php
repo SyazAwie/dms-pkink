@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PolisiKataLaluan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
@@ -83,15 +84,19 @@ class PasswordResetController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required|min:6|confirmed', // Mesti ada ruangan password_confirmation
+            'password' => ['required', 'confirmed', PolisiKataLaluan::peraturan()], // Mesti ada ruangan password_confirmation
             'token' => 'required'
-        ]);
+        ], PolisiKataLaluan::mesej('password'));
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
+                // Kata laluan kini dipilih sendiri oleh pengguna: tiada lagi
+                // kata laluan sementara yang perlu ditukar atau tamat tempoh.
                 $user->forceFill([
-                    'password' => Hash::make($password)
+                    'password' => Hash::make($password),
+                    'perlu_tukar_kata_laluan' => false,
+                    'kata_laluan_tamat_pada' => null,
                 ])->setRememberToken(Str::random(60));
 
                 $user->save();

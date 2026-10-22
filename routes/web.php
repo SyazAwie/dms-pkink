@@ -11,6 +11,7 @@ use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImbasArkibController;
+use App\Http\Controllers\ProfilController;
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -28,9 +29,14 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-kata-laluan', [PasswordResetController::class, 'kemaskiniKataLaluan'])->name('password.update');
 });
 
-// Kumpulan laluan yang dilindungi (Hanya boleh diakses jika dah login)
-Route::middleware('auth')->group(function () {
+// Kumpulan laluan yang dilindungi (Hanya boleh diakses jika dah login).
+// 'wajib.tukar': pengguna dengan kata laluan sementara dibawa ke skrin tukar kata laluan dahulu.
+Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ---- Tukar kata laluan sementara (dikecualikan oleh middleware wajib.tukar) ----
+    Route::get('/tukar-kata-laluan', [ProfilController::class, 'paparWajibTukar'])->name('kata-laluan.tukar');
+    Route::put('/tukar-kata-laluan', [ProfilController::class, 'simpanWajibTukar'])->name('kata-laluan.simpan');
 
     // ---- Endpoint JSON: senarai medan EAV bagi satu Jenis Dokumen (borang muat naik dokumen) ----
     Route::get('/jenis-dokumen/{id}/medan', [JenisDokumenController::class, 'medanJson'])

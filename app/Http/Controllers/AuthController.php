@@ -45,6 +45,16 @@ class AuthController extends Controller
 
         // 2. Semak di pangkalan data (Auth::attempt akan automatik cari ic_pekerja)
         if (Auth::attempt($credentials)) {
+            // Kata laluan sementara (emel pendaftaran) hanya sah 72 jam
+            $tamat = Auth::user()->kata_laluan_tamat_pada;
+            if ($tamat && $tamat->isPast()) {
+                Auth::logout();
+
+                return back()->withErrors([
+                    'ic_pekerja' => 'Kata laluan sementara anda telah tamat tempoh. Sila guna "Lupa Kata Laluan?" untuk menetapkan kata laluan baharu.',
+                ])->onlyInput('ic_pekerja');
+            }
+
             // Kaunter IP sengaja TIDAK direset: penyerang boleh log masuk ke akaun
             // sendiri untuk mengosongkannya.
             RateLimiter::clear($kunciHad);

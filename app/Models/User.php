@@ -29,6 +29,13 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    // perlu_tukar_kata_laluan & kata_laluan_tamat_pada sengaja TIDAK dalam $fillable:
+    // hanya ditetapkan oleh kod pelayan (forceFill / tetapan terus), bukan input borang.
+    protected $casts = [
+        'perlu_tukar_kata_laluan' => 'boolean',
+        'kata_laluan_tamat_pada' => 'datetime',
+    ];
+
     // Hubungan dengan jadual bahagian
     public function bahagian()
     {

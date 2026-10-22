@@ -51,13 +51,16 @@ class UserController extends Controller
         }
 
         DB::transaction(function () use ($request, $idPeranan) {
-            $user = User::create([
+            $user = new User([
                 'ic_pekerja' => $request->ic_pekerja,
                 'nama_staff' => $request->nama_staff,
                 'email' => $request->email,
                 'bahagian_id' => $request->bahagian_id,
                 'password' => Hash::make($request->password),
             ]);
+            // Kata laluan ditetapkan oleh admin: pengguna wajib menukarnya pada log masuk pertama
+            $user->perlu_tukar_kata_laluan = true;
+            $user->save();
 
             $user->roles()->attach($idPeranan);
             $this->logPeranan($request, $user, [], $idPeranan);
@@ -128,7 +131,14 @@ class UserController extends Controller
         }
 
         DB::transaction(function () use ($request, $user, $dataKemaskini, $tukarPeranan, $idPerananBaharu) {
-            $user->update($dataKemaskini);
+            $user->fill($dataKemaskini);
+            // Kata laluan ditetapkan oleh admin untuk orang lain: wajib ditukar pada log masuk
+            // seterusnya (tanpa had 72 jam). Admin yang menukar kata laluan sendiri tidak dipaksa.
+            if ($request->filled('password') && (int) $user->user_id !== (int) Auth::id()) {
+                $user->perlu_tukar_kata_laluan = true;
+                $user->kata_laluan_tamat_pada = null;
+            }
+            $user->save();
 
             if ($tukarPeranan) {
                 $idLama = $user->roles->pluck('roles_id')->map(fn ($v) => (int) $v)->all();
