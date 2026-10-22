@@ -32,7 +32,8 @@ class User extends Authenticatable
     // Hubungan dengan jadual bahagian
     public function bahagian()
     {
-        return $this->belongsTo(Bahagian::class, 'bahagian_id', 'bahagian_id');
+        // withTrashed: kakitangan masih papar nama bahagian walaupun bahagian telah dipadam
+        return $this->belongsTo(Bahagian::class, 'bahagian_id', 'bahagian_id')->withTrashed();
     }
 
     /**

@@ -46,7 +46,7 @@
         <div class="summary-head">
             <div>
                 <div class="summary-label">JUMLAH BAHAGIAN</div>
-                <div class="summary-value">{{ $senarai->pluck('bahagian.nama_bahagian')->filter()->unique()->count() }}</div>
+                <div class="summary-value">{{ $senarai->filter(fn ($u) => $u->bahagian && !$u->bahagian->trashed())->pluck('bahagian.nama_bahagian')->unique()->count() }}</div>
             </div>
             <div class="summary-icon"><i class="bi bi-building"></i></div>
         </div>
@@ -108,6 +108,9 @@
                     <td style="font-size: 13px;">
                         @if($item->bahagian)
                             <span class="badge kategori-badge">{{ $item->bahagian->nama_bahagian }}</span>
+                            @if($item->bahagian->trashed())
+                                <span class="badge dipadam-badge" title="Bahagian ini telah dipadam. Sila pindahkan kakitangan ke bahagian aktif.">Dipadam</span>
+                            @endif
                         @else
                             <span class="text-muted">Tiada Bahagian</span>
                         @endif
@@ -241,6 +244,15 @@
         border-radius: 6px;
         letter-spacing: .3px;
         white-space: nowrap;
+    }
+    .dipadam-badge {
+        background: rgba(220, 53, 69, .1);
+        color: var(--dms-danger);
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        margin-left: 4px;
     }
     .kategori-badge {
         background: rgba(37, 169, 121, .1);

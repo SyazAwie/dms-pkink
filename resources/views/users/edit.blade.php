@@ -83,6 +83,9 @@
                                 </option>
                             @endforeach
                         </select>
+                        @if($user->bahagian?->trashed())
+                            <div class="dms-hint" style="color: var(--dms-danger);">Bahagian semasa ({{ $user->bahagian->nama_bahagian }}) telah dipadam. Sila pilih bahagian baharu.</div>
+                        @endif
                         @error('bahagian_id') <div class="dms-error">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6 mb-4">
@@ -162,7 +165,7 @@
                 <div>
                     <div class="preview-name" id="previewNama">{{ $user->nama_staff }}</div>
                     <div class="preview-email" id="previewEmail">{{ $user->email }}</div>
-                    <div class="preview-bahagian" id="previewBahagian">{{ $user->bahagian->nama_bahagian ?? 'Bahagian belum dipilih' }}</div>
+                    <div class="preview-bahagian" id="previewBahagian">{{ $user->bahagian->nama_bahagian ?? 'Bahagian belum dipilih' }}{{ $user->bahagian?->trashed() ? ' (Dipadam)' : '' }}</div>
                 </div>
             </div>
         </div>

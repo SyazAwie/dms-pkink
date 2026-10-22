@@ -34,11 +34,11 @@ class UserController extends Controller
             'ic_pekerja' => ['required', Rule::unique('users')->whereNull('deleted_at')],
             'nama_staff' => 'required',
             'email' => ['required', 'email', Rule::unique('users')->whereNull('deleted_at')],
-            'bahagian_id' => 'required',
+            'bahagian_id' => $this->peraturanBahagian(),
             'password' => 'required|min:6',
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,roles_id',
-        ]);
+        ], $this->mesejBahagian());
 
         // Hanya SUPERADMIN boleh menetapkan peranan. Jika pendaftar ialah ADMIN
         // (atau tiada peranan dipilih), kakitangan baharu mendapat peranan lalai STAFF.
@@ -87,10 +87,10 @@ class UserController extends Controller
             'ic_pekerja' => ['required', Rule::unique('users')->ignore($id, 'user_id')->whereNull('deleted_at')],
             'nama_staff' => 'required',
             'email' => ['required', 'email', Rule::unique('users')->ignore($id, 'user_id')->whereNull('deleted_at')],
-            'bahagian_id' => 'required',
+            'bahagian_id' => $this->peraturanBahagian(),
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,roles_id',
-        ]);
+        ], $this->mesejBahagian());
 
         // Peranan hanya boleh diubah oleh SUPERADMIN, dan hanya jika borang menghantar bahagian peranan
         $tukarPeranan = Auth::user()->hasRole('SUPERADMIN') && $request->boolean('roles_dihantar');
@@ -178,6 +178,23 @@ class UserController extends Controller
         if ($sasaran->hasRole('SUPERADMIN') && !Auth::user()->hasRole('SUPERADMIN')) {
             abort(403, 'Hanya Super Admin boleh mengurus akaun Super Admin.');
         }
+    }
+
+    /**
+     * Bahagian mesti wujud dan belum dipadam. Dropdown hanya senarai bahagian aktif,
+     * tetapi POST yang diubah suai boleh menghantar ID bahagian terpadam atau palsu.
+     */
+    private function peraturanBahagian(): array
+    {
+        return ['required', Rule::exists('bahagian', 'bahagian_id')->whereNull('deleted_at')];
+    }
+
+    private function mesejBahagian(): array
+    {
+        return [
+            'bahagian_id.required' => 'Sila pilih Penempatan Bahagian.',
+            'bahagian_id.exists' => 'Bahagian yang dipilih tidak sah atau telah dipadam. Sila pilih bahagian lain.',
+        ];
     }
 
     /**
