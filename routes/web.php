@@ -34,10 +34,11 @@ Route::middleware('auth')->group(function () {
         ->name('jenis-dokumen.medan');
 
     // ---- Modul pentadbiran: SUPERADMIN & ADMIN sahaja ----
+    // Tiada halaman butiran (show) bagi modul ini, jadi laluan show tidak didaftarkan.
     Route::middleware('peranan:SUPERADMIN,ADMIN')->group(function () {
-        Route::resource('jenis-dokumen', JenisDokumenController::class);   // Kategori Dokumen
-        Route::resource('bahagian', BahagianController::class);            // Pengurusan Bahagian
-        Route::resource('users', UserController::class);                   // Pengurusan Kakitangan
+        Route::resource('jenis-dokumen', JenisDokumenController::class)->except('show');   // Kategori Dokumen
+        Route::resource('bahagian', BahagianController::class)->except('show');            // Pengurusan Bahagian
+        Route::resource('users', UserController::class)->except('show');                   // Pengurusan Kakitangan
     });
 
     // ---- Dokumen: kebenaran dikawal oleh DokumenPolicy dalam controller (ikut peranan & skop) ----
