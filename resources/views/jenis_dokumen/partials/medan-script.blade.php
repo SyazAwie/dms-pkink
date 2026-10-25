@@ -243,5 +243,15 @@
             }
         });
     }
+
+    // Untuk pemilih templat (create.blade.php): gantikan semua baris dengan medan templat/salinan
+    window.__pembinaMedan = {
+        gantiSemua(senarai) {
+            [...container.querySelectorAll('.medan-row')].forEach(buangBaris);
+            (senarai || []).forEach(tambahBaris);
+            kemaskiniEmptyState();
+        },
+        bilanganBaris: () => container.querySelectorAll('.medan-row').length,
+    };
 })();
 </script>

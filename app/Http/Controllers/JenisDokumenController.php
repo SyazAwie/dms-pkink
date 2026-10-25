@@ -6,6 +6,7 @@ use App\Models\JenisDokumen;
 use App\Models\DokumenField;
 use App\Support\JenisMedan;
 use App\Support\MedanJadual;
+use App\Support\TemplatKategori;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
@@ -23,7 +24,12 @@ class JenisDokumenController extends Controller
     // 2. Fungsi paparkan borang tambah baharu
     public function create()
     {
-        return view('jenis_dokumen.create');
+        // Templat permulaan (memo, surat, minit, borang) dan kategori sedia ada untuk disalin
+        return view('jenis_dokumen.create', [
+            'templat' => TemplatKategori::senarai(),
+            'salinan' => TemplatKategori::salinanKategori(),
+            'kategoriCadangan' => TemplatKategori::kategoriCadangan(),
+        ]);
     }
 
     // 3. Fungsi simpan data ke database
@@ -51,7 +57,9 @@ class JenisDokumenController extends Controller
     public function edit($id)
     {
         $dokumen = JenisDokumen::with('fields')->findOrFail($id);
-        return view('jenis_dokumen.edit', compact('dokumen'));
+        $kategoriCadangan = TemplatKategori::kategoriCadangan();
+
+        return view('jenis_dokumen.edit', compact('dokumen', 'kategoriCadangan'));
     }
 
     // 5. Simpan kemas kini data

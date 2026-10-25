@@ -67,7 +67,11 @@
                            class="dms-input"
                            value="{{ old('kategori', $dokumen->kategori) }}"
                            maxlength="100"
+                           list="senaraiKategori"
                            autocomplete="off">
+                    <datalist id="senaraiKategori">
+                        @foreach($kategoriCadangan as $k)<option value="{{ $k }}"></option>@endforeach
+                    </datalist>
                     <div class="dms-hint">Kumpulan umum untuk memudahkan carian dan penapisan</div>
                 </div>
 
