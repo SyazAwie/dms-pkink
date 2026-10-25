@@ -24,6 +24,7 @@ use Illuminate\Validation\Rule;
  *   lain     true = tambah pilihan "Lain-lain (nyatakan)" (dropdown/radio/kotak semak)
  *
  * Kotak semak disimpan sebagai senarai JSON, cth. ["Emel","Lain-lain: Intranet"].
+ * Jadual (baris berulang) diurus oleh App\Support\MedanJadual.
  *
  * Input borang dirender oleh satu partial: resources/views/dokumen/partials/medan-input.blade.php
  */
@@ -45,6 +46,7 @@ final class JenisMedan
         'radio' => 'Pilihan Tunggal (Radio)',
         'kotak_semak' => 'Kotak Semak (Banyak Pilihan)',
         'ya_tidak' => 'Ya / Tidak',
+        'jadual' => 'Jadual (Baris Berulang)',
         'seksyen' => 'Tajuk Seksyen (tiada nilai)',
     ];
 
@@ -88,6 +90,9 @@ final class JenisMedan
     {
         if (!self::adaNilai($medan)) {
             return [];
+        }
+        if ($medan->jenis_data === 'jadual') {
+            return MedanJadual::peraturan($medan);
         }
 
         $id = $medan->dokumen_field_id;
@@ -192,6 +197,10 @@ final class JenisMedan
             return null;
         }
 
+        if ($medan->jenis_data === 'jadual') {
+            return MedanJadual::untukSimpan($medan, $nilai);
+        }
+
         if ($medan->jenis_data === 'kotak_semak') {
             $dipilih = (array) $nilai;
             // Ikut susunan senarai pilihan supaya nilai sama sentiasa disimpan sama (diff log audit)
@@ -221,6 +230,10 @@ final class JenisMedan
      */
     public static function untukBorang(DokumenField $medan, ?string $nilai): array
     {
+        if ($medan->jenis_data === 'jadual') {
+            return [MedanJadual::untukBorang($medan, $nilai), ''];
+        }
+
         if ($medan->jenis_data === 'kotak_semak') {
             $dipilih = [];
             $teksLain = '';
@@ -276,6 +289,7 @@ final class JenisMedan
                 fn ($v) => '<span class="medan-cip">' . $e($v) . '</span>',
                 self::senaraiNilai($nilai)
             )),
+            'jadual' => MedanJadual::papar($medan, $nilai),
             default => $e($nilai),
         };
 
@@ -301,6 +315,7 @@ final class JenisMedan
             'kotak_semak' => 'senarai JSON nilai yang ditanda, dipilih daripada [' . implode(', ', $medan->pilihan ?? []) . ']'
                 . (self::adaLain($medan) ? '; jawapan lain yang jelas boleh dimasukkan' : '') . ', cth. ["a","b"]',
             'ya_tidak' => 'tulis "Ya" atau "Tidak" sahaja',
+            'jadual' => MedanJadual::panduanAi($medan),
             'textarea' => 'teks panjang',
             default => 'teks',
         };
@@ -319,6 +334,9 @@ final class JenisMedan
         }
         if ($medan->jenis_data === 'kotak_semak') {
             return self::bersihkanKotakSemakAi($medan, $nilai);
+        }
+        if ($medan->jenis_data === 'jadual') {
+            return MedanJadual::bersihkanAi($medan, $nilai);
         }
         if (is_array($nilai) || is_object($nilai)) {
             return null;

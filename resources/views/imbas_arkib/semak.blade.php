@@ -139,6 +139,7 @@
 @endpush
 
 @push('scripts')
+@include('dokumen.partials.medan-skrip')
 <script>
     // Elak klik dua kali (pelayan juga menyekat simpan berganda melalui token)
     document.getElementById('formSimpan').addEventListener('submit', function () {

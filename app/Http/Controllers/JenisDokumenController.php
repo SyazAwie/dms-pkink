@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JenisDokumen;
 use App\Models\DokumenField;
 use App\Support\JenisMedan;
+use App\Support\MedanJadual;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
@@ -30,6 +31,7 @@ class JenisDokumenController extends Controller
     {
         $validated = $this->validasiBorang($request);
         $this->semakKodMedanPendua($request);
+        $this->semakLajurJadual($request);
 
         DB::transaction(function () use ($request, $validated) {
             $dokumen = JenisDokumen::create([
@@ -59,6 +61,7 @@ class JenisDokumenController extends Controller
 
         $validated = $this->validasiBorang($request, $id);
         $this->semakKodMedanPendua($request);
+        $this->semakLajurJadual($request);
 
         DB::transaction(function () use ($request, $validated, $dokumen) {
             $dokumen->update([
@@ -123,9 +126,34 @@ class JenisDokumenController extends Controller
             'medan.*.pilihan' => 'nullable|string',
             'medan.*.bantuan' => 'nullable|string|max:255',
             'medan.*.lain' => 'nullable|boolean',
+            // Jadual: definisi lajur dan baris tetap (App\Support\MedanJadual)
+            'medan.*.lajur' => 'nullable|array|max:20',
+            'medan.*.lajur.*.nama' => 'nullable|string|max:100',
+            'medan.*.lajur.*.kod' => 'nullable|string|max:100',
+            'medan.*.lajur.*.jenis' => ['nullable', Rule::in(array_keys(MedanJadual::JENIS_LAJUR))],
+            'medan.*.lajur.*.pilihan' => 'nullable|string|max:1000',
+            'medan.*.baris_tetap' => 'nullable|string|max:1000',
         ], [
             'medan.*.bantuan.max' => 'Teks bantuan medan tidak boleh melebihi 255 aksara.',
+            'medan.*.lajur.max' => 'Jadual tidak boleh melebihi 20 lajur.',
         ]);
+    }
+
+    /**
+     * Setiap medan jadual mesti ada sekurang-kurangnya satu lajur bernama.
+     */
+    private function semakLajurJadual(Request $request): void
+    {
+        foreach ($request->input('medan', []) as $baris) {
+            if (($baris['jenis_data'] ?? null) !== 'jadual' || empty($baris['nama_field'])) {
+                continue;
+            }
+            if (empty(MedanJadual::tetapanDaripadaPembina($baris)['lajur'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'medan' => "Medan jadual \"{$baris['nama_field']}\" mesti ada sekurang-kurangnya satu lajur.",
+                ]);
+            }
+        }
     }
 
     /**
@@ -167,6 +195,9 @@ class JenisDokumenController extends Controller
                 'bantuan' => trim((string) ($row['bantuan'] ?? '')) ?: null,
                 'lain' => $adaPilihan && !empty($row['lain']) ? true : null,
             ], fn ($v) => $v !== null);
+            if ($jenisData === 'jadual') {
+                $tetapan += MedanJadual::tetapanDaripadaPembina($row);
+            }
 
             $data = [
                 'nama_field' => $row['nama_field'],

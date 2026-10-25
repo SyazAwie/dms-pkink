@@ -191,3 +191,7 @@
     .meta-list li strong { color: var(--dms-brand); font-weight: 700; }
 </style>
 @endpush
+
+@push('scripts')
+@include('dokumen.partials.medan-skrip')
+@endpush

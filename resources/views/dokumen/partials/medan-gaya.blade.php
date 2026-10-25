@@ -29,6 +29,31 @@
     .medan-seksyen { margin: 18px 0 12px; padding: 8px 12px; border-left: 3px solid var(--dms-primary); background: rgba(23, 105, 210, .05); border-radius: 0 8px 8px 0; }
     .medan-seksyen-tajuk { font-size: 13px; font-weight: 800; color: var(--dms-brand); text-transform: uppercase; letter-spacing: .3px; }
 
+    /* Jadual (baris berulang) */
+    .medan-jadual-wrap { overflow-x: auto; border: 1px solid var(--dms-line); border-radius: 10px; background: var(--dms-surface-strong); }
+    .medan-jadual-input { width: 100%; border-collapse: collapse; font-size: 12.5px; counter-reset: baris; }
+    .medan-jadual-input th {
+        padding: 8px 10px; background: rgba(23, 105, 210, .05); color: var(--dms-brand);
+        font-weight: 700; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--dms-line);
+    }
+    .medan-jadual-input td { padding: 6px; border-bottom: 1px solid var(--dms-line); vertical-align: middle; min-width: 120px; }
+    .medan-jadual-input tbody tr:last-child td { border-bottom: none; }
+    .medan-jadual-input tbody tr { counter-increment: baris; }
+    .medan-jadual-input .dms-input { padding: 7px 9px; font-size: 12.5px; border-radius: 8px; }
+    .medan-jadual-input .medan-jadual-label { min-width: 0; width: 1%; white-space: nowrap; font-weight: 700; color: var(--dms-text); }
+    .medan-jadual-input.ada-baris-tetap .medan-jadual-label { min-width: 120px; white-space: normal; }
+    .medan-jadual-bil::before { content: counter(baris); color: var(--dms-muted); }
+    .medan-jadual-tindakan { min-width: 0 !important; width: 1%; }
+    .medan-jadual-buang {
+        border: 1px solid var(--dms-line); background: transparent; color: var(--dms-danger);
+        border-radius: 8px; padding: 5px 9px; cursor: pointer;
+    }
+    .medan-jadual-buang:hover { background: rgba(220, 53, 69, .08); }
+    .medan-jadual-tambah {
+        margin-top: 8px; border: 1px dashed var(--dms-primary); background: rgba(23, 105, 210, .04);
+        color: var(--dms-primary); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+
     .tag-ai {
         background: rgba(124, 58, 237, .12); color: #7c3aed;
         font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-left: 4px;

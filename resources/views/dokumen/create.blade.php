@@ -181,6 +181,7 @@
 @endpush
 
 @push('scripts')
+@include('dokumen.partials.medan-skrip')
 <script>
 (() => {
     const selectJenis = document.getElementById('jenis_dokumen_id');

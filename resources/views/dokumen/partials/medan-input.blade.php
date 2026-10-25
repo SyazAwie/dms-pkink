@@ -13,7 +13,11 @@
 
     $fid = $field->dokumen_field_id;
     $nama = "medan_data[{$fid}]";
-    $nilaiSenarai = is_array($nilai) ? array_map('strval', $nilai) : [];
+    // Kotak semak: senarai nilai; jadual: senarai baris (tatasusunan bersarang)
+    $nilaiJadual = $field->jenis_data === 'jadual' && is_array($nilai) ? $nilai : null;
+    $nilaiSenarai = $field->jenis_data === 'kotak_semak' && is_array($nilai)
+        ? array_map('strval', array_filter($nilai, 'is_scalar'))
+        : [];
     $nilai = is_array($nilai) ? '' : (string) ($nilai ?? '');
     $nilaiLain = (string) ($nilaiLain ?? '');
     $wajib = $field->is_required ? 'required' : '';
@@ -39,7 +43,7 @@
     </div>
 @else
 <div class="mb-3 medan-eav" data-jenis="{{ $field->jenis_data }}">
-    <label class="dms-label" @if(!in_array($field->jenis_data, ['radio', 'ya_tidak', 'kotak_semak'], true)) for="medan_{{ $fid }}" @endif>
+    <label class="dms-label" @if(!in_array($field->jenis_data, ['radio', 'ya_tidak', 'kotak_semak', 'jadual'], true)) for="medan_{{ $fid }}" @endif>
         {{ $field->nama_field }}
         @if($field->is_required)<span class="text-danger">*</span>@endif
         @if($diisiAi ?? false)<span class="badge tag-ai">Diisi AI</span>@endif
@@ -136,6 +140,48 @@
                 <div class="dms-hint">Nilai lama yang tiada lagi dalam senarai pilihan: <strong>{{ implode(', ', $nilaiLamaSenarai) }}</strong> (akan dibuang bila disimpan).</div>
             @endif
             @error("medan_data.{$fid}.*") <div class="dms-error">{{ $message }}</div> @enderror
+            @break
+        @case('jadual')
+            @php
+                $lajurJadual = \App\Support\MedanJadual::lajur($field);
+                $adaBarisTetap = (bool) \App\Support\MedanJadual::barisTetap($field);
+                $barisJadual = \App\Support\MedanJadual::susunBaris($field, $nilaiJadual);
+            @endphp
+            {{-- Tambah/buang baris dikendalikan oleh medan-skrip (delegasi acara, berfungsi juga untuk HTML yang di-fetch) --}}
+            <div class="medan-jadual" data-seterusnya="{{ max(array_map('intval', array_keys($barisJadual))) + 1 }}">
+                <div class="medan-jadual-wrap">
+                    <table class="medan-jadual-input {{ $adaBarisTetap ? 'ada-baris-tetap' : '' }}">
+                        <thead>
+                            <tr>
+                                <th class="medan-jadual-label">{{ $adaBarisTetap ? '' : 'Bil' }}</th>
+                                @foreach($lajurJadual as $l)<th>{{ $l['nama'] }}</th>@endforeach
+                                @unless($adaBarisTetap)<th aria-label="Tindakan"></th>@endunless
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($barisJadual as $i => $b)
+                                @include('dokumen.partials.medan-jadual-baris', ['field' => $field, 'lajur' => $lajurJadual, 'i' => $i, 'b' => $b, 'adaBarisTetap' => $adaBarisTetap])
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @unless($adaBarisTetap)
+                    <template class="medan-jadual-templat">
+                        @include('dokumen.partials.medan-jadual-baris', ['field' => $field, 'lajur' => $lajurJadual, 'i' => '__I__', 'b' => [], 'adaBarisTetap' => false])
+                    </template>
+                    <button type="button" class="medan-jadual-tambah"><i class="bi bi-plus-lg"></i> Tambah Baris</button>
+                @endunless
+            </div>
+            {{-- Ralat sel dipaparkan dalam BM dengan nombor baris & nama lajur --}}
+            @php $kedudukanBaris = array_flip(array_map('strval', array_keys($barisJadual))); @endphp
+            @foreach($errors->get("medan_data.{$fid}.*") as $kunciRalat => $_)
+                @php
+                    $bahagian = explode('.', $kunciRalat);
+                    $namaLajur = collect($lajurJadual)->firstWhere('kod', $bahagian[3] ?? null)['nama'] ?? 'Baris';
+                    $noBaris = ($kedudukanBaris[$bahagian[2] ?? ''] ?? 0) + 1;
+                @endphp
+                <div class="dms-error">Baris {{ $noBaris }}, {{ $namaLajur }}: nilai tidak sah.</div>
+            @endforeach
             @break
         @case('textarea')
             <textarea id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" rows="3" {{ $wajib }}>{{ $nilai }}</textarea>
