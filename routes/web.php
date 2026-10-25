@@ -47,8 +47,8 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::put('/profil', [ProfilController::class, 'kemaskiniMaklumat'])->name('profil.kemaskini');
     Route::put('/profil/kata-laluan', [ProfilController::class, 'kemaskiniKataLaluan'])->name('profil.kata-laluan');
 
-    // ---- Endpoint JSON: senarai medan EAV bagi satu Jenis Dokumen (borang muat naik dokumen) ----
-    Route::get('/jenis-dokumen/{id}/medan', [JenisDokumenController::class, 'medanJson'])
+    // ---- Endpoint HTML: input medan EAV bagi satu Jenis Dokumen (borang muat naik dokumen) ----
+    Route::get('/jenis-dokumen/{id}/medan', [JenisDokumenController::class, 'medanBorang'])
         ->middleware('peranan:SUPERADMIN,ADMIN,KERANI,PENGURUS,STAFF')
         ->name('jenis-dokumen.medan');
 

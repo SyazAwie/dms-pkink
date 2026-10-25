@@ -39,6 +39,9 @@ return [
         'bahasa' => env('OCR_BAHASA', 'msa+eng'),
         'tesseract_bin' => env('OCR_TESSERACT_BIN', 'tesseract'),
         'pdftoppm_bin' => env('OCR_PDFTOPPM_BIN', 'pdftoppm'),
+        // Had masa (saat) bagi permintaan yang menjalankan OCR/AI secara segerak;
+        // php.ini lalai (30 saat) tidak cukup untuk PDF besar atau borang banyak medan.
+        'had_masa' => (int) env('OCR_HAD_MASA', 300),
     ],
 
     'ollama' => [

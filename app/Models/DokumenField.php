@@ -19,12 +19,15 @@ class DokumenField extends Model
         'kod_field',
         'jenis_data',
         'pilihan',
+        'tetapan',
         'is_required',
         'susunan',
     ];
 
     protected $casts = [
         'pilihan' => 'array',
+        // Tetapan tambahan ikut jenis data (bantuan, lain, ...); lihat App\Support\JenisMedan
+        'tetapan' => 'array',
         'is_required' => 'boolean',
     ];
 

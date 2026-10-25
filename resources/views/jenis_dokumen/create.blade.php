@@ -67,11 +67,41 @@
                            value="{{ old('kategori') }}"
                            placeholder="Contoh: Pentadbiran"
                            maxlength="100"
+                           list="senaraiKategori"
                            autocomplete="off">
+                    <datalist id="senaraiKategori">
+                        @foreach($kategoriCadangan as $k)<option value="{{ $k }}"></option>@endforeach
+                    </datalist>
                     <div class="dms-hint">Kumpulan umum untuk memudahkan carian dan penapisan</div>
                 </div>
 
                 <hr class="dms-divider">
+
+                <!-- ============ Mula daripada templat / salinan kategori ============ -->
+                <div class="mb-3 templat-pilih">
+                    <label class="dms-label" for="pilihTemplat">Mula Daripada <span class="dms-optional">(Pilihan)</span></label>
+                    <div class="templat-baris">
+                        <select id="pilihTemplat" class="dms-input">
+                            <option value="">Kosong (bina medan sendiri)</option>
+                            <optgroup label="Templat">
+                                @foreach($templat as $kodTemplat => $t)
+                                    <option value="templat:{{ $kodTemplat }}">{{ $t['nama'] }} ({{ count($t['medan']) }} medan)</option>
+                                @endforeach
+                            </optgroup>
+                            @if($salinan)
+                                <optgroup label="Salin daripada kategori sedia ada">
+                                    @foreach($salinan as $s)
+                                        <option value="salin:{{ $s['id'] }}">{{ $s['nama'] }} ({{ $s['kod'] }}, {{ count($s['medan']) }} medan)</option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                        </select>
+                        <button type="button" id="btnGunaTemplat" class="outline-button">
+                            <i class="bi bi-magic"></i> <span>Guna</span>
+                        </button>
+                    </div>
+                    <div class="dms-hint" id="templatKeterangan">Muatkan medan siap untuk memo, surat, minit mesyuarat atau borang, kemudian ubah suai sebelum simpan.</div>
+                </div>
 
                 <!-- ============ Seksyen Medan Dinamik (EAV) ============ -->
                 <div class="eav-section">
@@ -88,13 +118,16 @@
                     @error('medan')
                         <div class="dms-error mb-2">{{ $message }}</div>
                     @enderror
+                    @foreach($errors->get('medan.*') as $senaraiRalat)
+                        @foreach($senaraiRalat as $ralat)<div class="dms-error mb-2">{{ $ralat }}</div>@endforeach
+                    @endforeach
 
                     <div id="senaraiMedan" class="mt-3"></div>
                     <div id="medanKosong" class="dms-hint text-center py-3">
                         Belum ada medan didaftarkan. Klik "Tambah Medan" untuk mula.
                     </div>
                 </div>
-                <input type="hidden" name="medan_dipadam" id="medan_dipadam" value="">
+                <input type="hidden" name="medan_dipadam" id="medan_dipadam" value="{{ old('medan_dipadam') }}">
                 <!-- ============ Tamat Seksyen EAV ============ -->
 
                 <hr class="dms-divider">
@@ -226,6 +259,8 @@
 
     /* ============ Seksyen Medan Dinamik (EAV) ============ */
     .eav-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .templat-baris { display: flex; gap: 8px; }
+    .templat-baris .outline-button { white-space: nowrap; }
     .eav-btn-tambah { padding: 8px 16px; font-size: 12.5px; white-space: nowrap; }
 
     .medan-row {
@@ -298,7 +333,48 @@
 </script>
 
 <script>
-    window.__medanSediaAda = [];
+    // Selepas ralat validasi, pulihkan baris yang ditaip (old) supaya tidak hilang
+    window.__medanSediaAda = @json(array_values(old('medan', [])));
 </script>
 @include('jenis_dokumen.partials.medan-script')
+<script>
+    // Pemilih "Mula Daripada": templat (App\Support\TemplatKategori) atau salinan medan kategori sedia ada
+    (() => {
+        const TEMPLAT = @json($templat);
+        const SALINAN = @json($salinan);
+        const pilih = document.getElementById('pilihTemplat');
+        const butang = document.getElementById('btnGunaTemplat');
+        const keterangan = document.getElementById('templatKeterangan');
+        const kategoriInput = document.getElementById('kategori');
+        const asalKeterangan = keterangan.textContent;
+
+        function sumber() {
+            const [jenis, kunci] = pilih.value.split(':');
+            if (jenis === 'templat') return TEMPLAT[kunci];
+            if (jenis === 'salin') {
+                const s = SALINAN.find((k) => String(k.id) === kunci);
+                return s && { nama: s.nama, kategori: s.kategori, keterangan: `Salinan ${s.medan.length} medan daripada ${s.kod}.`, medan: s.medan };
+            }
+            return null;
+        }
+
+        pilih.addEventListener('change', () => {
+            const s = sumber();
+            keterangan.textContent = s
+                ? `${s.keterangan} Medan sedia ada dalam pembina akan digantikan.`
+                : asalKeterangan;
+        });
+
+        butang.addEventListener('click', () => {
+            const s = sumber();
+            if (!s) return;
+            window.__pembinaMedan.gantiSemua(s.medan);
+            if (kategoriInput && !kategoriInput.value.trim() && s.kategori) {
+                kategoriInput.value = s.kategori;
+                kategoriInput.dispatchEvent(new Event('input'));
+            }
+            keterangan.textContent = `${s.medan.length} medan dimuatkan daripada "${s.nama}". Semak dan ubah suai sebelum simpan.`;
+        });
+    })();
+</script>
 @endpush
