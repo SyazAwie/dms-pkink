@@ -72,11 +72,16 @@
                     <label class="dms-label mb-0">Medan Dokumen</label>
                     <div class="dms-hint mb-2">Medan berikut akan berubah automatik ikut Jenis Dokumen dipilih.</div>
 
-                    <div id="medanDataContainer"></div>
+                    {{-- Selepas ralat validasi, medan dirender di sini dengan nilai old(); jika tidak, dimuatkan melalui fetch() --}}
+                    <div id="medanDataContainer">
+                        @if($jenisTerpilih)
+                            @include('dokumen.partials.medan-senarai', ['medanSenarai' => $jenisTerpilih->fields])
+                        @endif
+                    </div>
                     <div id="medanDataLoading" class="dms-hint text-center py-3" style="display:none;">
                         Memuatkan medan...
                     </div>
-                    <div id="medanDataKosong" class="dms-hint text-center py-3">
+                    <div id="medanDataKosong" class="dms-hint text-center py-3" @if($jenisTerpilih) style="display:none;" @endif>
                         Sila pilih Jenis Dokumen dahulu untuk papar medan berkaitan.
                     </div>
                 </div>
@@ -181,46 +186,10 @@
     const container = document.getElementById('medanDataContainer');
     const emptyState = document.getElementById('medanDataKosong');
     const loadingState = document.getElementById('medanDataLoading');
+    // Laluan dijana oleh route() (bukan laluan keras), jadi tetap betul jika aplikasi dipasang dalam subfolder
+    const urlMedan = @json(route('jenis-dokumen.medan', '__ID__'));
 
-    function escAttr(str) {
-        return String(str ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/"/g, '&quot;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-    }
-
-    function binaInput(field) {
-        const namaAttr = `medan_data[${field.dokumen_field_id}]`;
-        const wajib = field.is_required ? 'required' : '';
-        const tanda = field.is_required ? '<span class="text-danger">*</span>' : '';
-        let inputHtml = '';
-
-        switch (field.jenis_data) {
-            case 'nombor':
-                inputHtml = `<input type="number" step="0.01" name="${namaAttr}" class="dms-input" ${wajib}>`;
-                break;
-            case 'tarikh':
-                inputHtml = `<input type="date" name="${namaAttr}" class="dms-input" ${wajib}>`;
-                break;
-            case 'dropdown': {
-                const opsyen = (field.pilihan || []).map(p => `<option value="${escAttr(p)}">${escAttr(p)}</option>`).join('');
-                inputHtml = `<select name="${namaAttr}" class="dms-input" ${wajib}><option value="">Pilih...</option>${opsyen}</select>`;
-                break;
-            }
-            case 'textarea':
-                inputHtml = `<textarea name="${namaAttr}" class="dms-input" rows="3" ${wajib}></textarea>`;
-                break;
-            default:
-                inputHtml = `<input type="text" name="${namaAttr}" class="dms-input" ${wajib}>`;
-        }
-
-        const wrap = document.createElement('div');
-        wrap.className = 'mb-3';
-        wrap.innerHTML = `<label class="dms-label">${escAttr(field.nama_field)} ${tanda}</label>${inputHtml}`;
-        return wrap;
-    }
-
+    // Medan dirender di pelayan (partial dokumen.partials.medan-senarai) dan dipulangkan sebagai HTML
     async function papar(jenisId) {
         container.innerHTML = '';
         emptyState.style.display = 'none';
@@ -233,26 +202,22 @@
 
         loadingState.style.display = 'block';
         try {
-            const res = await fetch(`/jenis-dokumen/${jenisId}/medan`);
+            const res = await fetch(urlMedan.replace('__ID__', encodeURIComponent(jenisId)), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
             if (!res.ok) throw new Error('Gagal ambil medan');
-            const senaraiMedan = await res.json();
-            loadingState.style.display = 'none';
-
-            if (!senaraiMedan.length) {
-                emptyState.textContent = 'Jenis Dokumen ini belum ada medan didaftarkan.';
-                emptyState.style.display = 'block';
-                return;
-            }
-            senaraiMedan.forEach(field => container.appendChild(binaInput(field)));
+            container.innerHTML = await res.text();
         } catch (e) {
-            loadingState.style.display = 'none';
             container.innerHTML = '<div class="dms-error">Gagal muatkan medan. Sila cuba semula.</div>';
+        } finally {
+            loadingState.style.display = 'none';
         }
     }
 
     if (selectJenis) {
         selectJenis.addEventListener('change', () => papar(selectJenis.value));
-        if (selectJenis.value) papar(selectJenis.value);
+        // Jika medan sudah dirender di pelayan (selepas ralat validasi), jangan muat semula: nilai old() akan hilang
+        if (selectJenis.value && !container.children.length) papar(selectJenis.value);
     }
 })();
 </script>

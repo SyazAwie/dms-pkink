@@ -11,6 +11,7 @@ use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Services\OcrService;
 use App\Services\OllamaExtractionService;
+use App\Support\JenisMedan;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -230,8 +231,8 @@ class ImbasArkibController extends DokumenController
                     }
 
                     foreach ($jenisDokumen->fields as $f) {
-                        $nilai = $request->input("medan_data.{$f->dokumen_field_id}");
-                        if ($nilai === null || $nilai === '') {
+                        $nilai = JenisMedan::untukSimpan($f, $request->input("medan_data.{$f->dokumen_field_id}"));
+                        if ($nilai === null) {
                             continue;
                         }
                         DokumenData::create([

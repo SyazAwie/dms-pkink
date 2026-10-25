@@ -11,13 +11,13 @@ use App\Services\OcrService;
 use Illuminate\Support\Facades\Log;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
+use App\Support\JenisMedan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class DokumenController extends Controller
 {
@@ -94,7 +94,14 @@ class DokumenController extends Controller
         Gate::authorize('create', Dokumen::class);
 
         $jenisDokumenSenarai = JenisDokumen::orderBy('nama_dokumen')->get();
-        return view('dokumen.create', compact('jenisDokumenSenarai'));
+
+        // Selepas ralat validasi, render semula medan kategori yang dipilih di pelayan
+        // supaya nilai yang ditaip (old()) dan mesej ralat medan dipaparkan.
+        $jenisTerpilih = old('jenis_dokumen_id')
+            ? JenisDokumen::with('fields')->find(old('jenis_dokumen_id'))
+            : null;
+
+        return view('dokumen.create', compact('jenisDokumenSenarai', 'jenisTerpilih'));
     }
 
     // Simpan dokumen + nilai medan EAV + fail imbasan
@@ -102,18 +109,19 @@ class DokumenController extends Controller
     {
         Gate::authorize('create', Dokumen::class);
 
+        // Peraturan validasi DINAMIK ikut definisi dokumen_field bagi Jenis Dokumen dipilih,
+        // disahkan sekali dengan medan tetap supaya semua ralat dipaparkan serentak.
+        $jenisDipilih = JenisDokumen::with('fields')->find($request->input('jenis_dokumen_id'));
+
         $request->validate([
             'jenis_dokumen_id' => 'required|exists:jenis_dokumen,jenis_dokumen_id',
             'tarikh_dokumen' => 'required|date',
             'perkara' => 'nullable|max:255',
             'fail_scan' => 'required|array|min:1',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ]);
+        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih) : []));
 
-        $jenisDokumen = JenisDokumen::with('fields')->findOrFail($request->jenis_dokumen_id);
-
-        // Peraturan validasi DINAMIK ikut definisi dokumen_field bagi Jenis Dokumen dipilih
-        $request->validate($this->peraturanMedan($jenisDokumen));
+        $jenisDokumen = $jenisDipilih;
 
         // Cuba simpan dengan percubaan semula sekiranya no_rujukan bertembung
         // (dua staf muat naik jenis+tahun sama pada masa hampir serentak).
@@ -137,8 +145,8 @@ class DokumenController extends Controller
                     // Gelung atas medan Jenis Dokumen ini sahaja (bukan kunci permintaan),
                     // supaya nilai untuk medan kategori lain atau ID palsu diabaikan.
                     foreach ($jenisDokumen->fields as $field) {
-                        $nilai = $request->input("medan_data.{$field->dokumen_field_id}");
-                        if ($nilai === null || $nilai === '') {
+                        $nilai = JenisMedan::untukSimpan($field, $request->input("medan_data.{$field->dokumen_field_id}"));
+                        if ($nilai === null) {
                             continue;
                         }
                         DokumenData::create([
@@ -218,8 +226,7 @@ class DokumenController extends Controller
             'hapus_scan.*' => 'integer',
             'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ]);
-        $request->validate($this->peraturanMedan($dokumen->jenisDokumen));
+        ] + $this->peraturanMedan($dokumen->jenisDokumen));
 
         // Hanya fail milik dokumen ini boleh dibuang
         $idHapus = $dokumen->scans
@@ -251,8 +258,7 @@ class DokumenController extends Controller
                 // Nilai medan EAV: hanya proses medan yang nilainya berubah
                 foreach ($dokumen->jenisDokumen->fields as $field) {
                     $fieldId = $field->dokumen_field_id;
-                    $baharu = $request->input("medan_data.{$fieldId}");
-                    $baharu = ($baharu === null || $baharu === '') ? null : (string) $baharu;
+                    $baharu = JenisMedan::untukSimpan($field, $request->input("medan_data.{$fieldId}"));
                     $lama = isset($nilaiSedia[$fieldId]) ? (string) $nilaiSedia[$fieldId] : null;
 
                     if ($lama === $baharu) {
@@ -354,30 +360,14 @@ class DokumenController extends Controller
     }
 
     /**
-     * Peraturan validasi dinamik bagi nilai medan EAV (dikongsi store & update):
-     * wajib/pilihan, jenis data, dan senarai pilihan dropdown.
+     * Peraturan validasi dinamik bagi nilai medan EAV (dikongsi store, update
+     * dan Imbas & Arkib). Peraturan setiap jenis data ada dalam JenisMedan.
      */
     protected function peraturanMedan(JenisDokumen $jenisDokumen): array
     {
         $peraturanMedan = [];
         foreach ($jenisDokumen->fields as $field) {
-            $peraturan = [$field->is_required ? 'required' : 'nullable'];
-
-            switch ($field->jenis_data) {
-                case 'nombor':
-                    $peraturan[] = 'numeric';
-                    break;
-                case 'tarikh':
-                    $peraturan[] = 'date';
-                    break;
-                case 'dropdown':
-                    $peraturan[] = Rule::in($field->pilihan ?? []);
-                    break;
-                default:
-                    $peraturan[] = 'string';
-                    break;
-            }
-            $peraturanMedan["medan_data.{$field->dokumen_field_id}"] = $peraturan;
+            $peraturanMedan["medan_data.{$field->dokumen_field_id}"] = JenisMedan::peraturan($field);
         }
 
         return $peraturanMedan;

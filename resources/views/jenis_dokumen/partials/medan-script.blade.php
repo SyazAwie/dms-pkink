@@ -12,6 +12,10 @@
     const inputDipadam = document.getElementById('medan_dipadam');
     const form = document.getElementById('jenisDokumenForm');
 
+    // Senarai jenis data dari App\Support\JenisMedan (sumber tunggal)
+    const JENIS_MEDAN = @json(\App\Support\JenisMedan::SENARAI);
+    const ADA_PILIHAN = @json(\App\Support\JenisMedan::ADA_PILIHAN);
+
     let counter = 0;
     let idDipadam = [];
 
@@ -53,7 +57,11 @@
         row.className = 'medan-row';
         row.dataset.id = data.dokumen_field_id ?? data.id ?? '';
 
-        const isDropdown = data.jenis_data === 'dropdown';
+        const jenisSemasa = data.jenis_data in JENIS_MEDAN ? data.jenis_data : 'teks';
+        const isDropdown = ADA_PILIHAN.includes(jenisSemasa);
+        const opsyenJenis = Object.entries(JENIS_MEDAN)
+            .map(([kod, label]) => `<option value="${kod}" ${kod === jenisSemasa ? 'selected' : ''}>${escAttr(label)}</option>`)
+            .join('');
         const pilihanArr = Array.isArray(data.pilihan) ? data.pilihan : [];
         const pilihanTeks = pilihanArr.join(', ');
         const rowId = row.dataset.id;
@@ -73,13 +81,7 @@
                 </div>
                 <div class="medan-col-jenis">
                     <label class="dms-label">Jenis Data</label>
-                    <select name="medan[${idx}][jenis_data]" class="dms-input medan-jenis">
-                        <option value="teks" ${data.jenis_data === 'teks' ? 'selected' : ''}>Teks</option>
-                        <option value="nombor" ${data.jenis_data === 'nombor' ? 'selected' : ''}>Nombor</option>
-                        <option value="tarikh" ${data.jenis_data === 'tarikh' ? 'selected' : ''}>Tarikh</option>
-                        <option value="dropdown" ${isDropdown ? 'selected' : ''}>Dropdown</option>
-                        <option value="textarea" ${data.jenis_data === 'textarea' ? 'selected' : ''}>Textarea Panjang</option>
-                    </select>
+                    <select name="medan[${idx}][jenis_data]" class="dms-input medan-jenis">${opsyenJenis}</select>
                 </div>
                 <div class="medan-col-wajib">
                     <label class="dms-label">&nbsp;</label>
@@ -117,7 +119,7 @@
             kodInput.value = slugKod(kodInput.value);
         });
         jenisSelect.addEventListener('change', () => {
-            pilihanWrap.style.display = jenisSelect.value === 'dropdown' ? 'flex' : 'none';
+            pilihanWrap.style.display = ADA_PILIHAN.includes(jenisSelect.value) ? 'flex' : 'none';
         });
         btnBuang.addEventListener('click', () => buangBaris(row));
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\JenisDokumen;
 use App\Models\DokumenField;
+use App\Support\JenisMedan;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
@@ -11,11 +12,6 @@ use Illuminate\Support\Facades\DB;
 
 class JenisDokumenController extends Controller
 {
-    /**
-     * Jenis data medan EAV yang disokong sistem.
-     */
-    private const JENIS_DATA_DIBENARKAN = ['teks', 'nombor', 'tarikh', 'dropdown', 'textarea'];
-
     // 1. Fungsi paparkan senarai
     public function index()
     {
@@ -87,24 +83,15 @@ class JenisDokumenController extends Controller
     }
 
     /**
-     * Kembalikan senarai medan EAV aktif untuk satu Jenis Dokumen, dalam
-     * format JSON. Dipanggil melalui fetch() bila admin/staf tukar pilihan
-     * Jenis Dokumen dalam borang Muat Naik Dokumen.
+     * Kembalikan input medan EAV bagi satu Jenis Dokumen sebagai HTML (partial
+     * yang sama dengan Kemaskini Dokumen & Imbas & Arkib). Dipanggil melalui
+     * fetch() bila pengguna tukar pilihan Jenis Dokumen dalam borang Muat Naik.
      */
-    public function medanJson($id)
+    public function medanBorang($id)
     {
-        $dokumen = JenisDokumen::with(['fields' => fn ($q) => $q->orderBy('susunan')])->findOrFail($id);
+        $dokumen = JenisDokumen::with('fields')->findOrFail($id);
 
-        $medan = $dokumen->fields->map(fn ($f) => [
-            'dokumen_field_id' => $f->dokumen_field_id,
-            'nama_field' => $f->nama_field,
-            'kod_field' => $f->kod_field,
-            'jenis_data' => $f->jenis_data,
-            'pilihan' => $f->pilihan,
-            'is_required' => $f->is_required,
-        ]);
-
-        return response()->json($medan);
+        return view('dokumen.partials.medan-senarai', ['medanSenarai' => $dokumen->fields]);
     }
 
     // 6. Padam rekod
@@ -132,7 +119,7 @@ class JenisDokumenController extends Controller
             'medan' => 'nullable|array',
             'medan.*.nama_field' => 'nullable|max:100',
             'medan.*.kod_field' => 'nullable|max:100',
-            'medan.*.jenis_data' => ['nullable', Rule::in(self::JENIS_DATA_DIBENARKAN)],
+            'medan.*.jenis_data' => ['nullable', Rule::in(JenisMedan::kod())],
             'medan.*.pilihan' => 'nullable|string',
         ]);
     }
@@ -165,7 +152,7 @@ class JenisDokumenController extends Controller
                 continue;
             }
 
-            $jenisData = in_array($row['jenis_data'] ?? null, self::JENIS_DATA_DIBENARKAN)
+            $jenisData = in_array($row['jenis_data'] ?? null, JenisMedan::kod(), true)
                 ? $row['jenis_data']
                 : 'teks';
 
@@ -173,7 +160,7 @@ class JenisDokumenController extends Controller
                 'nama_field' => $row['nama_field'],
                 'kod_field' => Str::slug($row['kod_field'], '_'),
                 'jenis_data' => $jenisData,
-                'pilihan' => $jenisData === 'dropdown' ? $this->pilihanKeArray($row['pilihan'] ?? '') : null,
+                'pilihan' => in_array($jenisData, JenisMedan::ADA_PILIHAN, true) ? $this->pilihanKeArray($row['pilihan'] ?? '') : null,
                 'is_required' => !empty($row['is_required']),
                 'susunan' => $i + 1,
             ];

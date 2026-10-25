@@ -66,51 +66,10 @@
                 <!-- ============ Medan Dokumen (EAV) ============ -->
                 <label class="dms-label mb-2">Medan Dokumen</label>
 
-                @forelse($dokumen->jenisDokumen->fields as $field)
-                    @php
-                        $fid = $field->dokumen_field_id;
-                        $nama = "medan_data[{$fid}]";
-                        $nilai = old("medan_data.{$fid}", $nilaiSedia[$fid] ?? '');
-                        $wajib = $field->is_required ? 'required' : '';
-                        $kelasRalat = $errors->has("medan_data.{$fid}") ? 'is-invalid' : '';
-                    @endphp
-                    <div class="mb-3">
-                        <label class="dms-label">
-                            {{ $field->nama_field }}
-                            @if($field->is_required)<span class="text-danger">*</span>@endif
-                        </label>
-
-                        @switch($field->jenis_data)
-                            @case('nombor')
-                                <input type="number" step="0.01" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" {{ $wajib }}>
-                                @break
-                            @case('tarikh')
-                                <input type="date" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" {{ $wajib }}>
-                                @break
-                            @case('dropdown')
-                                @php $pilihan = $field->pilihan ?? []; @endphp
-                                <select name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" {{ $wajib }}>
-                                    <option value="">Pilih...</option>
-                                    @foreach($pilihan as $p)
-                                        <option value="{{ $p }}" {{ (string) $nilai === (string) $p ? 'selected' : '' }}>{{ $p }}</option>
-                                    @endforeach
-                                    @if($nilai !== '' && !in_array($nilai, $pilihan))
-                                        <option value="{{ $nilai }}" selected>{{ $nilai }} (nilai lama)</option>
-                                    @endif
-                                </select>
-                                @break
-                            @case('textarea')
-                                <textarea name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" rows="3" {{ $wajib }}>{{ $nilai }}</textarea>
-                                @break
-                            @default
-                                <input type="text" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" {{ $wajib }}>
-                        @endswitch
-
-                        @error("medan_data.{$fid}") <div class="dms-error">{{ $message }}</div> @enderror
-                    </div>
-                @empty
-                    <div class="dms-hint py-2">Jenis Dokumen ini tiada medan didaftarkan.</div>
-                @endforelse
+                @include('dokumen.partials.medan-senarai', [
+                    'medanSenarai' => $dokumen->jenisDokumen->fields,
+                    'nilaiSedia' => $nilaiSedia,
+                ])
 
                 <hr class="dms-divider">
 
