@@ -26,9 +26,12 @@ use Illuminate\Support\Str;
  * "Muat Naik Dokumen" biasa untuk itu.
  *
  * Alur: (1) pilih Jenis Dokumen + satu fail imbasan → (2) OCR + AI tempatan
- * (Ollama) cuba isi medan secara automatik → (3) STAFF SEMAK & BETULKAN
+ * (Ollama) cuba isi medan secara automatik → (3) pegawai SEMAK & BETULKAN
  * sebelum simpan → (4) simpan, Borang terus berstatus "Diluluskan" (tiada
  * Penyokong/Pelulus sebenar — ini arkib, bukan permohonan baharu).
+ *
+ * Akses: KERANI/ADMIN/SUPERADMIN sahaja (middleware `peranan:` dalam routes/web.php).
+ * STAFF & PENGURUS tidak boleh, kerana dokumen di sini terus "Diluluskan".
  *
  * Warisi DokumenController untuk guna semula peraturanMedan() & janaNoRujukan()
  * (protected) — elak duplikasi logik.

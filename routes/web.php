@@ -71,9 +71,13 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::post('/dokumen/scan/{id}/ocr', [DokumenController::class, 'jalankanOcr'])->name('dokumen.scan.ocr');
 
     // ---- Imbas & Arkib: dokumen fizikal SEDIA LULUS, OCR+AI isi borang ----
-    Route::get('/imbas-arkib', [ImbasArkibController::class, 'create'])->name('imbas-arkib.create');
-    Route::post('/imbas-arkib/analisis', [ImbasArkibController::class, 'analisis'])->name('imbas-arkib.analisis');
-    Route::post('/imbas-arkib/simpan', [ImbasArkibController::class, 'simpan'])->name('imbas-arkib.simpan');
+    // Hanya KERANI/ADMIN/SUPERADMIN: dokumen terus "Diluluskan" tanpa Penyokong/Pelulus,
+    // jadi STAFF & PENGURUS mesti guna Muat Naik Dokumen biasa (S-01).
+    Route::middleware('peranan:SUPERADMIN,ADMIN,KERANI')->group(function () {
+        Route::get('/imbas-arkib', [ImbasArkibController::class, 'create'])->name('imbas-arkib.create');
+        Route::post('/imbas-arkib/analisis', [ImbasArkibController::class, 'analisis'])->name('imbas-arkib.analisis');
+        Route::post('/imbas-arkib/simpan', [ImbasArkibController::class, 'simpan'])->name('imbas-arkib.simpan');
+    });
 
     // ---- Aliran Kelulusan (versi asas — lihat nota dalam BorangController) ----
     Route::post('/dokumen/{id}/kelulusan/hantar', [BorangController::class, 'hantar'])->name('kelulusan.hantar');

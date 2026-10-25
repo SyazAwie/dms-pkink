@@ -107,6 +107,29 @@ trait SkemaUjian
             $t->string('status_permohonan')->default('Dalam Proses');
             $t->timestamps();
         });
+
+        // Kategori dokumen (EAV): diperlukan oleh borang Imbas & Arkib
+        Schema::create('jenis_dokumen', function (Blueprint $t) {
+            $t->id('jenis_dokumen_id');
+            $t->string('kod_dokumen', 50);
+            $t->string('nama_dokumen');
+            $t->string('kategori')->nullable();
+            $t->timestamps();
+            $t->softDeletes();
+        });
+
+        Schema::create('dokumen_field', function (Blueprint $t) {
+            $t->id('dokumen_field_id');
+            $t->unsignedBigInteger('jenis_dokumen_id');
+            $t->string('nama_field');
+            $t->string('kod_field', 100);
+            $t->string('jenis_data', 20)->default('teks');
+            $t->text('pilihan')->nullable();
+            $t->boolean('is_required')->default(false);
+            $t->integer('susunan')->default(0);
+            $t->timestamps();
+            $t->softDeletes();
+        });
     }
 
     protected function buatBahagian(string $kod = 'DIG', string $nama = 'Bahagian Digital'): Bahagian
