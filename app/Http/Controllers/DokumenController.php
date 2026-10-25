@@ -468,6 +468,9 @@ class DokumenController extends Controller
         $scan = DokumenScan::with('dokumen')->findOrFail($scanId);
         Gate::authorize('update', $scan->dokumen);
 
+        // OCR berjalan segerak; PDF berbilang muka surat boleh melebihi max_execution_time (30 saat)
+        set_time_limit((int) config('services.ocr.had_masa', 300));
+
         try {
             $hasil = app(OcrService::class)->proses($scan->lokasi_fail);
 

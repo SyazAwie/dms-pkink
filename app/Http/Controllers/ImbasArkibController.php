@@ -73,6 +73,9 @@ class ImbasArkibController extends DokumenController
 
         $jenisDokumen = JenisDokumen::with('fields')->findOrFail($request->jenis_dokumen_id);
 
+        // OCR + AI berjalan segerak dan boleh melebihi max_execution_time php.ini (30 saat)
+        set_time_limit((int) config('services.ocr.had_masa', 300));
+
         // Nama fail dalam storan dijana sendiri (bukan nama asal daripada pelayar);
         // nama asal hanya disimpan dalam meta.json untuk paparan.
         $fail = $request->file('fail_scan');
