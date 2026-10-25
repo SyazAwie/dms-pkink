@@ -37,6 +37,9 @@ class OllamaExtractionService
      */
     public function ekstrak(string $teksOcr, Collection $medan): array
     {
+        // Tajuk seksyen tiada nilai, jadi tidak dihantar kepada AI
+        $medan = $medan->filter(fn ($f) => JenisMedan::adaNilai($f))->values();
+
         if ($medan->isEmpty() || trim($teksOcr) === '') {
             return $medan->mapWithKeys(fn ($f) => [$f->dokumen_field_id => null])->all();
         }

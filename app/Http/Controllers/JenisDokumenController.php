@@ -174,7 +174,7 @@ class JenisDokumenController extends Controller
                 'jenis_data' => $jenisData,
                 'pilihan' => $adaPilihan ? $this->pilihanKeArray($row['pilihan'] ?? '') : null,
                 'tetapan' => $tetapan ?: null,
-                'is_required' => !empty($row['is_required']),
+                'is_required' => !empty($row['is_required']) && !in_array($jenisData, JenisMedan::TANPA_NILAI, true),
                 'susunan' => $i + 1,
             ];
 

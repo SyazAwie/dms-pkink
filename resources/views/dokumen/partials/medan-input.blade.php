@@ -4,7 +4,7 @@
 
     Parameter:
       $field      App\Models\DokumenField
-      $nilai      nilai input semasa (sudah termasuk old()), string atau null
+      $nilai      nilai input semasa (sudah termasuk old()): string/null, atau senarai bagi kotak semak
       $nilaiLain  (pilihan) teks "Lain-lain (nyatakan)"
       $diisiAi    (pilihan) true jika nilai dicadangkan oleh AI
 --}}
@@ -13,7 +13,8 @@
 
     $fid = $field->dokumen_field_id;
     $nama = "medan_data[{$fid}]";
-    $nilai = (string) ($nilai ?? '');
+    $nilaiSenarai = is_array($nilai) ? array_map('strval', $nilai) : [];
+    $nilai = is_array($nilai) ? '' : (string) ($nilai ?? '');
     $nilaiLain = (string) ($nilaiLain ?? '');
     $wajib = $field->is_required ? 'required' : '';
     $kelasRalat = $errors->has("medan_data.{$fid}") ? 'is-invalid' : '';
@@ -26,9 +27,19 @@
     // Nilai tersimpan yang tiada lagi dalam senarai pilihan (pilihan diubah selepas data diisi)
     $nilaiLama = in_array($field->jenis_data, ['dropdown', 'radio', 'ya_tidak'], true)
         && $nilai !== '' && $nilai !== JenisMedan::NILAI_LAIN && !in_array($nilai, $pilihan, true);
+    $nilaiLamaSenarai = $field->jenis_data === 'kotak_semak'
+        ? array_values(array_diff($nilaiSenarai, $pilihan, [JenisMedan::NILAI_LAIN]))
+        : [];
 @endphp
+@if(!JenisMedan::adaNilai($field))
+    {{-- Tajuk seksyen: pemisah paparan sahaja, tiada input --}}
+    <div class="medan-seksyen">
+        <div class="medan-seksyen-tajuk">{{ $field->nama_field }}</div>
+        @if($bantuan)<div class="dms-hint mt-0">{{ $bantuan }}</div>@endif
+    </div>
+@else
 <div class="mb-3 medan-eav" data-jenis="{{ $field->jenis_data }}">
-    <label class="dms-label" @if(!in_array($field->jenis_data, ['radio', 'ya_tidak'], true)) for="medan_{{ $fid }}" @endif>
+    <label class="dms-label" @if(!in_array($field->jenis_data, ['radio', 'ya_tidak', 'kotak_semak'], true)) for="medan_{{ $fid }}" @endif>
         {{ $field->nama_field }}
         @if($field->is_required)<span class="text-danger">*</span>@endif
         @if($diisiAi ?? false)<span class="badge tag-ai">Diisi AI</span>@endif
@@ -105,6 +116,27 @@
                 @endunless
             </div>
             @break
+        @case('kotak_semak')
+            {{-- Tiada atribut required pada kotak (HTML akan wajibkan SEMUA kotak); wajib disemak di pelayan --}}
+            <div class="medan-pilihan-kumpulan {{ $errors->has("medan_data.{$fid}") || $errors->has("medan_data.{$fid}.*") ? 'is-invalid' : '' }}" role="group" aria-label="{{ $field->nama_field }}">
+                @foreach($pilihan as $p)
+                    <label class="medan-radio">
+                        <input type="checkbox" name="{{ $nama }}[]" value="{{ $p }}" {{ in_array((string) $p, $nilaiSenarai, true) ? 'checked' : '' }}>
+                        <span>{{ $p }}</span>
+                    </label>
+                @endforeach
+                @if($adaLain)
+                    <label class="medan-radio">
+                        <input type="checkbox" name="{{ $nama }}[]" value="{{ JenisMedan::NILAI_LAIN }}" {{ in_array(JenisMedan::NILAI_LAIN, $nilaiSenarai, true) ? 'checked' : '' }}>
+                        <span>Lain-lain (nyatakan)</span>
+                    </label>
+                @endif
+            </div>
+            @if($nilaiLamaSenarai)
+                <div class="dms-hint">Nilai lama yang tiada lagi dalam senarai pilihan: <strong>{{ implode(', ', $nilaiLamaSenarai) }}</strong> (akan dibuang bila disimpan).</div>
+            @endif
+            @error("medan_data.{$fid}.*") <div class="dms-error">{{ $message }}</div> @enderror
+            @break
         @case('textarea')
             <textarea id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" rows="3" {{ $wajib }}>{{ $nilai }}</textarea>
             @break
@@ -124,3 +156,4 @@
     @if($bantuan)<div class="dms-hint">{{ $bantuan }}</div>@endif
     @error("medan_data.{$fid}") <div class="dms-error">{{ $message }}</div> @enderror
 </div>
+@endif

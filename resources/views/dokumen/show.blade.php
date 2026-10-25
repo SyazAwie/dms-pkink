@@ -46,12 +46,17 @@
                 <h3>Medan Dokumen</h3>
             </div>
             <div class="px-4 pb-4">
-                @forelse($dokumen->data as $nilai)
-                <div class="medan-baris">
-                    <span class="medan-nama">{{ $nilai->field->nama_field ?? $nilai->dokumen_field_id }}</span>
-                    {{-- Format ikut jenis data (RM, tarikh, pautan emel/URL); nilai sudah di-escape oleh JenisMedan::papar --}}
-                    <span class="medan-nilai">{{ \App\Support\JenisMedan::papar($nilai->field, $nilai->nilai_data) }}</span>
-                </div>
+                {{-- $barisMedan: ikut susunan kategori + tajuk seksyen (DokumenController::barisPaparanMedan) --}}
+                @forelse($barisMedan as $baris)
+                    @if(isset($baris['seksyen']))
+                        <div class="medan-seksyen-papar">{{ $baris['seksyen']->nama_field }}</div>
+                    @else
+                        <div class="medan-baris">
+                            <span class="medan-nama">{{ $baris['medan']->nama_field ?? '-' }}</span>
+                            {{-- Format ikut jenis data (RM, tarikh, pautan emel/URL); nilai sudah di-escape oleh JenisMedan::papar --}}
+                            <span class="medan-nilai">{{ \App\Support\JenisMedan::papar($baris['medan'], $baris['nilai']) }}</span>
+                        </div>
+                    @endif
                 @empty
                 <div class="dms-hint py-3 text-center">Tiada medan EAV diisi untuk dokumen ini.</div>
                 @endforelse
@@ -229,6 +234,16 @@
     .medan-baris:last-child { border-bottom: none; }
     .medan-nama { color: var(--dms-muted); font-weight: 600; }
     .medan-nilai { color: var(--dms-text); font-weight: 700; text-align: right; }
+    .medan-seksyen-papar {
+        margin: 14px 0 2px; padding: 6px 10px; border-left: 3px solid var(--dms-primary);
+        background: rgba(23, 105, 210, .05); border-radius: 0 8px 8px 0;
+        font-size: 11.5px; font-weight: 800; color: var(--dms-brand); text-transform: uppercase; letter-spacing: .3px;
+    }
+    .medan-seksyen-papar:first-child { margin-top: 0; }
+    .medan-cip {
+        display: inline-block; margin: 2px 0 2px 4px; padding: 3px 9px; border-radius: 999px;
+        background: rgba(23, 105, 210, .08); color: var(--dms-brand); font-size: 11.5px; font-weight: 700;
+    }
 
     .meta-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
     .meta-list li { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--dms-line); }

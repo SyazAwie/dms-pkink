@@ -195,11 +195,53 @@ class DokumenController extends Controller
     // Papar butiran satu dokumen (nilai EAV + fail imbasan)
     public function show($id)
     {
-        $dokumen = Dokumen::with(['jenisDokumen', 'bahagian', 'pemuatNaik', 'scans.ocr', 'data.field', 'borang'])
+        $dokumen = Dokumen::with(['jenisDokumen.fields', 'bahagian', 'pemuatNaik', 'scans.ocr', 'data.field', 'borang'])
             ->findOrFail($id);
         Gate::authorize('view', $dokumen);
 
-        return view('dokumen.show', compact('dokumen'));
+        $barisMedan = $this->barisPaparanMedan($dokumen);
+
+        return view('dokumen.show', compact('dokumen', 'barisMedan'));
+    }
+
+    /**
+     * Baris "Medan Dokumen" di halaman Butiran: ikut susunan medan kategori, dengan
+     * tajuk seksyen (hanya jika seksyen itu ada nilai). Nilai bagi medan yang telah
+     * dipadam daripada kategori dipaparkan di hujung supaya data lama tidak hilang.
+     *
+     * @return array<int, array{seksyen?: DokumenField, medan?: ?DokumenField, nilai?: string}>
+     */
+    protected function barisPaparanMedan(Dokumen $dokumen): array
+    {
+        $nilaiIkutMedan = $dokumen->data->keyBy('dokumen_field_id');
+        $medanAktif = $dokumen->jenisDokumen?->fields ?? collect();
+
+        $baris = [];
+        $seksyenMenunggu = null;
+        foreach ($medanAktif as $medan) {
+            if (!JenisMedan::adaNilai($medan)) {
+                $seksyenMenunggu = $medan;
+                continue;
+            }
+            $data = $nilaiIkutMedan->get($medan->dokumen_field_id);
+            if ($data === null || $data->nilai_data === null || $data->nilai_data === '') {
+                continue;
+            }
+            if ($seksyenMenunggu) {
+                $baris[] = ['seksyen' => $seksyenMenunggu];
+                $seksyenMenunggu = null;
+            }
+            $baris[] = ['medan' => $medan, 'nilai' => $data->nilai_data];
+        }
+
+        $idAktif = $medanAktif->pluck('dokumen_field_id')->all();
+        foreach ($dokumen->data as $data) {
+            if (!in_array($data->dokumen_field_id, $idAktif)) {
+                $baris[] = ['medan' => $data->field, 'nilai' => $data->nilai_data];
+            }
+        }
+
+        return $baris;
     }
 
     // Borang edit: Jenis Dokumen & No. Rujukan dikunci (hanya paparan)

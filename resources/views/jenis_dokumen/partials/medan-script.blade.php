@@ -28,6 +28,7 @@
     // Senarai jenis data dari App\Support\JenisMedan (sumber tunggal)
     const JENIS_MEDAN = @json(\App\Support\JenisMedan::SENARAI);
     const ADA_PILIHAN = @json(\App\Support\JenisMedan::ADA_PILIHAN);
+    const TANPA_NILAI = @json(\App\Support\JenisMedan::TANPA_NILAI);
 
     let counter = 0;
     let idDipadam = inputDipadam.value ? inputDipadam.value.split(',').filter(Boolean) : [];
@@ -143,9 +144,21 @@
         kodInput.addEventListener('input', () => {
             kodInput.value = slugKod(kodInput.value);
         });
-        jenisSelect.addEventListener('change', () => {
-            pilihanWrap.style.display = ADA_PILIHAN.includes(jenisSelect.value) ? 'flex' : 'none';
-        });
+        const wajibCol = row.querySelector('.medan-col-wajib');
+        const bantuanInput = row.querySelector('.medan-bantuan');
+        function kemaskiniIkutJenis() {
+            const jenis = jenisSelect.value;
+            pilihanWrap.style.display = ADA_PILIHAN.includes(jenis) ? 'flex' : 'none';
+            // Tajuk seksyen tiada nilai: "Wajib" tidak berkaitan; teks bantuan menjadi keterangan seksyen
+            const tanpaNilai = TANPA_NILAI.includes(jenis);
+            wajibCol.style.visibility = tanpaNilai ? 'hidden' : '';
+            if (tanpaNilai) wajibCol.querySelector('input').checked = false;
+            bantuanInput.placeholder = tanpaNilai
+                ? 'Keterangan seksyen (pilihan), cth: Untuk kegunaan Bahagian Digital sahaja'
+                : 'Teks bantuan (pilihan), cth: Gunakan huruf kecil';
+        }
+        jenisSelect.addEventListener('change', kemaskiniIkutJenis);
+        kemaskiniIkutJenis();
         btnBuang.addEventListener('click', () => buangBaris(row));
 
         container.appendChild(row);

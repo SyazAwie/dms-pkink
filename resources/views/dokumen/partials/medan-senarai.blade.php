@@ -7,6 +7,11 @@
       $nilaiSedia    (pilihan) [dokumen_field_id => nilai tersimpan] daripada DB atau cadangan AI
       $diisiAi       (pilihan) true jika $nilaiSedia ialah cadangan AI (tag "Diisi AI")
 --}}
+@php
+    // Selepas ralat validasi, guna nilai yang dihantar walaupun kosong (cth. semua kotak
+    // semak dinyahtanda tidak dihantar langsung), bukan nilai asal daripada DB/AI.
+    $adaOld = session()->hasOldInput();
+@endphp
 @forelse($medanSenarai as $field)
     @php
         $fid = $field->dokumen_field_id;
@@ -15,8 +20,8 @@
     @endphp
     @include('dokumen.partials.medan-input', [
         'field' => $field,
-        'nilai' => old("medan_data.{$fid}", $nilaiInput),
-        'nilaiLain' => old("medan_lain.{$fid}", $nilaiLain),
+        'nilai' => $adaOld ? old("medan_data.{$fid}") : $nilaiInput,
+        'nilaiLain' => $adaOld ? old("medan_lain.{$fid}") : $nilaiLain,
         'diisiAi' => ($diisiAi ?? false) && $nilaiAsal !== null,
     ])
 @empty

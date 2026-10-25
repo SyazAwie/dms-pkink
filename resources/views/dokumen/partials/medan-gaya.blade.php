@@ -22,8 +22,12 @@
     /* "Lain-lain (nyatakan)": tunjuk input teks hanya bila pilihan Lain-lain dipilih */
     .medan-lain-wrap { display: none; margin-top: 8px; }
     .medan-eav:has(option[value="__lain__"]:checked) .medan-lain-wrap,
-    .medan-eav:has(input[type="radio"][value="__lain__"]:checked) .medan-lain-wrap,
+    .medan-eav:has(input[value="__lain__"]:checked) .medan-lain-wrap,
     .medan-lain-wrap:has(.is-invalid) { display: block; }
+
+    /* Tajuk seksyen (jenis "seksyen"): pemisah antara kumpulan medan */
+    .medan-seksyen { margin: 18px 0 12px; padding: 8px 12px; border-left: 3px solid var(--dms-primary); background: rgba(23, 105, 210, .05); border-radius: 0 8px 8px 0; }
+    .medan-seksyen-tajuk { font-size: 13px; font-weight: 800; color: var(--dms-brand); text-transform: uppercase; letter-spacing: .3px; }
 
     .tag-ai {
         background: rgba(124, 58, 237, .12); color: #7c3aed;

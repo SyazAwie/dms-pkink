@@ -20,8 +20,10 @@ use Illuminate\Validation\Rule;
  * - label dalam pembina medan Kategori Dokumen
  *
  * Tetapan tambahan setiap medan ada dalam dokumen_field.tetapan (JSON):
- *   bantuan  teks bantuan di bawah label
- *   lain     true = tambah pilihan "Lain-lain (nyatakan)" (dropdown/radio)
+ *   bantuan  teks bantuan di bawah label (bagi seksyen: keterangan seksyen)
+ *   lain     true = tambah pilihan "Lain-lain (nyatakan)" (dropdown/radio/kotak semak)
+ *
+ * Kotak semak disimpan sebagai senarai JSON, cth. ["Emel","Lain-lain: Intranet"].
  *
  * Input borang dirender oleh satu partial: resources/views/dokumen/partials/medan-input.blade.php
  */
@@ -41,11 +43,16 @@ final class JenisMedan
         'url' => 'Pautan (URL)',
         'dropdown' => 'Dropdown',
         'radio' => 'Pilihan Tunggal (Radio)',
+        'kotak_semak' => 'Kotak Semak (Banyak Pilihan)',
         'ya_tidak' => 'Ya / Tidak',
+        'seksyen' => 'Tajuk Seksyen (tiada nilai)',
     ];
 
     /** Jenis yang menggunakan senarai `pilihan` (dan boleh ada "Lain-lain"). */
-    public const ADA_PILIHAN = ['dropdown', 'radio'];
+    public const ADA_PILIHAN = ['dropdown', 'radio', 'kotak_semak'];
+
+    /** Jenis paparan sahaja: tiada input, tiada nilai disimpan, tidak dihantar kepada AI. */
+    public const TANPA_NILAI = ['seksyen'];
 
     /** Nilai dalaman pilihan "Lain-lain (nyatakan)" dalam borang (tidak disimpan). */
     public const NILAI_LAIN = '__lain__';
@@ -67,15 +74,26 @@ final class JenisMedan
         return in_array($medan->jenis_data, self::ADA_PILIHAN, true) && !empty($medan->tetapan['lain']);
     }
 
+    /** False bagi jenis paparan sahaja (tajuk seksyen). */
+    public static function adaNilai(DokumenField $medan): bool
+    {
+        return !in_array($medan->jenis_data, self::TANPA_NILAI, true);
+    }
+
     /**
      * Peraturan validasi bagi satu medan: [kunci input => peraturan].
      * Kunci utama medan_data.{id}; medan dengan "Lain-lain" juga ada medan_lain.{id}.
      */
     public static function peraturan(DokumenField $medan): array
     {
+        if (!self::adaNilai($medan)) {
+            return [];
+        }
+
         $id = $medan->dokumen_field_id;
         $kunci = "medan_data.{$id}";
         $peraturan = [$medan->is_required ? 'required' : 'nullable'];
+        $hasil = [];
 
         switch ($medan->jenis_data) {
             case 'nombor':
@@ -108,11 +126,11 @@ final class JenisMedan
                 break;
             case 'dropdown':
             case 'radio':
-                $dibenarkan = $medan->pilihan ?? [];
-                if (self::adaLain($medan)) {
-                    $dibenarkan[] = self::NILAI_LAIN;
-                }
-                $peraturan[] = Rule::in($dibenarkan);
+                $peraturan[] = Rule::in(self::pilihanDibenarkan($medan));
+                break;
+            case 'kotak_semak':
+                $peraturan[] = 'array';
+                $hasil["{$kunci}.*"] = ['string', Rule::in(self::pilihanDibenarkan($medan))];
                 break;
             case 'ya_tidak':
                 $peraturan[] = Rule::in(self::YA_TIDAK);
@@ -122,12 +140,36 @@ final class JenisMedan
                 break;
         }
 
-        $hasil = [$kunci => $peraturan];
+        $hasil = [$kunci => $peraturan] + $hasil;
         if (self::adaLain($medan)) {
-            $hasil["medan_lain.{$id}"] = ['nullable', 'string', 'max:255', 'required_if:' . $kunci . ',' . self::NILAI_LAIN];
+            $hasil["medan_lain.{$id}"] = ['nullable', 'string', 'max:255', new LainDinyatakan($id, $medan->nama_field)];
         }
 
         return $hasil;
+    }
+
+    private static function pilihanDibenarkan(DokumenField $medan): array
+    {
+        $dibenarkan = $medan->pilihan ?? [];
+        if (self::adaLain($medan)) {
+            $dibenarkan[] = self::NILAI_LAIN;
+        }
+
+        return $dibenarkan;
+    }
+
+    /**
+     * Senarai nilai kotak semak daripada nilai tersimpan (JSON). Nilai bukan JSON
+     * (cth. jenis medan ditukar selepas data diisi) dianggap satu nilai.
+     */
+    public static function senaraiNilai(?string $nilai): array
+    {
+        if ($nilai === null || $nilai === '') {
+            return [];
+        }
+        $senarai = json_decode($nilai, true);
+
+        return is_array($senarai) ? array_values(array_filter($senarai, 'is_string')) : [$nilai];
     }
 
     /**
@@ -146,8 +188,19 @@ final class JenisMedan
      */
     public static function untukSimpan(DokumenField $medan, mixed $nilai, mixed $nilaiLain = null): ?string
     {
-        if ($nilai === null || $nilai === '') {
+        if (!self::adaNilai($medan) || $nilai === null || $nilai === '' || $nilai === []) {
             return null;
+        }
+
+        if ($medan->jenis_data === 'kotak_semak') {
+            $dipilih = (array) $nilai;
+            // Ikut susunan senarai pilihan supaya nilai sama sentiasa disimpan sama (diff log audit)
+            $hasil = array_values(array_filter($medan->pilihan ?? [], fn ($p) => in_array($p, $dipilih, true)));
+            if (in_array(self::NILAI_LAIN, $dipilih, true)) {
+                $hasil[] = self::AWALAN_LAIN . trim((string) $nilaiLain);
+            }
+
+            return $hasil ? json_encode($hasil, JSON_UNESCAPED_UNICODE) : null;
         }
 
         if ($nilai === self::NILAI_LAIN) {
@@ -163,10 +216,26 @@ final class JenisMedan
 
     /**
      * Pecahkan nilai tersimpan kepada [nilai input, teks Lain-lain] untuk mengisi borang.
-     * Cth. "Lain-lain: Pen Drive" → ['__lain__', 'Pen Drive'].
+     * Cth. "Lain-lain: Pen Drive" → ['__lain__', 'Pen Drive']. Bagi kotak semak, nilai input
+     * ialah senarai: '["Emel","Lain-lain: Intranet"]' → [['Emel', '__lain__'], 'Intranet'].
      */
     public static function untukBorang(DokumenField $medan, ?string $nilai): array
     {
+        if ($medan->jenis_data === 'kotak_semak') {
+            $dipilih = [];
+            $teksLain = '';
+            foreach (self::senaraiNilai($nilai) as $v) {
+                if (self::adaLain($medan) && str_starts_with($v, self::AWALAN_LAIN)) {
+                    $dipilih[] = self::NILAI_LAIN;
+                    $teksLain = substr($v, strlen(self::AWALAN_LAIN));
+                } else {
+                    $dipilih[] = $v;
+                }
+            }
+
+            return [$dipilih, $teksLain];
+        }
+
         $nilai = (string) ($nilai ?? '');
 
         if (self::adaLain($medan) && str_starts_with($nilai, self::AWALAN_LAIN)) {
@@ -203,6 +272,10 @@ final class JenisMedan
                 ? '<a href="' . $e($nilai) . '" target="_blank" rel="noopener noreferrer">' . $e($nilai) . '</a>'
                 : $e($nilai),
             'textarea' => nl2br($e($nilai)),
+            'kotak_semak' => implode(' ', array_map(
+                fn ($v) => '<span class="medan-cip">' . $e($v) . '</span>',
+                self::senaraiNilai($nilai)
+            )),
             default => $e($nilai),
         };
 
@@ -225,6 +298,8 @@ final class JenisMedan
             'url' => 'pautan laman web bermula http:// atau https://',
             'dropdown', 'radio' => 'pilih SATU nilai TEPAT daripada [' . implode(', ', $medan->pilihan ?? []) . ']'
                 . (self::adaLain($medan) ? '; jika jawapan lain yang jelas, tulis jawapan itu' : ''),
+            'kotak_semak' => 'senarai JSON nilai yang ditanda, dipilih daripada [' . implode(', ', $medan->pilihan ?? []) . ']'
+                . (self::adaLain($medan) ? '; jawapan lain yang jelas boleh dimasukkan' : '') . ', cth. ["a","b"]',
             'ya_tidak' => 'tulis "Ya" atau "Tidak" sahaja',
             'textarea' => 'teks panjang',
             default => 'teks',
@@ -239,6 +314,12 @@ final class JenisMedan
      */
     public static function bersihkanAi(DokumenField $medan, mixed $nilai): ?string
     {
+        if (!self::adaNilai($medan)) {
+            return null;
+        }
+        if ($medan->jenis_data === 'kotak_semak') {
+            return self::bersihkanKotakSemakAi($medan, $nilai);
+        }
         if (is_array($nilai) || is_object($nilai)) {
             return null;
         }
@@ -276,6 +357,44 @@ final class JenisMedan
         }
 
         return self::untukSimpan($medan, $nilai);
+    }
+
+    /**
+     * Kotak semak daripada AI: senarai (atau teks "a, b") dipadankan dengan senarai
+     * pilihan tanpa mengira huruf besar/kecil; selebihnya menjadi "Lain-lain" jika dibenarkan.
+     */
+    private static function bersihkanKotakSemakAi(DokumenField $medan, mixed $nilai): ?string
+    {
+        if (is_string($nilai)) {
+            $nilai = preg_split('/\s*[,;]\s*/', trim($nilai));
+        }
+        if (!is_array($nilai)) {
+            return null;
+        }
+
+        $pilihanKecil = [];
+        foreach ($medan->pilihan ?? [] as $p) {
+            $pilihanKecil[mb_strtolower($p)] = $p;
+        }
+
+        $dipilih = [];
+        $lain = [];
+        foreach ($nilai as $v) {
+            if (!is_scalar($v) || trim((string) $v) === '') {
+                continue;
+            }
+            $v = trim((string) $v);
+            if (isset($pilihanKecil[mb_strtolower($v)])) {
+                $dipilih[] = $pilihanKecil[mb_strtolower($v)];
+            } elseif (self::adaLain($medan)) {
+                $lain[] = $v;
+            }
+        }
+        if ($lain) {
+            $dipilih[] = self::NILAI_LAIN;
+        }
+
+        return self::untukSimpan($medan, $dipilih, mb_substr(implode(', ', $lain), 0, 255));
     }
 
     private static function formatTarikh(string $nilai, string $format): ?string
