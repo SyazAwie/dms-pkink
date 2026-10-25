@@ -170,7 +170,16 @@
 
         .topbar-actions { display: flex; align-items: center; gap: 9px; }
         .notification { position: relative; }
-        .notification::after { position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border: 2px solid #fff; border-radius: 50%; background: var(--dms-danger); content: ""; }
+        .pautan-profil { color: inherit; text-decoration: none; transition: background .2s ease, color .2s ease; }
+        .pautan-profil:hover { color: var(--dms-primary); }
+        .sidebar-user.pautan-profil:hover, .sidebar-user.pautan-profil.aktif { background: rgba(23, 105, 210, .1); }
+        .nav-bil { min-width: 22px; padding: 2px 7px; border-radius: 10px; background: var(--dms-danger); color: #fff; font-size: 10.5px; font-weight: 800; text-align: center; }
+        .loceng-menu { min-width: 250px; padding: 6px; border: 1px solid var(--dms-line); border-radius: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, .12); }
+        .loceng-menu .dropdown-header { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+        .loceng-menu .dropdown-item { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+        .loceng-bil { min-width: 24px; padding: 2px 7px; border-radius: 10px; background: rgba(107, 122, 144, .14); color: var(--dms-muted); font-size: 11px; font-weight: 800; text-align: center; }
+        .loceng-bil.ada { background: var(--dms-danger); color: #fff; }
+        .notification-badge { position: absolute; top: -6px; right: -6px; display: inline-grid; min-width: 19px; height: 19px; padding: 0 5px; place-items: center; border: 2px solid #fff; border-radius: 10px; background: var(--dms-danger); color: #fff; font-size: 10px; font-weight: 800; line-height: 1; }
         .top-user { min-width: 0; max-width: 200px; text-align: right; }
         .top-user strong, .top-user small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .top-user strong { font-size: 12px; }
@@ -276,6 +285,28 @@
 </head>
 <body>
     <div class="app-shell">
+        @php
+            // Giliran tindakan untuk loceng topbar & menu sidebar (bukan sistem notifikasi penuh):
+            // kelulusan dokumen (PENYOKONG = Dalam Proses, PELULUS = Disokong, Admin = kedua-duanya)
+            // dan pendaftaran staf baharu yang menunggu pengesahan (SUPERADMIN/ADMIN).
+            $penggunaSemasa = Auth::user();
+            $bolehKelulusan = $penggunaSemasa->hasAnyRole('PENYOKONG', 'PELULUS', 'SUPERADMIN', 'ADMIN');
+            $bolehPendaftaran = $penggunaSemasa->hasAnyRole('SUPERADMIN', 'ADMIN');
+            $bilKelulusan = 0;
+            if ($penggunaSemasa->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN')) {
+                $bilKelulusan += \App\Models\Borang::dokumenAktif()->where('status_permohonan', 'Dalam Proses')->count();
+            }
+            if ($penggunaSemasa->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN')) {
+                $bilKelulusan += \App\Models\Borang::dokumenAktif()->where('status_permohonan', 'Disokong')->count();
+            }
+            $bilPendaftaran = $bolehPendaftaran
+                ? \App\Models\PendaftaranStaf::where('status', \App\Models\PendaftaranStaf::MENUNGGU)->count()
+                : 0;
+            $bilGiliran = $bilKelulusan + $bilPendaftaran;
+            $labelLoceng = $bilGiliran > 0
+                ? "Pemberitahuan: {$bilGiliran} perkara menunggu tindakan anda"
+                : 'Pemberitahuan: tiada perkara menunggu tindakan anda';
+        @endphp
         <button type="button" class="sidebar-backdrop" id="sidebarBackdrop" aria-label="Tutup menu navigasi"></button>
 
         <aside class="sidebar" id="sidebar" aria-label="Navigasi utama">
@@ -345,6 +376,19 @@
                         </a>
                     </li>
                     @endif
+                    @if($bolehPendaftaran)
+                    <li>
+                        <a href="{{ route('pendaftaran.index') }}" class="nav-link {{ request()->routeIs('pendaftaran.*') ? 'active' : '' }}">
+                            <i class="bi bi-person-check" aria-hidden="true"></i>
+                            <span>Pengesahan Pendaftaran</span>
+                            @if($bilPendaftaran > 0)
+                                <span class="nav-bil" title="{{ $bilPendaftaran }} permohonan menunggu">{{ $bilPendaftaran > 99 ? '99+' : $bilPendaftaran }}</span>
+                            @elseif(request()->routeIs('pendaftaran.*'))
+                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                            @endif
+                        </a>
+                    </li>
+                    @endif
                     @if(Auth::user()->hasAnyRole('SUPERADMIN', 'AUDIT'))
                     <li>
                         <a href="{{ route('log-audit.index') }}" class="nav-link {{ request()->routeIs('log-audit.*') ? 'active' : '' }}">
@@ -367,7 +411,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="sidebar-user">
+                <a href="{{ route('profil.index') }}" class="sidebar-user pautan-profil {{ request()->routeIs('profil.*') ? 'aktif' : '' }}" title="Profil Saya">
                     <div class="avatar" aria-hidden="true">
                         {{ strtoupper(substr(Auth::user()->nama_staff, 0, 1)) }}
                     </div>
@@ -376,7 +420,7 @@
                         @php $perananPengguna = Auth::user()->roles->pluck('nama_roles'); @endphp
                         <div class="user-role">{{ $perananPengguna->first() ?? 'Tiada peranan' }}{{ $perananPengguna->count() > 1 ? ' +' . ($perananPengguna->count() - 1) : '' }}</div>
                     </div>
-                </div>
+                </a>
             </div>
         </aside>
 
@@ -393,13 +437,39 @@
                 </div>
 
                 <div class="topbar-actions">
-                    <button type="button" class="icon-button notification" aria-label="Pemberitahuan" title="Pemberitahuan">
-                        <i class="bi bi-bell" aria-hidden="true"></i>
-                    </button>
-                    <div class="top-user">
+                    @if($bolehKelulusan)
+                    <div class="dropdown">
+                        <button type="button" class="icon-button notification" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ $labelLoceng }}" title="{{ $labelLoceng }}">
+                            <i class="bi bi-bell" aria-hidden="true"></i>
+                            @if($bilGiliran > 0)
+                                <span class="notification-badge" aria-hidden="true">{{ $bilGiliran > 99 ? '99+' : $bilGiliran }}</span>
+                            @endif
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end loceng-menu">
+                            <li class="dropdown-header">Menunggu tindakan anda</li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('kelulusan.index') }}">
+                                    <i class="bi bi-patch-check" aria-hidden="true"></i>
+                                    <span>Kelulusan dokumen</span>
+                                    <span class="loceng-bil {{ $bilKelulusan > 0 ? 'ada' : '' }}">{{ $bilKelulusan }}</span>
+                                </a>
+                            </li>
+                            @if($bolehPendaftaran)
+                            <li>
+                                <a class="dropdown-item" href="{{ route('pendaftaran.index') }}">
+                                    <i class="bi bi-person-check" aria-hidden="true"></i>
+                                    <span>Pendaftaran staf</span>
+                                    <span class="loceng-bil {{ $bilPendaftaran > 0 ? 'ada' : '' }}">{{ $bilPendaftaran }}</span>
+                                </a>
+                            </li>
+                            @endif
+                        </ul>
+                    </div>
+                    @endif
+                    <a href="{{ route('profil.index') }}" class="top-user pautan-profil" title="Profil Saya">
                         <strong>{{ Auth::user()->nama_staff }}</strong>
                         <small>{{ $perananPengguna->first() ?? 'Tiada peranan' }}{{ $perananPengguna->count() > 1 ? ' +' . ($perananPengguna->count() - 1) : '' }}</small>
-                    </div>
+                    </a>
                     <form method="POST" action="{{ route('logout') }}" class="logout-form">
                         @csrf
                         <button type="submit" class="icon-button" aria-label="Log keluar" title="Log keluar">

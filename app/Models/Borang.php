@@ -36,6 +36,15 @@ class Borang extends Model
         'tarikh_kelulusan' => 'datetime',
     ];
 
+    /**
+     * Hadkan kepada borang yang dokumen induknya masih wujud (tidak dipadam).
+     * Skop SoftDeletes pada Dokumen mengecualikan dokumen terpadam secara automatik.
+     */
+    public function scopeDokumenAktif($query)
+    {
+        return $query->whereHas('dokumen');
+    }
+
     public function dokumen()
     {
         return $this->belongsTo(Dokumen::class, 'dokumen_id', 'dokumen_id');

@@ -134,13 +134,16 @@ class DokumenController extends Controller
                         'created_by' => Auth::id(),
                     ]);
 
-                    foreach ($request->input('medan_data', []) as $fieldId => $nilai) {
+                    // Gelung atas medan Jenis Dokumen ini sahaja (bukan kunci permintaan),
+                    // supaya nilai untuk medan kategori lain atau ID palsu diabaikan.
+                    foreach ($jenisDokumen->fields as $field) {
+                        $nilai = $request->input("medan_data.{$field->dokumen_field_id}");
                         if ($nilai === null || $nilai === '') {
                             continue;
                         }
                         DokumenData::create([
                             'dokumen_id' => $dokumenBaharu->dokumen_id,
-                            'dokumen_field_id' => $fieldId,
+                            'dokumen_field_id' => $field->dokumen_field_id,
                             'nilai_data' => $nilai,
                         ]);
                     }

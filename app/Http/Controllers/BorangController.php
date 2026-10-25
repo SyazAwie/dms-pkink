@@ -7,6 +7,7 @@ use App\Models\Dokumen;
 use App\Models\LogAudit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -43,7 +44,8 @@ class BorangController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = Borang::with(['dokumen.jenisDokumen', 'pemohon', 'penyokong', 'pelulus']);
+        // Borang bagi dokumen yang telah dipadam tidak dipaparkan
+        $query = Borang::dokumenAktif()->with(['dokumen.jenisDokumen', 'pemohon', 'penyokong', 'pelulus']);
 
         if ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
             // Admin nampak semua borang, tanpa penapis status
@@ -68,6 +70,14 @@ class BorangController extends Controller
     {
         $dokumen = Dokumen::findOrFail($dokumenId);
         Gate::authorize('update', $dokumen);
+
+        // Hantar hanya jika belum pernah dihantar, atau selepas ditolak. Tanpa semakan
+        // ini, POST terus boleh menetapkan semula borang Disokong/Diluluskan (termasuk
+        // arkib Imbas & Arkib) kepada "Dalam Proses" dan memadam rekod kelulusannya.
+        $sedia = Borang::where('dokumen_id', $dokumen->dokumen_id)->first();
+        if ($sedia && $sedia->status_permohonan !== 'Ditolak') {
+            abort(409, "Permohonan ini kini berstatus \"{$sedia->status_permohonan}\" dan tidak boleh dihantar semula. Hanya permohonan yang ditolak boleh dihantar semula.");
+        }
 
         $borang = Borang::updateOrCreate(
             ['dokumen_id' => $dokumen->dokumen_id],
@@ -98,14 +108,16 @@ class BorangController extends Controller
 
         $request->validate(['ulasan_penyokong' => 'nullable|string|max:500']);
 
-        $borang->update([
-            'pegawai_penyokong_id' => Auth::id(),
-            'status_permohonan' => 'Disokong',
-            'tarikh_sokongan' => now(),
-            'ulasan_penyokong' => $request->ulasan_penyokong,
-        ]);
+        DB::transaction(function () use ($request, $borang) {
+            $borang->update([
+                'pegawai_penyokong_id' => Auth::id(),
+                'status_permohonan' => 'Disokong',
+                'tarikh_sokongan' => now(),
+                'ulasan_penyokong' => $request->ulasan_penyokong,
+            ]);
 
-        $this->log($borang->dokumen, $borang, 'Sokong Permohonan');
+            $this->log($borang->dokumen, $borang, 'Sokong Permohonan');
+        });
 
         return back()->with('success', 'Permohonan telah disokong.');
     }
@@ -119,14 +131,16 @@ class BorangController extends Controller
 
         $request->validate(['ulasan_pelulus' => 'nullable|string|max:500']);
 
-        $borang->update([
-            'pegawai_pelulus_id' => Auth::id(),
-            'status_permohonan' => 'Diluluskan',
-            'tarikh_kelulusan' => now(),
-            'ulasan_pelulus' => $request->ulasan_pelulus,
-        ]);
+        DB::transaction(function () use ($request, $borang) {
+            $borang->update([
+                'pegawai_pelulus_id' => Auth::id(),
+                'status_permohonan' => 'Diluluskan',
+                'tarikh_kelulusan' => now(),
+                'ulasan_pelulus' => $request->ulasan_pelulus,
+            ]);
 
-        $this->log($borang->dokumen, $borang, 'Luluskan Permohonan');
+            $this->log($borang->dokumen, $borang, 'Luluskan Permohonan');
+        });
 
         return back()->with('success', 'Permohonan telah diluluskan.');
     }
@@ -147,19 +161,25 @@ class BorangController extends Controller
 
         $request->validate([$lajurUlasan => 'required|string|max:500']);
 
-        $borang->update([
-            'status_permohonan' => 'Ditolak',
-            $lajurUlasan => $request->input($lajurUlasan),
-        ]);
+        DB::transaction(function () use ($request, $borang, $lajurUlasan) {
+            $borang->update([
+                'status_permohonan' => 'Ditolak',
+                $lajurUlasan => $request->input($lajurUlasan),
+            ]);
 
-        $this->log($borang->dokumen, $borang, 'Tolak Permohonan');
+            $this->log($borang->dokumen, $borang, 'Tolak Permohonan');
+        });
 
         return back()->with('success', 'Permohonan telah ditolak.');
     }
 
+    /**
+     * Borang bagi dokumen yang telah dipadam dianggap tiada (404), supaya
+     * tiada tindakan kelulusan boleh dibuat ke atasnya melalui POST terus.
+     */
     private function borangAktif($dokumenId): Borang
     {
-        return Borang::with('dokumen')->where('dokumen_id', $dokumenId)->firstOrFail();
+        return Borang::dokumenAktif()->with('dokumen')->where('dokumen_id', $dokumenId)->firstOrFail();
     }
 
     private function pastikanPeranan(string ...$peranan): void

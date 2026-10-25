@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Sistem Arkib Digital (DMS) PKINK: a Laravel 13 / PHP 8.3 document-management system for Perbadanan Kemajuan Iktisad Negeri Kelantan. The code, identifiers, comments, UI text and commit messages are in **Bahasa Melayu**, so keep new code in that style (e.g. `paparScan`, `janaNoRujukan`, `kodPeranan`). Route names are mostly Malay (`dokumen.scan.papar`, `imbas-arkib.analisis`, `kelulusan.sokong`), but some are English (`login`, `logout`, `dashboard`, `password.*`, `users.*`, and the standard resource suffixes such as `.index`). Leave existing route names as they are, because views and redirects reference them. `README.md` is the detailed design doc (full DB schema, RBAC matrix, module flows, known limitations); check it before making large changes.
 
+## Peraturan Projek
+
+1. **Skema DB diurus manual dalam HeidiSQL.** Jangan sesekali cipta Laravel migration (`php artisan make:migration` atau fail baharu dalam `database/migrations/`). Jika jadual perlu diubah, beri skrip SQL MySQL untuk pengguna jalankan sendiri dalam HeidiSQL.
+2. **Rujuk `PROGRESS.md`** di root projek untuk status projek dan nombor isu (K-xx, S-xx, dan nombor item dalam bahagian 4). Fail ini hanya wujud secara tempatan (ia diabaikan melalui `.git/info/exclude`), jadi jika ia tiada, beritahu pengguna dan jangan cipta semula tanpa diminta.
+3. **Sebelum ubah kod, tanya soalan dan tunjuk pelan dahulu.** Tunggu persetujuan pengguna sebelum menyunting mana-mana fail kod.
+4. **UI dan mesej dalam Bahasa Melayu.** Ini termasuk teks view, mesej flash, mesej validasi dan mesej ralat yang dipaparkan kepada pengguna.
+5. **Selepas setiap kerja, kemas kini `PROGRESS.md`.** Pindahkan item yang siap ke bahagian 2, kemas kini status dalam bahagian 3/4, dan tambah commit baharu dalam bahagian 5.
+
 ## Commands
 
 - Serve: Laravel Herd (nginx) on Windows, or `php artisan serve`. MySQL comes from XAMPP (MySQL only).

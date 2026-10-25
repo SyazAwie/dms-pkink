@@ -6,6 +6,7 @@ use App\Models\Bahagian;
 use App\Models\LogAudit;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\PeraturanNama;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,13 +33,13 @@ class UserController extends Controller
     {
         $request->validate([
             'ic_pekerja' => ['required', Rule::unique('users')->whereNull('deleted_at')],
-            'nama_staff' => 'required',
+            'nama_staff' => PeraturanNama::peraturan(),
             'email' => ['required', 'email', Rule::unique('users')->whereNull('deleted_at')],
-            'bahagian_id' => 'required',
+            'bahagian_id' => $this->peraturanBahagian(),
             'password' => 'required|min:6',
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,roles_id',
-        ]);
+        ], $this->mesejBahagian());
 
         // Hanya SUPERADMIN boleh menetapkan peranan. Jika pendaftar ialah ADMIN
         // (atau tiada peranan dipilih), kakitangan baharu mendapat peranan lalai STAFF.
@@ -51,13 +52,16 @@ class UserController extends Controller
         }
 
         DB::transaction(function () use ($request, $idPeranan) {
-            $user = User::create([
+            $user = new User([
                 'ic_pekerja' => $request->ic_pekerja,
                 'nama_staff' => $request->nama_staff,
                 'email' => $request->email,
                 'bahagian_id' => $request->bahagian_id,
                 'password' => Hash::make($request->password),
             ]);
+            // Kata laluan ditetapkan oleh admin: pengguna wajib menukarnya pada log masuk pertama
+            $user->perlu_tukar_kata_laluan = true;
+            $user->save();
 
             $user->roles()->attach($idPeranan);
             $this->logPeranan($request, $user, [], $idPeranan);
@@ -85,12 +89,12 @@ class UserController extends Controller
 
         $request->validate([
             'ic_pekerja' => ['required', Rule::unique('users')->ignore($id, 'user_id')->whereNull('deleted_at')],
-            'nama_staff' => 'required',
+            'nama_staff' => PeraturanNama::peraturan(),
             'email' => ['required', 'email', Rule::unique('users')->ignore($id, 'user_id')->whereNull('deleted_at')],
-            'bahagian_id' => 'required',
+            'bahagian_id' => $this->peraturanBahagian(),
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,roles_id',
-        ]);
+        ], $this->mesejBahagian());
 
         // Peranan hanya boleh diubah oleh SUPERADMIN, dan hanya jika borang menghantar bahagian peranan
         $tukarPeranan = Auth::user()->hasRole('SUPERADMIN') && $request->boolean('roles_dihantar');
@@ -128,7 +132,14 @@ class UserController extends Controller
         }
 
         DB::transaction(function () use ($request, $user, $dataKemaskini, $tukarPeranan, $idPerananBaharu) {
-            $user->update($dataKemaskini);
+            $user->fill($dataKemaskini);
+            // Kata laluan ditetapkan oleh admin untuk orang lain: wajib ditukar pada log masuk
+            // seterusnya (tanpa had 72 jam). Admin yang menukar kata laluan sendiri tidak dipaksa.
+            if ($request->filled('password') && (int) $user->user_id !== (int) Auth::id()) {
+                $user->perlu_tukar_kata_laluan = true;
+                $user->kata_laluan_tamat_pada = null;
+            }
+            $user->save();
 
             if ($tukarPeranan) {
                 $idLama = $user->roles->pluck('roles_id')->map(fn ($v) => (int) $v)->all();
@@ -178,6 +189,23 @@ class UserController extends Controller
         if ($sasaran->hasRole('SUPERADMIN') && !Auth::user()->hasRole('SUPERADMIN')) {
             abort(403, 'Hanya Super Admin boleh mengurus akaun Super Admin.');
         }
+    }
+
+    /**
+     * Bahagian mesti wujud dan belum dipadam. Dropdown hanya senarai bahagian aktif,
+     * tetapi POST yang diubah suai boleh menghantar ID bahagian terpadam atau palsu.
+     */
+    private function peraturanBahagian(): array
+    {
+        return ['required', Rule::exists('bahagian', 'bahagian_id')->whereNull('deleted_at')];
+    }
+
+    private function mesejBahagian(): array
+    {
+        return PeraturanNama::mesej() + [
+            'bahagian_id.required' => 'Sila pilih Penempatan Bahagian.',
+            'bahagian_id.exists' => 'Bahagian yang dipilih tidak sah atau telah dipadam. Sila pilih bahagian lain.',
+        ];
     }
 
     /**

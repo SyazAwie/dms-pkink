@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Http\Middleware\SemakPeranan;
+use App\Http\Middleware\WajibTukarKataLaluan;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,8 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Alias untuk semakan peranan: ->middleware('peranan:SUPERADMIN,ADMIN')
+        // dan paksaan tukar kata laluan sementara: ->middleware('wajib.tukar')
         $middleware->alias([
             'peranan' => SemakPeranan::class,
+            'wajib.tukar' => WajibTukarKataLaluan::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

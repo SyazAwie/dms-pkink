@@ -19,6 +19,10 @@
     $bilCarta = (int) $adaCartaKategori + (int) $adaCartaTindakan + (int) $adaCartaTrend + (int) $adaCartaBahagian;
 @endphp
 
+@if(session('success'))
+    <div class="alert alert-success" role="status">{{ session('success') }}</div>
+@endif
+
 <!-- Bahagian Pengenalan Halaman -->
 <div class="page-intro">
     <div>

@@ -22,6 +22,9 @@ use App\Observers\DokumenObserver;
 // Polisi kebenaran
 use App\Policies\DokumenPolicy;
 
+// Escape Markdown bagi teks pengguna dalam emel
+use App\Support\TeksEmel;
+
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -52,7 +55,7 @@ class AppServiceProvider extends ServiceProvider
 
             return (new MailMessage)
                 ->subject('Tetapan Semula Kata Laluan - Sistem Arkib Digital PKINK')
-                ->greeting('Salam Sejahtera, ' . $notifiable->nama_staff)
+                ->greeting('Salam Sejahtera, ' . TeksEmel::selamat($notifiable->nama_staff))
                 ->line('Kami menerima permintaan untuk menetapkan semula kata laluan akaun anda dalam Sistem Arkib Digital PKINK.')
                 ->action('Tetapkan Semula Kata Laluan', $url)
                 ->line("Pautan ini sah selama {$minit} minit sahaja.")

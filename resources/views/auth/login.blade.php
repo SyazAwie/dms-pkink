@@ -119,6 +119,15 @@
             font-size: .8rem;
         }
 
+        .alert-berjaya {
+            margin-bottom: 1.25rem;
+            border: 1px solid rgba(37, 169, 121, .35);
+            border-radius: 1rem;
+            background: rgba(236, 253, 245, .85);
+            color: #047857;
+            font-size: .8rem;
+        }
+
         .alert-title { margin-bottom: .3rem; font-weight: 700; }
         .alert-custom ul { margin: 0; padding-left: 1.15rem; }
         .form-group { margin-bottom: 1.25rem; }
@@ -195,6 +204,25 @@
 
         .forgot-link { display: block; margin-top: 1.25rem; text-align: center; color: var(--primary); font-size: .8rem; font-weight: 700; text-decoration: none; }
         .forgot-link:hover { color: var(--brand); text-decoration: underline; text-underline-offset: 4px; }
+
+        /* Daftar Akaun Baharu */
+        .daftar-wrap { margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px solid var(--line); text-align: center; color: var(--muted); font-size: .8rem; }
+        .btn-daftar {
+            display: flex; width: 100%; min-height: 2.75rem; margin-top: .6rem;
+            align-items: center; justify-content: center; gap: .5rem;
+            border: 1px solid var(--primary); border-radius: .8rem;
+            color: var(--primary); background: rgba(255, 255, 255, .7);
+            font-size: .85rem; font-weight: 700; transition: background .2s, color .2s;
+        }
+        .btn-daftar:hover { color: #fff; background: var(--primary); }
+        .modal-daftar .modal-content { border: 0; border-radius: 1.25rem; }
+        .modal-daftar .modal-title { color: var(--brand); font-weight: 800; font-size: 1.05rem; }
+        .modal-daftar .form-control,
+        .modal-daftar .form-select { min-height: 2.75rem; padding: .6rem .9rem; border-radius: .7rem; font-size: .85rem; }
+        .modal-daftar .form-select.is-invalid { border-color: #fb7185; }
+        .modal-daftar .nota { color: var(--muted); font-size: .75rem; }
+        /* Perangkap bot: tersembunyi daripada pengguna & pembaca skrin */
+        .medan-perangkap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
         .copyright { margin: 1.5rem 0 0; color: var(--muted); font-size: .72rem; line-height: 1.6; text-align: center; }
 
         @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -228,6 +256,13 @@
                 </header>
 
                 <div class="login-body">
+                    {{-- Mesej berjaya (cth. selepas tetapan semula kata laluan) --}}
+                    @if(session('success'))
+                        <div class="alert alert-berjaya" role="status" aria-live="polite">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
                     @if($errors->any())
                         <div class="alert alert-custom" role="alert" aria-live="polite">
                             <div class="alert-title">Maklumat tidak sah</div>
@@ -253,7 +288,7 @@
                                     class="form-control @error('ic_pekerja') is-invalid @enderror"
                                     id="ic_pekerja"
                                     name="ic_pekerja"
-                                    value="{{ old('ic_pekerja') }}"
+                                    value="{{ $errors->pendaftaran->any() ? '' : old('ic_pekerja') }}"
                                     placeholder="Contoh: 901201031234"
                                     inputmode="numeric"
                                     maxlength="12"
@@ -300,6 +335,16 @@
 
                         <a href="{{ route('password.request') }}" class="forgot-link">Lupa Kata Laluan?</a>
                     </form>
+
+                    <div class="daftar-wrap">
+                        Staf baharu dan belum mempunyai akaun?
+                        <button type="button" class="btn-daftar" data-bs-toggle="modal" data-bs-target="#modalDaftar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" x2="19" y1="8" y2="14"></line><line x1="22" x2="16" y1="11" y2="11"></line>
+                            </svg>
+                            Daftar Akaun Baharu
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -307,7 +352,79 @@
         </div>
     </main>
 
+    {{-- Modal: Daftar Akaun Baharu (ralat validasi dalam error bag 'pendaftaran') --}}
+    @php $ralatDaftar = $errors->pendaftaran; @endphp
+    <div class="modal fade modal-daftar" id="modalDaftar" tabindex="-1" aria-labelledby="modalDaftarTajuk" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('pendaftaran.simpan') }}" novalidate>
+                    @csrf
+                    <div class="modal-header">
+                        <h2 class="modal-title" id="modalDaftarTajuk">Daftar Akaun Baharu</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="nota mb-3">Permohonan anda akan disemak oleh pentadbir sistem. Jika diluluskan, kata laluan sementara akan dihantar ke emel anda.</p>
+
+                        @if($ralatDaftar->has('pendaftaran'))
+                            <div class="alert alert-custom" role="alert">{{ $ralatDaftar->first('pendaftaran') }}</div>
+                        @endif
+
+                        <div class="mb-3">
+                            <label class="form-label" for="daftar_ic">No. Kad Pengenalan <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @if($ralatDaftar->has('ic_pekerja')) is-invalid @endif"
+                                   id="daftar_ic" name="ic_pekerja" value="{{ $ralatDaftar->any() ? old('ic_pekerja') : '' }}"
+                                   placeholder="Contoh: 901201031234" inputmode="numeric" maxlength="12" autocomplete="off" required>
+                            @if($ralatDaftar->has('ic_pekerja'))<div class="invalid-feedback d-block">{{ $ralatDaftar->first('ic_pekerja') }}</div>@endif
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="daftar_nama">Nama Penuh <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @if($ralatDaftar->has('nama_staff')) is-invalid @endif"
+                                   id="daftar_nama" name="nama_staff" value="{{ old('nama_staff') }}" maxlength="255" autocomplete="name" required>
+                            @if($ralatDaftar->has('nama_staff'))<div class="invalid-feedback d-block">{{ $ralatDaftar->first('nama_staff') }}</div>@endif
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="daftar_emel">Emel <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control @if($ralatDaftar->has('email')) is-invalid @endif"
+                                   id="daftar_emel" name="email" value="{{ old('email') }}" maxlength="255" autocomplete="email" required>
+                            @if($ralatDaftar->has('email'))<div class="invalid-feedback d-block">{{ $ralatDaftar->first('email') }}</div>@endif
+                        </div>
+
+                        <div class="mb-1">
+                            <label class="form-label" for="daftar_bahagian">Bahagian <span class="text-danger">*</span></label>
+                            <select class="form-select @if($ralatDaftar->has('bahagian_id')) is-invalid @endif" id="daftar_bahagian" name="bahagian_id" required>
+                                <option value="">-- Pilih Bahagian --</option>
+                                @foreach($senaraiBahagian as $b)
+                                    <option value="{{ $b->bahagian_id }}" {{ (string) old('bahagian_id') === (string) $b->bahagian_id ? 'selected' : '' }}>{{ $b->kod_bahagian }} - {{ $b->nama_bahagian }}</option>
+                                @endforeach
+                            </select>
+                            @if($ralatDaftar->has('bahagian_id'))<div class="invalid-feedback d-block">{{ $ralatDaftar->first('bahagian_id') }}</div>@endif
+                        </div>
+
+                        {{-- Perangkap bot: jangan isi --}}
+                        <div class="medan-perangkap" aria-hidden="true">
+                            <label for="laman_web">Laman web</label>
+                            <input type="text" id="laman_web" name="laman_web" tabindex="-1" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary fw-bold">Hantar Permohonan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    @if($ralatDaftar->any())
+    <script>
+        // Buka semula modal pendaftaran jika permohonan ditolak oleh validasi
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDaftar')).show();
+    </script>
+    @endif
     <script>
         const passwordInput = document.getElementById('password');
         const passwordToggle = document.getElementById('passwordToggle');
