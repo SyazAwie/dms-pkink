@@ -121,6 +121,10 @@ class JenisDokumenController extends Controller
             'medan.*.kod_field' => 'nullable|max:100',
             'medan.*.jenis_data' => ['nullable', Rule::in(JenisMedan::kod())],
             'medan.*.pilihan' => 'nullable|string',
+            'medan.*.bantuan' => 'nullable|string|max:255',
+            'medan.*.lain' => 'nullable|boolean',
+        ], [
+            'medan.*.bantuan.max' => 'Teks bantuan medan tidak boleh melebihi 255 aksara.',
         ]);
     }
 
@@ -156,19 +160,30 @@ class JenisDokumenController extends Controller
                 ? $row['jenis_data']
                 : 'teks';
 
+            $adaPilihan = in_array($jenisData, JenisMedan::ADA_PILIHAN, true);
+
+            // Tetapan tambahan (lihat App\Support\JenisMedan); kunci kosong tidak disimpan
+            $tetapan = array_filter([
+                'bantuan' => trim((string) ($row['bantuan'] ?? '')) ?: null,
+                'lain' => $adaPilihan && !empty($row['lain']) ? true : null,
+            ], fn ($v) => $v !== null);
+
             $data = [
                 'nama_field' => $row['nama_field'],
                 'kod_field' => Str::slug($row['kod_field'], '_'),
                 'jenis_data' => $jenisData,
-                'pilihan' => in_array($jenisData, JenisMedan::ADA_PILIHAN, true) ? $this->pilihanKeArray($row['pilihan'] ?? '') : null,
+                'pilihan' => $adaPilihan ? $this->pilihanKeArray($row['pilihan'] ?? '') : null,
+                'tetapan' => $tetapan ?: null,
                 'is_required' => !empty($row['is_required']),
                 'susunan' => $i + 1,
             ];
 
             if (!empty($row['id'])) {
+                // Kemas kini melalui model, sama seperti create() di bawah (cast pilihan/tetapan & event model)
                 DokumenField::where('dokumen_field_id', $row['id'])
                     ->where('jenis_dokumen_id', $dokumen->jenis_dokumen_id)
-                    ->update($data);
+                    ->first()
+                    ?->update($data);
             } else {
                 $dokumen->fields()->create($data);
             }

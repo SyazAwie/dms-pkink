@@ -49,7 +49,8 @@
                 @forelse($dokumen->data as $nilai)
                 <div class="medan-baris">
                     <span class="medan-nama">{{ $nilai->field->nama_field ?? $nilai->dokumen_field_id }}</span>
-                    <span class="medan-nilai">{{ $nilai->nilai_data }}</span>
+                    {{-- Format ikut jenis data (RM, tarikh, pautan emel/URL); nilai sudah di-escape oleh JenisMedan::papar --}}
+                    <span class="medan-nilai">{{ \App\Support\JenisMedan::papar($nilai->field, $nilai->nilai_data) }}</span>
                 </div>
                 @empty
                 <div class="dms-hint py-3 text-center">Tiada medan EAV diisi untuk dokumen ini.</div>

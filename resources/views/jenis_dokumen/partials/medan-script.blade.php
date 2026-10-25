@@ -1,9 +1,22 @@
 {{-- resources/views/jenis_dokumen/partials/medan-script.blade.php --}}
 {{--
-    Dikongsi antara create.blade.php & edit.blade.php.
-    Sebelum @include ini, set window.__medanSediaAda = [] (create)
-    atau window.__medanSediaAda = @json($dokumen->fields) (edit).
+    Pembina medan EAV, dikongsi antara create.blade.php & edit.blade.php.
+    Sebelum @include ini, set window.__medanSediaAda kepada senarai baris:
+    medan daripada DB (edit) atau old('medan') selepas ralat validasi.
+    Baris DB ada `tetapan` (objek); baris old() ada `bantuan`/`lain` terus.
 --}}
+<style>
+    /* Dua baris: Nama + Kod, kemudian Jenis Data (label panjang) + Wajib + Buang */
+    .medan-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto; }
+    .medan-col-nama { grid-column: 1 / 2; }
+    .medan-col-kod { grid-column: 2 / 5; }
+    .medan-col-jenis { grid-column: 1 / 3; }
+    @media (max-width: 576px) {
+        .medan-col-nama, .medan-col-kod { grid-column: 1 / 5; }
+    }
+    .medan-tambahan { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 10px; }
+    .medan-lain-pilihan { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--dms-text); cursor: pointer; margin-top: 4px; }
+</style>
 <script>
 (() => {
     const container = document.getElementById('senaraiMedan');
@@ -17,7 +30,7 @@
     const ADA_PILIHAN = @json(\App\Support\JenisMedan::ADA_PILIHAN);
 
     let counter = 0;
-    let idDipadam = [];
+    let idDipadam = inputDipadam.value ? inputDipadam.value.split(',').filter(Boolean) : [];
 
     function escAttr(str) {
         return String(str ?? '')
@@ -57,14 +70,18 @@
         row.className = 'medan-row';
         row.dataset.id = data.dokumen_field_id ?? data.id ?? '';
 
+        const tetapan = data.tetapan || {};
         const jenisSemasa = data.jenis_data in JENIS_MEDAN ? data.jenis_data : 'teks';
-        const isDropdown = ADA_PILIHAN.includes(jenisSemasa);
+        const adaPilihan = ADA_PILIHAN.includes(jenisSemasa);
+        // Pilihan: array (DB) atau teks "a, b, c" (old() selepas ralat validasi)
+        const pilihanTeks = Array.isArray(data.pilihan) ? data.pilihan.join(', ') : (data.pilihan ?? '');
+        const bantuan = tetapan.bantuan ?? data.bantuan ?? '';
+        const lain = Boolean(tetapan.lain ?? (data.lain && data.lain !== '0'));
+        const wajib = Boolean(data.is_required && data.is_required !== '0');
+        const rowId = row.dataset.id;
         const opsyenJenis = Object.entries(JENIS_MEDAN)
             .map(([kod, label]) => `<option value="${kod}" ${kod === jenisSemasa ? 'selected' : ''}>${escAttr(label)}</option>`)
             .join('');
-        const pilihanArr = Array.isArray(data.pilihan) ? data.pilihan : [];
-        const pilihanTeks = pilihanArr.join(', ');
-        const rowId = row.dataset.id;
 
         row.innerHTML = `
             ${rowId ? `<input type="hidden" name="medan[${idx}][id]" value="${escAttr(rowId)}">` : ''}
@@ -86,7 +103,7 @@
                 <div class="medan-col-wajib">
                     <label class="dms-label">&nbsp;</label>
                     <label class="medan-checkbox">
-                        <input type="checkbox" name="medan[${idx}][is_required]" value="1" ${data.is_required ? 'checked' : ''}>
+                        <input type="checkbox" name="medan[${idx}][is_required]" value="1" ${wajib ? 'checked' : ''}>
                         <span>Wajib</span>
                     </label>
                 </div>
@@ -97,10 +114,18 @@
                     </button>
                 </div>
             </div>
-            <div class="medan-pilihan-wrap" style="display:${isDropdown ? 'flex' : 'none'};">
+            <div class="medan-pilihan-wrap" style="display:${adaPilihan ? 'flex' : 'none'};">
                 <label class="dms-label">Senarai Pilihan (asingkan dengan koma)</label>
                 <input type="text" name="medan[${idx}][pilihan]" class="dms-input medan-pilihan"
                        value="${escAttr(pilihanTeks)}" placeholder="Cth: Baru, Dalam Proses, Selesai">
+                <label class="medan-lain-pilihan">
+                    <input type="checkbox" name="medan[${idx}][lain]" value="1" ${lain ? 'checked' : ''}>
+                    <span>Tambah pilihan "Lain-lain (nyatakan)"</span>
+                </label>
+            </div>
+            <div class="medan-tambahan">
+                <input type="text" name="medan[${idx}][bantuan]" class="dms-input medan-bantuan"
+                       value="${escAttr(bantuan)}" maxlength="255" placeholder="Teks bantuan (pilihan), cth: Gunakan huruf kecil">
             </div>
         `;
 

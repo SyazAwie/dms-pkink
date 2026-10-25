@@ -231,7 +231,7 @@ class ImbasArkibController extends DokumenController
                     }
 
                     foreach ($jenisDokumen->fields as $f) {
-                        $nilai = JenisMedan::untukSimpan($f, $request->input("medan_data.{$f->dokumen_field_id}"));
+                        $nilai = JenisMedan::dariPermintaan($f, $request);
                         if ($nilai === null) {
                             continue;
                         }

@@ -4,14 +4,19 @@
 
     Parameter:
       $medanSenarai  koleksi App\Models\DokumenField (tersusun)
-      $nilaiSedia    (pilihan) [dokumen_field_id => nilai] daripada DB atau cadangan AI
+      $nilaiSedia    (pilihan) [dokumen_field_id => nilai tersimpan] daripada DB atau cadangan AI
       $diisiAi       (pilihan) true jika $nilaiSedia ialah cadangan AI (tag "Diisi AI")
 --}}
 @forelse($medanSenarai as $field)
-    @php $nilaiAsal = $nilaiSedia[$field->dokumen_field_id] ?? null; @endphp
+    @php
+        $fid = $field->dokumen_field_id;
+        $nilaiAsal = $nilaiSedia[$fid] ?? null;
+        [$nilaiInput, $nilaiLain] = \App\Support\JenisMedan::untukBorang($field, $nilaiAsal);
+    @endphp
     @include('dokumen.partials.medan-input', [
         'field' => $field,
-        'nilai' => old("medan_data.{$field->dokumen_field_id}", $nilaiAsal),
+        'nilai' => old("medan_data.{$fid}", $nilaiInput),
+        'nilaiLain' => old("medan_lain.{$fid}", $nilaiLain),
         'diisiAi' => ($diisiAi ?? false) && $nilaiAsal !== null,
     ])
 @empty

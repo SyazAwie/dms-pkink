@@ -132,6 +132,7 @@
 @endsection
 
 @push('styles')
+@include('dokumen.partials.medan-gaya')
 <style>
     .form-panel, .tips-panel { padding: 0; }
     .tips-panel { padding: 20px; }

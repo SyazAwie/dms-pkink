@@ -163,6 +163,7 @@ trait SkemaUjian
             $t->string('kod_field', 100);
             $t->string('jenis_data', 20)->default('teks');
             $t->text('pilihan')->nullable();
+            $t->longText('tetapan')->nullable();
             $t->boolean('is_required')->default(false);
             $t->integer('susunan')->default(0);
             $t->timestamps();

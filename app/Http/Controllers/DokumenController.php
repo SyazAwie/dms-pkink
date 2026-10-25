@@ -145,7 +145,7 @@ class DokumenController extends Controller
                     // Gelung atas medan Jenis Dokumen ini sahaja (bukan kunci permintaan),
                     // supaya nilai untuk medan kategori lain atau ID palsu diabaikan.
                     foreach ($jenisDokumen->fields as $field) {
-                        $nilai = JenisMedan::untukSimpan($field, $request->input("medan_data.{$field->dokumen_field_id}"));
+                        $nilai = JenisMedan::dariPermintaan($field, $request);
                         if ($nilai === null) {
                             continue;
                         }
@@ -258,7 +258,7 @@ class DokumenController extends Controller
                 // Nilai medan EAV: hanya proses medan yang nilainya berubah
                 foreach ($dokumen->jenisDokumen->fields as $field) {
                     $fieldId = $field->dokumen_field_id;
-                    $baharu = JenisMedan::untukSimpan($field, $request->input("medan_data.{$fieldId}"));
+                    $baharu = JenisMedan::dariPermintaan($field, $request);
                     $lama = isset($nilaiSedia[$fieldId]) ? (string) $nilaiSedia[$fieldId] : null;
 
                     if ($lama === $baharu) {
@@ -367,7 +367,7 @@ class DokumenController extends Controller
     {
         $peraturanMedan = [];
         foreach ($jenisDokumen->fields as $field) {
-            $peraturanMedan["medan_data.{$field->dokumen_field_id}"] = JenisMedan::peraturan($field);
+            $peraturanMedan += JenisMedan::peraturan($field);
         }
 
         return $peraturanMedan;

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\JenisMedan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Collection;
 
@@ -66,13 +67,10 @@ class OllamaExtractionService
 
     private function binaPrompt(string $teksOcr, Collection $medan): string
     {
-        $senaraiMedan = $medan->map(function ($f) {
-            $baris = "- kod \"{$f->kod_field}\" ({$f->jenis_data})";
-            if ($f->jenis_data === 'dropdown' && $f->pilihan) {
-                $baris .= ': pilihan = [' . implode(', ', $f->pilihan) . ']';
-            }
-            return $baris;
-        })->implode("\n");
+        // Nama medan + panduan format ikut jenis data (App\Support\JenisMedan)
+        $senaraiMedan = $medan
+            ->map(fn ($f) => "- kod \"{$f->kod_field}\" ({$f->nama_field}): " . JenisMedan::panduanAi($f))
+            ->implode("\n");
 
         return <<<PROMPT
 Anda pembantu mengekstrak data daripada teks hasil OCR sebuah borang rasmi Bahasa Melayu.
@@ -82,10 +80,9 @@ Diberi teks OCR dan senarai medan yang diperlukan, PULANGKAN HANYA satu objek JS
 nilai yang dijumpai dalam teks. Jika sesuatu medan tidak dijumpai dalam teks, gunakan null.
 
 Peraturan ketat:
-- Medan jenis "tarikh": format WAJIB YYYY-MM-DD
-- Medan jenis "nombor": angka sahaja, tanpa simbol mata wang/ruang/koma
-- Medan jenis "dropdown": pilih SATU nilai TEPAT seperti dalam senarai pilihan diberi;
-  jika tiada yang sepadan rapat, guna null — JANGAN cipta nilai baharu
+- Ikut format yang dinyatakan bagi setiap medan (tarikh YYYY-MM-DD, nombor/wang angka sahaja)
+- Medan dengan senarai pilihan: pilih SATU nilai TEPAT seperti dalam senarai; jika tiada
+  yang sepadan rapat, guna null — JANGAN cipta nilai baharu kecuali dibenarkan
 - Jangan reka/anggar nilai yang tiada bukti jelas dalam teks
 
 Senarai Medan:
@@ -100,38 +97,14 @@ Jawab dengan JSON sahaja, contoh bentuk: {"kod_medan_1": "nilai", "kod_medan_2":
 PROMPT;
     }
 
-    /** Sahkan setiap nilai ikut jenis_data medan; buang nilai tak sah jadi null. */
+    /**
+     * Sahkan setiap nilai ikut jenis_data medan (peraturan sama dengan borang);
+     * nilai tak sah jadi null. Nilai dipulangkan dalam bentuk simpanan.
+     */
     private function bersihkanNilai(array $data, Collection $medan): array
     {
-        $bersih = [];
-
-        foreach ($medan as $f) {
-            $nilai = $data[$f->kod_field] ?? null;
-
-            if ($nilai === null || $nilai === '') {
-                $bersih[$f->dokumen_field_id] = null;
-                continue;
-            }
-
-            $bersih[$f->dokumen_field_id] = match ($f->jenis_data) {
-                'nombor' => $this->sahkanNombor($nilai),
-                'tarikh' => $this->sahkanTarikh($nilai),
-                'dropdown' => in_array((string) $nilai, $f->pilihan ?? [], true) ? (string) $nilai : null,
-                default => (string) $nilai,
-            };
-        }
-
-        return $bersih;
-    }
-
-    private function sahkanNombor($nilai): ?float
-    {
-        $bersih = str_replace([',', ' ', 'RM'], '', (string) $nilai);
-        return is_numeric($bersih) ? (float) $bersih : null;
-    }
-
-    private function sahkanTarikh($nilai): ?string
-    {
-        return preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $nilai) ? (string) $nilai : null;
+        return $medan
+            ->mapWithKeys(fn ($f) => [$f->dokumen_field_id => JenisMedan::bersihkanAi($f, $data[$f->kod_field] ?? null)])
+            ->all();
     }
 }

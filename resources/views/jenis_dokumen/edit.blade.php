@@ -88,13 +88,16 @@
                     @error('medan')
                         <div class="dms-error mb-2">{{ $message }}</div>
                     @enderror
+                    @foreach($errors->get('medan.*') as $senaraiRalat)
+                        @foreach($senaraiRalat as $ralat)<div class="dms-error mb-2">{{ $ralat }}</div>@endforeach
+                    @endforeach
 
                     <div id="senaraiMedan" class="mt-3"></div>
                     <div id="medanKosong" class="dms-hint text-center py-3">
                         Belum ada medan didaftarkan. Klik "Tambah Medan" untuk mula.
                     </div>
                 </div>
-                <input type="hidden" name="medan_dipadam" id="medan_dipadam" value="">
+                <input type="hidden" name="medan_dipadam" id="medan_dipadam" value="{{ old('medan_dipadam') }}">
                 <!-- ============ Tamat Seksyen EAV ============ -->
 
                 <hr class="dms-divider">
@@ -314,7 +317,8 @@
 </script>
 
 <script>
-    window.__medanSediaAda = @json($dokumen->fields);
+    // Selepas ralat validasi, pulihkan baris yang ditaip (old); jika tidak, medan daripada DB
+    window.__medanSediaAda = @json(old('medan') !== null ? array_values(old('medan')) : $dokumen->fields);
 </script>
 @include('jenis_dokumen.partials.medan-script')
 @endpush

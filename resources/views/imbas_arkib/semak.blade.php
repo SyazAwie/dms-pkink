@@ -107,6 +107,7 @@
 @endsection
 
 @push('styles')
+@include('dokumen.partials.medan-gaya')
 <style>
     .form-panel, .tips-panel { padding: 0; }
     .tips-panel { padding: 18px; }
@@ -128,11 +129,6 @@
     }
     .save-btn:hover { color: #fff; }
     .save-btn:disabled { opacity: .7; cursor: wait; }
-    .tag-ai {
-        background: rgba(124, 58, 237, .12); color: #7c3aed;
-        font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-left: 4px;
-        text-transform: uppercase; letter-spacing: .3px;
-    }
     .ocr-preview {
         margin: 0; max-height: 420px; overflow: auto; font-size: 11.5px;
         white-space: pre-wrap; word-break: break-word; color: var(--dms-text);

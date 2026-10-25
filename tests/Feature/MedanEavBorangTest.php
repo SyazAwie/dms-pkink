@@ -59,12 +59,13 @@ class MedanEavBorangTest extends TestCase
             ->get(route('jenis-dokumen.medan', $this->jenis->jenis_dokumen_id))
             ->assertOk();
 
-        $res->assertSee('type="text" name="medan_data[' . $this->id('no_invois') . ']"', false)
-            ->assertSee('type="number" step="0.01" name="medan_data[' . $this->id('jumlah') . ']"', false)
-            ->assertSee('type="date" name="medan_data[' . $this->id('tarikh_invois') . ']"', false)
-            ->assertSee('<select name="medan_data[' . $this->id('status') . ']"', false)
-            ->assertSee('<option value="Sudah Bayar"', false)
-            ->assertSee('<textarea name="medan_data[' . $this->id('catatan') . ']"', false)
+        $html = $res->getContent();
+        $this->assertMatchesRegularExpression('/<input type="text" [^>]*name="medan_data\[' . $this->id('no_invois') . '\]"/', $html);
+        $this->assertMatchesRegularExpression('/<input type="number" [^>]*name="medan_data\[' . $this->id('jumlah') . '\]"/', $html);
+        $this->assertMatchesRegularExpression('/<input type="date" [^>]*name="medan_data\[' . $this->id('tarikh_invois') . '\]"/', $html);
+        $this->assertMatchesRegularExpression('/<select [^>]*name="medan_data\[' . $this->id('status') . '\]"/', $html);
+        $this->assertMatchesRegularExpression('/<textarea [^>]*name="medan_data\[' . $this->id('catatan') . '\]"/', $html);
+        $res->assertSee('<option value="Sudah Bayar"', false)
             ->assertSee('No. Invois');
     }
 
@@ -141,8 +142,10 @@ class MedanEavBorangTest extends TestCase
 
     public function test_pembina_medan_kategori_guna_senarai_jenis_dari_jenis_medan(): void
     {
-        $this->actingAs($this->buatPengguna(['ADMIN']))->get(route('jenis-dokumen.create'))
-            ->assertOk()
-            ->assertSee(json_encode(\App\Support\JenisMedan::SENARAI), false);
+        $res = $this->actingAs($this->buatPengguna(['ADMIN']))->get(route('jenis-dokumen.create'))->assertOk();
+
+        foreach (array_keys(\App\Support\JenisMedan::SENARAI) as $kod) {
+            $res->assertSee('"' . $kod . '":"', false);
+        }
     }
 }
