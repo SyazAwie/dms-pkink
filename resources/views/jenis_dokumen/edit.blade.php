@@ -322,7 +322,7 @@
 
 <script>
     // Selepas ralat validasi, pulihkan baris yang ditaip (old); jika tidak, medan daripada DB
-    window.__medanSediaAda = @json(old('medan') !== null ? array_values(old('medan')) : $dokumen->fields);
+    window.__medanSediaAda = @json(old('medan') !== null ? array_values(old('medan')) : $medanPembina);
 </script>
 @include('jenis_dokumen.partials.medan-script')
 @endpush

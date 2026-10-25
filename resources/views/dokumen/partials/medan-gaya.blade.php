@@ -25,6 +25,9 @@
     .medan-eav:has(input[value="__lain__"]:checked) .medan-lain-wrap,
     .medan-lain-wrap:has(.is-invalid) { display: block; }
 
+    /* Medan yang syarat "tunjuk jika"nya tidak dipenuhi (medan-skrip) */
+    [data-kod][hidden] { display: none !important; }
+
     /* Tajuk seksyen (jenis "seksyen"): pemisah antara kumpulan medan */
     .medan-seksyen { margin: 18px 0 12px; padding: 8px 12px; border-left: 3px solid var(--dms-primary); background: rgba(23, 105, 210, .05); border-radius: 0 8px 8px 0; }
     .medan-seksyen-tajuk { font-size: 13px; font-weight: 800; color: var(--dms-brand); text-transform: uppercase; letter-spacing: .3px; }

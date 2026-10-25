@@ -34,15 +34,20 @@
     $nilaiLamaSenarai = $field->jenis_data === 'kotak_semak'
         ? array_values(array_diff($nilaiSenarai, $pilihan, [JenisMedan::NILAI_LAIN]))
         : [];
+    // Syarat "tunjuk jika": dinilai oleh medan-skrip (sembunyi + nyahaktif input) dan di pelayan
+    $syarat = JenisMedan::syarat($field);
+    $atributSyarat = $syarat
+        ? 'data-tunjuk-kod="' . e($syarat['kod']) . '" data-tunjuk-nilai="' . e($syarat['nilai']) . '"'
+        : '';
 @endphp
 @if(!JenisMedan::adaNilai($field))
     {{-- Tajuk seksyen: pemisah paparan sahaja, tiada input --}}
-    <div class="medan-seksyen">
+    <div class="medan-seksyen" data-kod="{{ $field->kod_field }}" {!! $atributSyarat !!}>
         <div class="medan-seksyen-tajuk">{{ $field->nama_field }}</div>
         @if($bantuan)<div class="dms-hint mt-0">{{ $bantuan }}</div>@endif
     </div>
 @else
-<div class="mb-3 medan-eav" data-jenis="{{ $field->jenis_data }}">
+<div class="mb-3 medan-eav" data-jenis="{{ $field->jenis_data }}" data-kod="{{ $field->kod_field }}" {!! $atributSyarat !!}>
     <label class="dms-label" @if(!in_array($field->jenis_data, ['radio', 'ya_tidak', 'kotak_semak', 'jadual'], true)) for="medan_{{ $fid }}" @endif>
         {{ $field->nama_field }}
         @if($field->is_required)<span class="text-danger">*</span>@endif

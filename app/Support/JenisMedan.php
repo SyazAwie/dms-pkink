@@ -22,6 +22,8 @@ use Illuminate\Validation\Rule;
  * Tetapan tambahan setiap medan ada dalam dokumen_field.tetapan (JSON):
  *   bantuan  teks bantuan di bawah label (bagi seksyen: keterangan seksyen)
  *   lain     true = tambah pilihan "Lain-lain (nyatakan)" (dropdown/radio/kotak semak)
+ *   tunjuk_jika  {kod, nilai}: medan hanya dipaparkan (dan disahkan/disimpan) jika medan
+ *                berkod `kod` bernilai `nilai` (lihat kelihatan() dan medan-skrip)
  *
  * Kotak semak disimpan sebagai senarai JSON, cth. ["Emel","Lain-lain: Intranet"].
  * Jadual (baris berulang) diurus oleh App\Support\MedanJadual.
@@ -80,6 +82,46 @@ final class JenisMedan
     public static function adaNilai(DokumenField $medan): bool
     {
         return !in_array($medan->jenis_data, self::TANPA_NILAI, true);
+    }
+
+    /** Jenis yang boleh menjadi sumber syarat "tunjuk jika" (nilai daripada senarai tetap). */
+    public const SUMBER_SYARAT = ['dropdown', 'radio', 'kotak_semak', 'ya_tidak'];
+
+    /** @return array{kod: string, nilai: string}|null */
+    public static function syarat(DokumenField $medan): ?array
+    {
+        $syarat = $medan->tetapan['tunjuk_jika'] ?? null;
+        if (!is_array($syarat) || empty($syarat['kod']) || !isset($syarat['nilai']) || $syarat['nilai'] === '') {
+            return null;
+        }
+
+        return ['kod' => (string) $syarat['kod'], 'nilai' => (string) $syarat['nilai']];
+    }
+
+    /**
+     * Adakah medan ini dipaparkan bagi nilai borang semasa? Medan tanpa syarat, atau
+     * yang medan sumbernya tiada lagi, sentiasa dipaparkan. Medan tersembunyi tidak
+     * divalidasi dan nilainya tidak disimpan (sama seperti di pelayar).
+     *
+     * @param iterable<DokumenField> $medanSemua semua medan Jenis Dokumen yang sama
+     * @param array $medanData input medan_data borang [dokumen_field_id => nilai]
+     */
+    public static function kelihatan(DokumenField $medan, iterable $medanSemua, array $medanData): bool
+    {
+        $syarat = self::syarat($medan);
+        if ($syarat === null) {
+            return true;
+        }
+        $sumber = collect($medanSemua)->firstWhere('kod_field', $syarat['kod']);
+        if ($sumber === null || $sumber->dokumen_field_id === $medan->dokumen_field_id) {
+            return true;
+        }
+
+        $nilai = $medanData[$sumber->dokumen_field_id] ?? null;
+
+        return is_array($nilai)
+            ? in_array($syarat['nilai'], array_map('strval', array_filter($nilai, 'is_scalar')), true)
+            : (string) $nilai === $syarat['nilai'];
     }
 
     /**
@@ -179,9 +221,14 @@ final class JenisMedan
 
     /**
      * Nilai simpanan bagi satu medan daripada permintaan borang (sudah divalidasi).
+     * Jika $medanSemua diberi, medan yang tersembunyi oleh syarat "tunjuk jika" → null.
      */
-    public static function dariPermintaan(DokumenField $medan, Request $request): ?string
+    public static function dariPermintaan(DokumenField $medan, Request $request, ?iterable $medanSemua = null): ?string
     {
+        if ($medanSemua !== null && !self::kelihatan($medan, $medanSemua, (array) $request->input('medan_data', []))) {
+            return null;
+        }
+
         $id = $medan->dokumen_field_id;
 
         return self::untukSimpan($medan, $request->input("medan_data.{$id}"), $request->input("medan_lain.{$id}"));

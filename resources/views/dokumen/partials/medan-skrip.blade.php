@@ -7,6 +7,42 @@
 (() => {
     const MAKS_BARIS = @json(\App\Support\MedanJadual::MAKS_BARIS);
 
+    // ---- Syarat "tunjuk jika" (JenisMedan::kelihatan, sama logik di pelayan) ----
+    // Nilai semasa medan sumber: senarai nilai yang dipilih/ditaip (kosong jika tersembunyi)
+    function nilaiMedan(skop, kod) {
+        const pembungkus = skop.querySelector(`[data-kod="${CSS.escape(kod)}"]`);
+        if (!pembungkus) return null;
+        if (pembungkus.hidden) return [];
+        return [...pembungkus.querySelectorAll('[name^="medan_data"]')]
+            .filter((i) => !i.disabled && ((i.type !== 'radio' && i.type !== 'checkbox') || i.checked))
+            .map((i) => i.value);
+    }
+
+    // Sembunyi & nyahaktif medan yang syaratnya tidak dipenuhi (input dinyahaktif tidak dihantar)
+    function nilaiSyarat() {
+        // Diulang beberapa kali supaya syarat berantai (A → B → C) stabil
+        for (let pusingan = 0; pusingan < 3; pusingan++) {
+            document.querySelectorAll('[data-tunjuk-kod]').forEach((medan) => {
+                const nilai = nilaiMedan(medan.closest('form') || document, medan.dataset.tunjukKod);
+                const tunjuk = nilai === null || nilai.includes(medan.dataset.tunjukNilai);
+                if (medan.hidden === !tunjuk) return;
+                medan.hidden = !tunjuk;
+                medan.querySelectorAll('input, select, textarea, button').forEach((i) => { i.disabled = !tunjuk; });
+            });
+        }
+    }
+
+    document.addEventListener('change', (e) => {
+        if (e.target.closest('[data-kod]')) nilaiSyarat();
+    });
+    // Medan yang dimuatkan melalui fetch() (borang Muat Naik) juga dinilai
+    new MutationObserver((perubahan) => {
+        if (perubahan.some((p) => [...p.addedNodes].some((n) => n.nodeType === 1 && (n.matches('[data-kod]') || n.querySelector('[data-kod]'))))) {
+            nilaiSyarat();
+        }
+    }).observe(document.body, { childList: true, subtree: true });
+    nilaiSyarat();
+
     document.addEventListener('click', (e) => {
         // Jadual: tambah baris daripada <template> (indeks baharu menggantikan __I__)
         const tambah = e.target.closest('.medan-jadual-tambah');

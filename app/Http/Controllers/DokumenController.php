@@ -119,7 +119,7 @@ class DokumenController extends Controller
             'perkara' => 'nullable|max:255',
             'fail_scan' => 'required|array|min:1',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih) : []));
+        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request) : []));
 
         $jenisDokumen = $jenisDipilih;
 
@@ -145,7 +145,7 @@ class DokumenController extends Controller
                     // Gelung atas medan Jenis Dokumen ini sahaja (bukan kunci permintaan),
                     // supaya nilai untuk medan kategori lain atau ID palsu diabaikan.
                     foreach ($jenisDokumen->fields as $field) {
-                        $nilai = JenisMedan::dariPermintaan($field, $request);
+                        $nilai = JenisMedan::dariPermintaan($field, $request, $jenisDokumen->fields);
                         if ($nilai === null) {
                             continue;
                         }
@@ -268,7 +268,7 @@ class DokumenController extends Controller
             'hapus_scan.*' => 'integer',
             'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ] + $this->peraturanMedan($dokumen->jenisDokumen));
+        ] + $this->peraturanMedan($dokumen->jenisDokumen, $request));
 
         // Hanya fail milik dokumen ini boleh dibuang
         $idHapus = $dokumen->scans
@@ -300,7 +300,7 @@ class DokumenController extends Controller
                 // Nilai medan EAV: hanya proses medan yang nilainya berubah
                 foreach ($dokumen->jenisDokumen->fields as $field) {
                     $fieldId = $field->dokumen_field_id;
-                    $baharu = JenisMedan::dariPermintaan($field, $request);
+                    $baharu = JenisMedan::dariPermintaan($field, $request, $dokumen->jenisDokumen->fields);
                     $lama = isset($nilaiSedia[$fieldId]) ? (string) $nilaiSedia[$fieldId] : null;
 
                     if ($lama === $baharu) {
@@ -404,11 +404,16 @@ class DokumenController extends Controller
     /**
      * Peraturan validasi dinamik bagi nilai medan EAV (dikongsi store, update
      * dan Imbas & Arkib). Peraturan setiap jenis data ada dalam JenisMedan.
+     * Medan yang tersembunyi oleh syarat "tunjuk jika" tidak divalidasi.
      */
-    protected function peraturanMedan(JenisDokumen $jenisDokumen): array
+    protected function peraturanMedan(JenisDokumen $jenisDokumen, ?Request $request = null): array
     {
+        $medanData = (array) $request?->input('medan_data', []);
         $peraturanMedan = [];
         foreach ($jenisDokumen->fields as $field) {
+            if ($request && !JenisMedan::kelihatan($field, $jenisDokumen->fields, $medanData)) {
+                continue;
+            }
             $peraturanMedan += JenisMedan::peraturan($field);
         }
 

@@ -23,6 +23,13 @@
     .lajur-baris .lajur-pilihan { grid-column: 1 / 3; }
     .lajur-baris .dms-input { padding: 8px 10px; font-size: 12.5px; }
     .lajur-buang { border: 1px solid var(--dms-line); background: transparent; color: var(--dms-danger); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+    /* Syarat "tunjuk jika" dan amaran tukar jenis (#16) */
+    .medan-syarat { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: center; margin-top: 6px; }
+    .medan-syarat .dms-input { padding: 7px 10px; font-size: 12px; }
+    .medan-syarat-label { font-size: 11.5px; font-weight: 600; color: var(--dms-muted); white-space: nowrap; }
+    @media (max-width: 576px) { .medan-syarat { grid-template-columns: 1fr; } }
+    .medan-amaran-tukar { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(220, 150, 20, .1); color: #8a5a00; font-size: 12px; }
+    .medan-amaran-tukar .medan-lain-pilihan { display: flex; color: #8a5a00; }
     .lajur-tambah { border: 1px dashed var(--dms-primary); background: rgba(23, 105, 210, .04); color: var(--dms-primary); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
 </style>
 <script>
@@ -90,6 +97,13 @@
         const wajib = Boolean(data.is_required && data.is_required !== '0');
         // Baris tetap jadual: tetapan.baris (DB, array) atau data.baris_tetap (old(), teks)
         const barisTetap = Array.isArray(tetapan.baris) ? tetapan.baris.join(', ') : (data.baris_tetap ?? '');
+        // Syarat "tunjuk jika": tetapan.tunjuk_jika (DB) atau tunjuk_kod/tunjuk_nilai (old())
+        const tunjukKod = tetapan.tunjuk_jika?.kod ?? data.tunjuk_kod ?? '';
+        const tunjukNilai = tetapan.tunjuk_jika?.nilai ?? data.tunjuk_nilai ?? '';
+        // #16: bilangan nilai tersimpan & jenis asal (medan sedia ada sahaja)
+        const bilNilai = Number(data.bil_nilai ?? 0);
+        const jenisAsal = data.jenis_asal ?? (data.dokumen_field_id ? data.jenis_data : '');
+        const sahkanTukar = Boolean(data.sahkan_tukar && data.sahkan_tukar !== '0');
         const rowId = row.dataset.id;
         const opsyenJenis = Object.entries(JENIS_MEDAN)
             .map(([kod, label]) => `<option value="${kod}" ${kod === jenisSemasa ? 'selected' : ''}>${escAttr(label)}</option>`)
@@ -147,7 +161,31 @@
                 <input type="text" name="medan[${idx}][bantuan]" class="dms-input medan-bantuan"
                        value="${escAttr(bantuan)}" maxlength="255" placeholder="Teks bantuan (pilihan), cth: Gunakan huruf kecil">
             </div>
+            <div class="medan-syarat">
+                <span class="medan-syarat-label">Tunjuk hanya jika</span>
+                <input type="text" name="medan[${idx}][tunjuk_kod]" class="dms-input medan-syarat-kod" list="senaraiKodSumber"
+                       value="${escAttr(tunjukKod)}" maxlength="100" placeholder="kod medan (pilihan)" aria-label="Kod medan syarat">
+                <span class="medan-syarat-label">=</span>
+                <input type="text" name="medan[${idx}][tunjuk_nilai]" class="dms-input medan-syarat-nilai"
+                       value="${escAttr(tunjukNilai)}" maxlength="255" placeholder="nilai, cth: Khidmat Luar" aria-label="Nilai syarat">
+            </div>
+            <input type="hidden" name="medan[${idx}][bil_nilai]" value="${bilNilai}">
+            <input type="hidden" name="medan[${idx}][jenis_asal]" value="${escAttr(jenisAsal)}">
+            <div class="medan-amaran-tukar" style="display:none;">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>Medan ini sudah ada <strong>${bilNilai}</strong> nilai tersimpan. Menukar jenis data boleh menyebabkan nilai lama gagal validasi semasa dokumen diedit; sistem akan menolak jika ada nilai yang tidak serasi.</span>
+                <label class="medan-lain-pilihan">
+                    <input type="checkbox" name="medan[${idx}][sahkan_tukar]" value="1" ${sahkanTukar ? 'checked' : ''}>
+                    <span>Teruskan tukar jenis walaupun ada nilai tidak serasi</span>
+                </label>
+            </div>
         `;
+
+        // #16: amaran bila jenis data medan yang sudah ada nilai ditukar
+        const amaranTukar = row.querySelector('.medan-amaran-tukar');
+        function kemaskiniAmaranTukar() {
+            amaranTukar.style.display = bilNilai > 0 && jenisAsal && row.querySelector('.medan-jenis').value !== jenisAsal ? '' : 'none';
+        }
 
         // ---- Editor lajur jadual ----
         // Lajur: tetapan.lajur (DB, pilihan = array) atau data.lajur (old(), pilihan = teks)
@@ -215,7 +253,9 @@
                 : 'Teks bantuan (pilihan), cth: Gunakan huruf kecil';
         }
         jenisSelect.addEventListener('change', kemaskiniIkutJenis);
+        jenisSelect.addEventListener('change', kemaskiniAmaranTukar);
         kemaskiniIkutJenis();
+        kemaskiniAmaranTukar();
         btnBuang.addEventListener('click', () => buangBaris(row));
 
         container.appendChild(row);
@@ -226,8 +266,23 @@
         btnTambah.addEventListener('click', () => tambahBaris());
     }
 
+    // Cadangan kod untuk syarat "tunjuk jika": medan berpilihan dalam pembina (dikemas kini bila pembina berubah)
+    const SUMBER_SYARAT = @json(\App\Support\JenisMedan::SUMBER_SYARAT);
+    const senaraiKodSumber = document.createElement('datalist');
+    senaraiKodSumber.id = 'senaraiKodSumber';
+    container.after(senaraiKodSumber);
+    function kemaskiniKodSumber() {
+        senaraiKodSumber.innerHTML = [...container.querySelectorAll('.medan-row')]
+            .filter((r) => SUMBER_SYARAT.includes(r.querySelector('.medan-jenis').value) && r.querySelector('.medan-kod').value)
+            .map((r) => `<option value="${escAttr(r.querySelector('.medan-kod').value)}">${escAttr(r.querySelector('.medan-nama').value)}</option>`)
+            .join('');
+    }
+    container.addEventListener('input', kemaskiniKodSumber);
+    container.addEventListener('change', kemaskiniKodSumber);
+
     (window.__medanSediaAda || []).forEach(tambahBaris);
     kemaskiniEmptyState();
+    kemaskiniKodSumber();
 
     // Sahkan setiap baris yang diisi Nama mesti ada Kod, sebelum hantar borang
     if (form) {
@@ -250,6 +305,7 @@
             [...container.querySelectorAll('.medan-row')].forEach(buangBaris);
             (senarai || []).forEach(tambahBaris);
             kemaskiniEmptyState();
+            kemaskiniKodSumber();
         },
         bilanganBaris: () => container.querySelectorAll('.medan-row').length,
     };

@@ -154,7 +154,7 @@ class ImbasArkibController extends DokumenController
         $request->validate([
             'tarikh_dokumen' => 'required|date',
             'perkara' => 'nullable|max:255',
-        ] + $this->peraturanMedan($jenisDokumen));
+        ] + $this->peraturanMedan($jenisDokumen, $request));
 
         // Tuntut token secara atomik: rename hanya berjaya bagi SATU permintaan,
         // jadi klik dua kali / dua tab tidak mencipta dua dokumen.
@@ -234,7 +234,7 @@ class ImbasArkibController extends DokumenController
                     }
 
                     foreach ($jenisDokumen->fields as $f) {
-                        $nilai = JenisMedan::dariPermintaan($f, $request);
+                        $nilai = JenisMedan::dariPermintaan($f, $request, $jenisDokumen->fields);
                         if ($nilai === null) {
                             continue;
                         }
