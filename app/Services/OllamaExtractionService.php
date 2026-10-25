@@ -87,6 +87,9 @@ Peraturan ketat:
 - Medan dengan senarai pilihan: pilih SATU nilai TEPAT seperti dalam senarai; jika tiada
   yang sepadan rapat, guna null — JANGAN cipta nilai baharu kecuali dibenarkan
 - Jangan reka/anggar nilai yang tiada bukti jelas dalam teks
+- Teks selepas tanda ":" dalam Senarai Medan ialah ARAHAN format, bukan nilai; jangan salin
+  arahan itu ke dalam jawapan
+- Borang kosong (tiada jawapan ditulis): guna null, jangan salin label borang sebagai nilai
 
 Senarai Medan:
 {$senaraiMedan}

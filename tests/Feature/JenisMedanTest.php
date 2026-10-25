@@ -124,6 +124,20 @@ class JenisMedanTest extends TestCase
         $this->assertSame('Lain-lain: Intranet', JenisMedan::bersihkanAi($denganLain, 'Intranet'));
     }
 
+    public function test_ai_menyalin_panduan_atau_label_jenis_ditolak(): void
+    {
+        // Ditemui semasa ujian Imbas & Arkib: AI memulangkan "Teks panjang" bagi medan textarea
+        $this->assertNull(JenisMedan::bersihkanAi($this->medan('textarea'), 'Teks panjang'));
+        $this->assertNull(JenisMedan::bersihkanAi($this->medan('textarea'), JenisMedan::panduanAi($this->medan('textarea'))));
+        $this->assertNull(JenisMedan::bersihkanAi($this->medan('teks'), 'teks.'));
+        $this->assertNull(JenisMedan::bersihkanAi($this->medan('teks'), 'null'));
+        $this->assertSame('Komputer riba 2 unit', JenisMedan::bersihkanAi($this->medan('textarea'), 'Komputer riba 2 unit'));
+
+        // "Tiada" kekal sah sebagai pilihan radio dan bermaksud "Tidak" bagi ya/tidak
+        $this->assertSame('Tiada', JenisMedan::bersihkanAi($this->medan('radio', ['pilihan' => ['Ada', 'Tiada']]), 'Tiada'));
+        $this->assertSame('Tidak', JenisMedan::bersihkanAi($this->medan('ya_tidak'), 'tiada'));
+    }
+
     public function test_prompt_ai_mengandungi_nama_dan_panduan_format(): void
     {
         Http::fake(['*/api/generate' => Http::response([

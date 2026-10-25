@@ -316,8 +316,9 @@ final class JenisMedan
                 . (self::adaLain($medan) ? '; jawapan lain yang jelas boleh dimasukkan' : '') . ', cth. ["a","b"]',
             'ya_tidak' => 'tulis "Ya" atau "Tidak" sahaja',
             'jadual' => MedanJadual::panduanAi($medan),
-            'textarea' => 'teks panjang',
-            default => 'teks',
+            // Arahan, bukan label: label seperti "teks panjang" pernah disalin oleh AI sebagai nilai
+            'textarea' => 'salin teks berkaitan dari dokumen, boleh beberapa ayat',
+            default => 'salin nilai berkaitan dari dokumen',
         };
 
         return $panduan;
@@ -342,7 +343,7 @@ final class JenisMedan
             return null;
         }
         $nilai = trim((string) ($nilai ?? ''));
-        if ($nilai === '') {
+        if ($nilai === '' || self::salinanPanduan($medan, $nilai)) {
             return null;
         }
 
@@ -375,6 +376,22 @@ final class JenisMedan
         }
 
         return self::untukSimpan($medan, $nilai);
+    }
+
+    /**
+     * True jika AI memulangkan teks panduan prompt atau label jenis data sebagai nilai
+     * (cth. "Teks panjang" bagi medan textarea) dan bukan nilai daripada dokumen.
+     */
+    private static function salinanPanduan(DokumenField $medan, string $nilai): bool
+    {
+        $kecil = mb_strtolower(trim($nilai, " \t\n\r\0\x0B.\"'"));
+
+        return in_array($kecil, [
+            mb_strtolower(self::panduanAi($medan)),
+            mb_strtolower(self::SENARAI[$medan->jenis_data] ?? ''),
+            // Bukan "tiada": pilihan sah (Ada/Tiada) dan bermaksud "Tidak" bagi ya/tidak
+            'teks', 'teks panjang', 'textarea', 'null', 'n/a',
+        ], true);
     }
 
     /**
