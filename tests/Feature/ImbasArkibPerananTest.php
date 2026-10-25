@@ -48,7 +48,8 @@ class ImbasArkibPerananTest extends TestCase
 
         $this->actingAs($user)->get(route('imbas-arkib.create'))->assertForbidden();
         $this->actingAs($user)->post(route('imbas-arkib.analisis'))->assertForbidden();
-        $this->actingAs($user)->post(route('imbas-arkib.simpan'))->assertForbidden();
+        $this->actingAs($user)->get(route('imbas-arkib.semak', str_repeat('a', 40)))->assertForbidden();
+        $this->actingAs($user)->post(route('imbas-arkib.simpan', str_repeat('a', 40)))->assertForbidden();
     }
 
     #[DataProvider('perananDisekat')]

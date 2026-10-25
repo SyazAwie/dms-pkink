@@ -45,13 +45,9 @@
                 <h3>Langkah 2: Semak &amp; Sahkan Medan</h3>
             </div>
 
-            <form action="{{ route('imbas-arkib.simpan') }}" method="POST" class="px-4 pb-4">
+            {{-- Jenis dokumen, fail dan hasil OCR disimpan di pelayan (folder token), bukan dalam borang --}}
+            <form action="{{ route('imbas-arkib.simpan', $token) }}" method="POST" class="px-4 pb-4" id="formSimpan">
                 @csrf
-                <input type="hidden" name="jenis_dokumen_id" value="{{ $jenisDokumen->jenis_dokumen_id }}">
-                <input type="hidden" name="laluan_sementara" value="{{ $laluanSementara }}">
-                <input type="hidden" name="nama_asal" value="{{ $namaAsal }}">
-                <input type="hidden" name="teks_ocr" value="{{ $teksOcr }}">
-                <input type="hidden" name="skor_ocr" value="{{ $skorOcr }}">
 
                 <div class="mb-4">
                     <label class="dms-label">Tarikh Dokumen <span class="text-danger">*</span></label>
@@ -117,7 +113,7 @@
 
                 <div class="d-flex justify-content-end gap-2 mt-3">
                     <a href="{{ route('imbas-arkib.create') }}" class="outline-button text-decoration-none"><span>Batal</span></a>
-                    <button type="submit" class="btn text-white save-btn">
+                    <button type="submit" id="btnSimpan" class="btn text-white save-btn">
                         <i class="bi bi-check2-circle me-2"></i> Sahkan &amp; Simpan (Diluluskan)
                     </button>
                 </div>
@@ -170,6 +166,7 @@
         border: none; border-radius: 10px; font-weight: 700; padding: 10px 22px;
     }
     .save-btn:hover { color: #fff; }
+    .save-btn:disabled { opacity: .7; cursor: wait; }
     .tag-ai {
         background: rgba(124, 58, 237, .12); color: #7c3aed;
         font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-left: 4px;
@@ -182,4 +179,15 @@
         border-radius: 10px; padding: 10px 12px;
     }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+    // Elak klik dua kali (pelayan juga menyekat simpan berganda melalui token)
+    document.getElementById('formSimpan').addEventListener('submit', function () {
+        const btn = document.getElementById('btnSimpan');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    });
+</script>
 @endpush
