@@ -119,10 +119,10 @@ class DokumenController extends Controller
         // (dua staf muat naik jenis+tahun sama pada masa hampir serentak).
         $percubaan = 0;
         do {
-            try {
-                $scanBaharu = collect();
+            $laluanDitulis = [];
 
-                $dokumen = DB::transaction(function () use ($request, $jenisDokumen, &$scanBaharu) {
+            try {
+                $dokumen = DB::transaction(function () use ($request, $jenisDokumen, &$laluanDitulis) {
                     $noRujukan = $this->janaNoRujukan($jenisDokumen, $request->tarikh_dokumen);
 
                     $dokumenBaharu = Dokumen::create([
@@ -150,20 +150,27 @@ class DokumenController extends Controller
 
                     $namaFolder = Str::slug($dokumenBaharu->no_rujukan, '_');
                     foreach ($request->file('fail_scan', []) as $fail) {
-                        $laluan = $fail->store("dokumen_scan/{$namaFolder}", 'local');
+                        $laluanDitulis[] = $laluan = $this->simpanFailScan($fail, $namaFolder);
 
-                        $scanBaharu->push(DokumenScan::create([
+                        DokumenScan::create([
                             'dokumen_id' => $dokumenBaharu->dokumen_id,
                             'nama_fail' => $fail->getClientOriginalName(),
                             'lokasi_fail' => $laluan,
-                        ]));
+                        ]);
                     }
 
                     return $dokumenBaharu;
                 });
 
                 break; // berjaya, keluar dari gelung percubaan
-            } catch (\Illuminate\Database\QueryException $e) {
+            } catch (\Throwable $e) {
+                // Transaksi dibatalkan: buang fail yang sempat ditulis supaya tiada fail
+                // yatim dalam storan (termasuk percubaan yang akan diulang kerana 1062).
+                Storage::disk('local')->delete($laluanDitulis);
+
+                if (!$e instanceof \Illuminate\Database\QueryException) {
+                    throw $e;
+                }
                 $percubaan++;
                 if ($percubaan >= 3 || $e->errorInfo[1] !== 1062) {
                     // Bukan ralat "Duplicate entry" (1062), atau dah 3 kali cuba — lepaskan.
@@ -229,64 +236,70 @@ class DokumenController extends Controller
         }
 
         $nilaiSedia = $dokumen->data->pluck('nilai_data', 'dokumen_field_id');
-        $lamaMedan = $baharuMedan = $failDibuang = $failDitambah = $laluanUntukPadam = [];
-        $scanBaharu = collect();
+        $lamaMedan = $baharuMedan = $failDibuang = $failDitambah = $laluanUntukPadam = $laluanDitulis = [];
 
-        DB::transaction(function () use (
-            $request, $dokumen, $idHapus, $nilaiSedia,
-            &$lamaMedan, &$baharuMedan, &$failDibuang, &$failDitambah, &$laluanUntukPadam, &$scanBaharu
-        ) {
-            $dokumen->update([
-                'tarikh_dokumen' => $request->tarikh_dokumen,
-                'perkara' => $request->perkara,
-            ]);
+        try {
+            DB::transaction(function () use (
+                $request, $dokumen, $idHapus, $nilaiSedia,
+                &$lamaMedan, &$baharuMedan, &$failDibuang, &$failDitambah, &$laluanUntukPadam, &$laluanDitulis
+            ) {
+                $dokumen->update([
+                    'tarikh_dokumen' => $request->tarikh_dokumen,
+                    'perkara' => $request->perkara,
+                ]);
 
-            // Nilai medan EAV: hanya proses medan yang nilainya berubah
-            foreach ($dokumen->jenisDokumen->fields as $field) {
-                $fieldId = $field->dokumen_field_id;
-                $baharu = $request->input("medan_data.{$fieldId}");
-                $baharu = ($baharu === null || $baharu === '') ? null : (string) $baharu;
-                $lama = isset($nilaiSedia[$fieldId]) ? (string) $nilaiSedia[$fieldId] : null;
+                // Nilai medan EAV: hanya proses medan yang nilainya berubah
+                foreach ($dokumen->jenisDokumen->fields as $field) {
+                    $fieldId = $field->dokumen_field_id;
+                    $baharu = $request->input("medan_data.{$fieldId}");
+                    $baharu = ($baharu === null || $baharu === '') ? null : (string) $baharu;
+                    $lama = isset($nilaiSedia[$fieldId]) ? (string) $nilaiSedia[$fieldId] : null;
 
-                if ($lama === $baharu) {
-                    continue;
+                    if ($lama === $baharu) {
+                        continue;
+                    }
+
+                    $lamaMedan[$field->nama_field] = $lama;
+                    $baharuMedan[$field->nama_field] = $baharu;
+
+                    if ($baharu === null) {
+                        DokumenData::where('dokumen_id', $dokumen->dokumen_id)
+                            ->where('dokumen_field_id', $fieldId)
+                            ->delete();
+                    } else {
+                        DokumenData::updateOrCreate(
+                            ['dokumen_id' => $dokumen->dokumen_id, 'dokumen_field_id' => $fieldId],
+                            ['nilai_data' => $baharu]
+                        );
+                    }
                 }
 
-                $lamaMedan[$field->nama_field] = $lama;
-                $baharuMedan[$field->nama_field] = $baharu;
-
-                if ($baharu === null) {
-                    DokumenData::where('dokumen_id', $dokumen->dokumen_id)
-                        ->where('dokumen_field_id', $fieldId)
-                        ->delete();
-                } else {
-                    DokumenData::updateOrCreate(
-                        ['dokumen_id' => $dokumen->dokumen_id, 'dokumen_field_id' => $fieldId],
-                        ['nilai_data' => $baharu]
-                    );
+                // Buang rekod fail yang ditanda (fail fizikal dipadam selepas commit)
+                foreach ($dokumen->scans->whereIn('dokumen_scan_id', $idHapus) as $scan) {
+                    $failDibuang[] = $scan->nama_fail;
+                    $laluanUntukPadam[] = $scan->lokasi_fail;
+                    $scan->delete();
                 }
-            }
 
-            // Buang rekod fail yang ditanda (fail fizikal dipadam selepas commit)
-            foreach ($dokumen->scans->whereIn('dokumen_scan_id', $idHapus) as $scan) {
-                $failDibuang[] = $scan->nama_fail;
-                $laluanUntukPadam[] = $scan->lokasi_fail;
-                $scan->delete();
-            }
+                // Tambah fail imbasan baharu
+                $namaFolder = Str::slug($dokumen->no_rujukan, '_');
+                foreach ($request->file('fail_scan', []) as $fail) {
+                    $laluanDitulis[] = $laluan = $this->simpanFailScan($fail, $namaFolder);
 
-            // Tambah fail imbasan baharu
-            $namaFolder = Str::slug($dokumen->no_rujukan, '_');
-            foreach ($request->file('fail_scan', []) as $fail) {
-                $laluan = $fail->store("dokumen_scan/{$namaFolder}", 'local');
-
-                $scanBaharu->push(DokumenScan::create([
-                    'dokumen_id' => $dokumen->dokumen_id,
-                    'nama_fail' => $fail->getClientOriginalName(),
-                    'lokasi_fail' => $laluan,
-                ]));
-                $failDitambah[] = $fail->getClientOriginalName();
-            }
-        });
+                    DokumenScan::create([
+                        'dokumen_id' => $dokumen->dokumen_id,
+                        'nama_fail' => $fail->getClientOriginalName(),
+                        'lokasi_fail' => $laluan,
+                    ]);
+                    $failDitambah[] = $fail->getClientOriginalName();
+                }
+            });
+        } catch (\Throwable $e) {
+            // Transaksi dibatalkan: buang fail baharu yang sempat ditulis. Fail yang
+            // ditanda untuk dibuang masih utuh kerana ia hanya dipadam selepas commit.
+            Storage::disk('local')->delete($laluanDitulis);
+            throw $e;
+        }
 
         if ($laluanUntukPadam) {
             Storage::disk('local')->delete($laluanUntukPadam);
@@ -323,6 +336,21 @@ class DokumenController extends Controller
 
         return redirect()->route('dokumen.index')
                          ->with('success', "Dokumen {$noRujukan} telah dipadam.");
+    }
+
+    /**
+     * Tulis satu fail imbasan ke disk peribadi. Disk 'local' dikonfigurasi
+     * 'throw' => false, jadi store() memulangkan false bila gagal; tukar kepada
+     * pengecualian supaya transaksi dibatalkan dan tiada rekod tanpa fail.
+     */
+    private function simpanFailScan(\Illuminate\Http\UploadedFile $fail, string $namaFolder): string
+    {
+        $laluan = $fail->store("dokumen_scan/{$namaFolder}", 'local');
+        if ($laluan === false) {
+            throw new \RuntimeException("Fail imbasan \"{$fail->getClientOriginalName()}\" tidak dapat disimpan ke storan.");
+        }
+
+        return $laluan;
     }
 
     /**

@@ -90,11 +90,14 @@ trait SkemaUjian
             $t->timestamps();
         });
 
-        // Diperlukan oleh loceng dalam layout (kiraan giliran kelulusan)
+        // Diperlukan oleh loceng dalam layout (kiraan giliran kelulusan) dan Imbas & Arkib
         Schema::create('dokumen', function (Blueprint $t) {
             $t->id('dokumen_id');
             $t->unsignedBigInteger('jenis_dokumen_id')->nullable();
             $t->string('no_rujukan')->nullable();
+            $t->date('tarikh_dokumen')->nullable();
+            $t->string('perkara')->nullable();
+            $t->string('status', 50)->nullable();
             $t->unsignedBigInteger('bahagian_id')->nullable();
             $t->unsignedBigInteger('created_by')->nullable();
             $t->timestamps();
@@ -104,8 +107,66 @@ trait SkemaUjian
         Schema::create('borang', function (Blueprint $t) {
             $t->id('borang_id');
             $t->unsignedBigInteger('dokumen_id');
+            $t->unsignedBigInteger('pemohon_id')->nullable();
+            $t->unsignedBigInteger('pegawai_penyokong_id')->nullable();
+            $t->unsignedBigInteger('pegawai_pelulus_id')->nullable();
             $t->string('status_permohonan')->default('Dalam Proses');
+            $t->timestamp('tarikh_permohonan')->nullable();
+            $t->timestamp('tarikh_sokongan')->nullable();
+            $t->timestamp('tarikh_kelulusan')->nullable();
+            $t->text('ulasan_penyokong')->nullable();
+            $t->text('ulasan_pelulus')->nullable();
             $t->timestamps();
+        });
+
+        Schema::create('dokumen_data', function (Blueprint $t) {
+            $t->id('dokumen_data_id');
+            $t->unsignedBigInteger('dokumen_id');
+            $t->unsignedBigInteger('dokumen_field_id');
+            $t->text('nilai_data')->nullable();
+            $t->timestamps();
+        });
+
+        Schema::create('dokumen_scan', function (Blueprint $t) {
+            $t->id('dokumen_scan_id');
+            $t->unsignedBigInteger('dokumen_id');
+            $t->string('nama_fail');
+            $t->string('lokasi_fail');
+            $t->timestamp('tarikh_scan')->nullable();
+            $t->string('status_ocr', 30)->default('Pending');
+            $t->timestamps();
+        });
+
+        Schema::create('dokumen_ocr', function (Blueprint $t) {
+            $t->id('dokumen_ocr_id');
+            $t->unsignedBigInteger('dokumen_scan_id');
+            $t->longText('teks_dibaca')->nullable();
+            $t->decimal('skor_padanan', 5, 2)->nullable();
+            $t->string('status_semakan', 30)->default('Belum Disemak');
+            $t->timestamps();
+        });
+
+        // Kategori dokumen (EAV): diperlukan oleh borang Imbas & Arkib
+        Schema::create('jenis_dokumen', function (Blueprint $t) {
+            $t->id('jenis_dokumen_id');
+            $t->string('kod_dokumen', 50);
+            $t->string('nama_dokumen');
+            $t->string('kategori')->nullable();
+            $t->timestamps();
+            $t->softDeletes();
+        });
+
+        Schema::create('dokumen_field', function (Blueprint $t) {
+            $t->id('dokumen_field_id');
+            $t->unsignedBigInteger('jenis_dokumen_id');
+            $t->string('nama_field');
+            $t->string('kod_field', 100);
+            $t->string('jenis_data', 20)->default('teks');
+            $t->text('pilihan')->nullable();
+            $t->boolean('is_required')->default(false);
+            $t->integer('susunan')->default(0);
+            $t->timestamps();
+            $t->softDeletes();
         });
     }
 
