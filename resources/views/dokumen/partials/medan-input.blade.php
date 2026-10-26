@@ -211,6 +211,12 @@
     @endif
 
     @if($bantuan)<div class="dms-hint">{{ $bantuan }}</div>@endif
+    @if(($autoIsi ?? false) && $nilai === '')
+        <div class="dms-hint medan-profil-kosong">
+            <i class="bi bi-info-circle"></i> Tiada maklumat ini dalam profil.
+            <a href="{{ route('profil.index') }}" target="_blank" rel="noopener">Kemas kini profil</a>, kemudian muat semula halaman ini.
+        </div>
+    @endif
     @error("medan_data.{$fid}") <div class="dms-error">{{ $message }}</div> @enderror
 </div>
 @endif

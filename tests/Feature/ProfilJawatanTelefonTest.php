@@ -118,7 +118,13 @@ class ProfilJawatanTelefonTest extends TestCase
         $id = fn (string $kod) => $jenis->fields->firstWhere('kod_field', $kod)->dokumen_field_id;
         $this->assertNull($jenis->fields->firstWhere('kod_field', 'telefon_lain')->tetapan);
 
+        // Profil tiada jawatan: petunjuk dengan pautan ke Profil
+        $this->actingAs($this->buatPengguna(['STAFF']))->get(route('jenis-dokumen.medan', $jenis->jenis_dokumen_id))
+            ->assertSee('Tiada maklumat ini dalam profil.')
+            ->assertSee(route('profil.index'));
+
         $this->actingAs($staf)->get(route('jenis-dokumen.medan', $jenis->jenis_dokumen_id))
+            ->assertDontSee('Tiada maklumat ini dalam profil.')
             ->assertSee('value="Juruteknik Komputer FT19"  readonly', false)
             ->assertSee('value="013-222 3333" maxlength="20" placeholder="Cth: 09-748 1234"  readonly', false);
 
