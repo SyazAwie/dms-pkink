@@ -125,47 +125,58 @@ class ImbasArkibController extends DokumenController
         $namaFail = 'fail.' . $fail->extension();
         $laluanSementara = $fail->storeAs($this->folderToken($token), $namaFail, 'local');
 
-        $mesejAmaran = null;
-        $teksOcr = '';
-        $skorOcr = null;
-        $nilaiEkstrak = [];
-        // Masa setiap langkah (saat), dipaparkan di skrin semak
-        $masa = ['ocr' => null, 'ai' => null];
-
-        try {
-            $mula = microtime(true);
-            $hasilOcr = app(OcrService::class)->proses($laluanSementara);
-            $masa['ocr'] = round(microtime(true) - $mula, 1);
-            $teksOcr = $hasilOcr['teks'];
-            $skorOcr = $hasilOcr['skor'];
-
-            if ($teksOcr === '') {
-                $mesejAmaran = 'OCR tidak kesan sebarang teks pada fail ini. Sila isi semua medan secara manual.';
-            } else {
-                $mula = microtime(true);
-                // Turut ekstrak Tarikh Dokumen & Perkara (medan asas, bukan EAV)
-                $nilaiEkstrak = app(OllamaExtractionService::class)->ekstrak($teksOcr, $this->medanUntukMod($jenisDokumen), true);
-                $masa['ai'] = round(microtime(true) - $mula, 1);
-            }
-        } catch (\Throwable $e) {
-            $mesejAmaran = 'OCR/AI gagal diproses automatik: ' . $e->getMessage() . ' — sila isi semua medan secara manual.';
-        }
-
-        Storage::disk('local')->put($this->folderToken($token) . '/meta.json', json_encode([
+        $this->tulisMeta($token, [
             'mod' => $this->mod(),
             'user_id' => Auth::id(),
             'jenis_dokumen_id' => $jenisDokumen->jenis_dokumen_id,
             'nama_asal' => $fail->getClientOriginalName(),
             'fail' => $namaFail,
-            'teks_ocr' => $teksOcr,
-            'skor_ocr' => $skorOcr,
-            'nilai_ekstrak' => $nilaiEkstrak,
-            'mesej_amaran' => $mesejAmaran,
-            'masa' => $masa,
             'dicipta_pada' => now()->toIso8601String(),
-        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR));
+        ] + $this->jalankanOcrAi($laluanSementara, $jenisDokumen));
 
         return redirect()->route($this->laluan('semak'), $token);
+    }
+
+    /**
+     * OCR (hibrid Tesseract → model penglihatan, lihat OcrService) + pengekstrakan AI.
+     * Kegagalan OCR/AI tidak menghalang semakan: amaran dipaparkan dan medan diisi manual.
+     *
+     * @return array{teks_ocr: string, skor_ocr: float|null, enjin: list<string>, nilai_ekstrak: array,
+     *               mesej_amaran: string|null, masa: array{ocr: float|null, ai: float|null}}
+     */
+    private function jalankanOcrAi(string $laluanFail, JenisDokumen $jenisDokumen, bool $paksaVlm = false): array
+    {
+        $hasil = ['teks_ocr' => '', 'skor_ocr' => null, 'enjin' => [], 'nilai_ekstrak' => [], 'mesej_amaran' => null,
+            // Masa setiap langkah (saat), dipaparkan di skrin semak
+            'masa' => ['ocr' => null, 'ai' => null]];
+
+        try {
+            $mula = microtime(true);
+            $ocr = app(OcrService::class)->proses($laluanFail, $paksaVlm);
+            $hasil['masa']['ocr'] = round(microtime(true) - $mula, 1);
+            $hasil['teks_ocr'] = $ocr['teks'];
+            $hasil['skor_ocr'] = $ocr['skor'];
+            $hasil['enjin'] = $ocr['enjin'] ?? [];
+
+            if ($ocr['teks'] === '') {
+                $hasil['mesej_amaran'] = 'OCR tidak kesan sebarang teks pada fail ini. Sila isi semua medan secara manual.';
+            } else {
+                $mula = microtime(true);
+                // Turut ekstrak Tarikh Dokumen & Perkara (medan asas, bukan EAV)
+                $hasil['nilai_ekstrak'] = app(OllamaExtractionService::class)->ekstrak($ocr['teks'], $this->medanUntukMod($jenisDokumen), true);
+                $hasil['masa']['ai'] = round(microtime(true) - $mula, 1);
+            }
+        } catch (\Throwable $e) {
+            $hasil['mesej_amaran'] = 'OCR/AI gagal diproses automatik: ' . $e->getMessage() . ' — sila isi semua medan secara manual.';
+        }
+
+        return $hasil;
+    }
+
+    private function tulisMeta(string $token, array $meta): void
+    {
+        Storage::disk('local')->put($this->folderToken($token) . '/meta.json',
+            json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR));
     }
 
     // Skrin semak (GET): boleh dimuat semula (F5) dan menjadi sasaran back() bila validasi gagal
@@ -192,6 +203,8 @@ class ImbasArkibController extends DokumenController
             'tarikhAi' => $meta['nilai_ekstrak'][OllamaExtractionService::TARIKH_DOKUMEN] ?? null,
             'perkaraAi' => $meta['nilai_ekstrak'][OllamaExtractionService::PERKARA] ?? null,
             'masa' => $meta['masa'] ?? null,
+            // Nombor muka surat (1-based) yang dibaca oleh model penglihatan (tulisan tangan)
+            'mukaVlm' => array_map(fn ($i) => $i + 1, array_keys(array_filter($meta['enjin'] ?? [], fn ($e) => $e === 'vlm'))),
             'mesejAmaran' => $meta['mesej_amaran'],
             // Imbas & Hantar: borang milik pengguna sendiri, jadi medan auto-isi profil mengatasi AI.
             // Imbas & Arkib: borang milik orang lain, jadi nilai AI digunakan.

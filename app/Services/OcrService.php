@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\BuangGarisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
@@ -44,10 +45,15 @@ class OcrService
     }
 
     /**
-     * @return array{teks: string, skor: float|null}
+     * Laluan hibrid: Tesseract dahulu bagi setiap muka surat; jika skor keyakinannya di bawah
+     * OCR_VLM_AMBANG (cth. tulisan tangan) atau $paksaVlm, muka surat itu dibaca semula oleh
+     * model penglihatan (VlmOcrService, GLM-OCR). Jika model penglihatan gagal, teks Tesseract kekal.
+     *
+     * @return array{teks: string, skor: float|null, enjin: list<string>} enjin bagi setiap muka surat:
+     *         'tesseract' atau 'vlm'
      * @throws \RuntimeException jika tesseract/pdftoppm gagal atau tiada dalam PATH
      */
-    public function proses(string $laluanRelatifDiskLocal): array
+    public function proses(string $laluanRelatifDiskLocal, bool $paksaVlm = false): array
     {
         $laluanPenuh = Storage::disk('local')->path($laluanRelatifDiskLocal);
 
@@ -66,9 +72,25 @@ class OcrService
 
             $semuaTeks = [];
             $semuaSkor = [];
+            $enjin = [];
+            $vlm = app(VlmOcrService::class);
+            $ambang = (float) config('services.ocr.vlm_ambang', 80);
 
             foreach ($failImej as $imej) {
                 [$teks, $skor] = $this->ocrTerbaik($imej, $folderSementara);
+                $enjinMuka = 'tesseract';
+
+                if ($vlm->aktif() && ($paksaVlm || $skor === null || $skor < $ambang)) {
+                    try {
+                        $teksVlm = $vlm->baca($imej);
+                        if ($teksVlm !== '') {
+                            $teks = $teksVlm;
+                            $enjinMuka = 'vlm';
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('OCR penglihatan gagal, guna teks Tesseract: ' . $e->getMessage());
+                    }
+                }
 
                 if ($teks !== '') {
                     $semuaTeks[] = $teks;
@@ -76,11 +98,13 @@ class OcrService
                 if ($skor !== null) {
                     $semuaSkor[] = $skor;
                 }
+                $enjin[] = $enjinMuka;
             }
 
             return [
                 'teks' => trim(implode("\n\n--- Muka Surat Baharu ---\n\n", $semuaTeks)),
                 'skor' => $semuaSkor ? round(array_sum($semuaSkor) / count($semuaSkor), 2) : null,
+                'enjin' => $enjin,
             ];
         } finally {
             $this->bersihkanFolder($folderSementara);
@@ -119,7 +143,7 @@ class OcrService
      *
      * @return array{0: string, 1: float|null}
      */
-    private function ocrTerbaik(string $laluanImej, string $folderSementara): array
+    protected function ocrTerbaik(string $laluanImej, string $folderSementara): array
     {
         $asal = $this->mulaTesseract($laluanImej, $folderSementara);
         if (!config('services.ocr.buang_garisan', true)) {

@@ -31,7 +31,11 @@
             <span class="masa-proses">Diproses dalam <strong>{{ number_format(($masa['ocr'] ?? 0) + ($masa['ai'] ?? 0), 1) }} saat</strong>
                 (OCR {{ number_format($masa['ocr'], 1) }} s{{ isset($masa['ai']) ? ', AI ' . number_format($masa['ai'], 1) . ' s' : '' }}).</span>
         @endif
-        @if($skorOcr < 70)
+        @if($mukaVlm)
+            <div class="mt-1"><i class="bi bi-pen me-1"></i>
+                Muka surat {{ implode(', ', $mukaVlm) }} dibaca dengan <strong>AI penglihatan</strong> (tulisan tangan atau teks sukar dikesan) —
+                <strong>sila semak teliti</strong> setiap medan berbanding fail imbasan.</div>
+        @elseif($skorOcr < 70)
             Skor rendah — <strong>sila semak teliti</strong> setiap medan di bawah berbanding fail imbasan.
         @else
             Sila tetap semak setiap medan sebelum simpan.
