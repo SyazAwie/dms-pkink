@@ -8,6 +8,7 @@
       $nilaiLain  (pilihan) teks "Lain-lain (nyatakan)"
       $diisiAi    (pilihan) true jika nilai dicadangkan oleh AI
       $autoIsi    (pilihan) true jika nilai daripada profil (tetapan.auto_isi): input dikunci (readonly)
+      $tidakWajib (pilihan) true = abaikan is_required (medan seksyen pejabat bagi pemohon)
 --}}
 @php
     use App\Support\JenisMedan;
@@ -21,8 +22,9 @@
         : [];
     $nilai = is_array($nilai) ? '' : (string) ($nilai ?? '');
     $nilaiLain = (string) ($nilaiLain ?? '');
-    $wajib = $field->is_required ? 'required' : '';
-    // Auto-isi hanya bagi jenis teks/emel (JenisMedan::AUTO_ISI_SERASI); pelayan abaikan nilai yang dihantar
+    $wajibMedan = $field->is_required && !($tidakWajib ?? false);
+    $wajib = $wajibMedan ? 'required' : '';
+    // Auto-isi hanya bagi jenis teks/emel/telefon (JenisMedan::AUTO_ISI_SERASI); pelayan abaikan nilai yang dihantar
     $kunci = ($autoIsi ?? false) ? 'readonly' : '';
     $kelasRalat = $errors->has("medan_data.{$fid}") ? 'is-invalid' : '';
     $bantuan = $field->tetapan['bantuan'] ?? null;
@@ -53,7 +55,7 @@
 <div class="mb-3 medan-eav" data-jenis="{{ $field->jenis_data }}" data-kod="{{ $field->kod_field }}" {!! $atributSyarat !!}>
     <label class="dms-label" @if(!in_array($field->jenis_data, ['radio', 'ya_tidak', 'kotak_semak', 'jadual'], true)) for="medan_{{ $fid }}" @endif>
         {{ $field->nama_field }}
-        @if($field->is_required)<span class="text-danger">*</span>@endif
+        @if($wajibMedan)<span class="text-danger">*</span>@endif
         @if($autoIsi ?? false)<span class="badge tag-profil">Daripada profil</span>
         @elseif($diisiAi ?? false)<span class="badge tag-ai">Diisi AI</span>@endif
     </label>
@@ -81,7 +83,7 @@
             <input type="email" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="255" placeholder="nama@contoh.com" {{ $wajib }} {{ $kunci }}>
             @break
         @case('telefon')
-            <input type="tel" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="20" placeholder="Cth: 09-748 1234" {{ $wajib }}>
+            <input type="tel" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="20" placeholder="Cth: 09-748 1234" {{ $wajib }} {{ $kunci }}>
             @break
         @case('url')
             <input type="url" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="2048" placeholder="https://" {{ $wajib }}>
@@ -121,7 +123,7 @@
                         <span>{{ $nilai }} (nilai lama)</span>
                     </label>
                 @endif
-                @unless($field->is_required)
+                @unless($wajibMedan)
                     <label class="medan-radio medan-radio-kosong">
                         <input type="radio" name="{{ $nama }}" value="" {{ $nilai === '' ? 'checked' : '' }}>
                         <span>Tiada</span>
@@ -209,6 +211,12 @@
     @endif
 
     @if($bantuan)<div class="dms-hint">{{ $bantuan }}</div>@endif
+    @if(($autoIsi ?? false) && $nilai === '')
+        <div class="dms-hint medan-profil-kosong">
+            <i class="bi bi-info-circle"></i> Tiada maklumat ini dalam profil.
+            <a href="{{ route('profil.index') }}" target="_blank" rel="noopener">Kemas kini profil</a>, kemudian muat semula halaman ini.
+        </div>
+    @endif
     @error("medan_data.{$fid}") <div class="dms-error">{{ $message }}</div> @enderror
 </div>
 @endif

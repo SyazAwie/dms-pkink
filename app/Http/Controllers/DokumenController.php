@@ -89,8 +89,8 @@ class DokumenController extends Controller
         return view('dokumen.index', compact('senarai', 'jenisDokumenSenarai', 'bahagianSenarai', 'adaPenapis'));
     }
 
-    // Borang muat naik dokumen baharu
-    public function create()
+    // Borang muat naik dokumen baharu (?jenis=ID: kategori dipilih dahulu, cth. dari halaman Isi Borang)
+    public function create(Request $request)
     {
         Gate::authorize('create', Dokumen::class);
 
@@ -98,9 +98,8 @@ class DokumenController extends Controller
 
         // Selepas ralat validasi, render semula medan kategori yang dipilih di pelayan
         // supaya nilai yang ditaip (old()) dan mesej ralat medan dipaparkan.
-        $jenisTerpilih = old('jenis_dokumen_id')
-            ? JenisDokumen::with('fields')->find(old('jenis_dokumen_id'))
-            : null;
+        $idTerpilih = old('jenis_dokumen_id', $request->integer('jenis') ?: null);
+        $jenisTerpilih = $idTerpilih ? JenisDokumen::with('fields')->find($idTerpilih) : null;
         $nilaiAutoIsi = $jenisTerpilih ? JenisMedan::nilaiAutoIsi($jenisTerpilih->fields, Auth::user()) : [];
 
         return view('dokumen.create', compact('jenisDokumenSenarai', 'jenisTerpilih', 'nilaiAutoIsi'));
@@ -126,7 +125,7 @@ class DokumenController extends Controller
             'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
             'tindakan' => 'nullable|in:simpan,hantar',
-        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request) : []), $mesejAutoIsi);
+        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request, 'pilihan') : []), $mesejAutoIsi);
 
         $jenisDokumen = $jenisDipilih;
         // "Simpan & Hantar untuk Kelulusan": borang "Dalam Proses" dicipta dalam transaksi yang sama
@@ -324,7 +323,7 @@ class DokumenController extends Controller
             'hapus_scan.*' => 'integer',
             'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ] + $this->peraturanMedan($dokumen->jenisDokumen, $request), $mesejAutoIsi);
+        ] + $this->peraturanMedan($dokumen->jenisDokumen, $request, 'pilihan'), $mesejAutoIsi);
 
         // Hanya fail milik dokumen ini boleh dibuang
         $idHapus = $dokumen->scans
@@ -462,14 +461,25 @@ class DokumenController extends Controller
      * Peraturan validasi dinamik bagi nilai medan EAV (dikongsi store, update
      * dan Imbas & Arkib). Peraturan setiap jenis data ada dalam JenisMedan.
      * Medan yang tersembunyi oleh syarat "tunjuk jika" tidak divalidasi.
+     *
+     * @param string $medanPejabat medan seksyen pejabat (JenisMedan::idMedanPejabat):
+     *   'wajib' ikut definisi (Imbas & Arkib), 'pilihan' tidak wajib (Muat Naik/Kemaskini),
+     *   'abai' tidak divalidasi langsung (Imbas & Hantar)
      */
-    protected function peraturanMedan(JenisDokumen $jenisDokumen, ?Request $request = null): array
+    protected function peraturanMedan(JenisDokumen $jenisDokumen, ?Request $request = null, string $medanPejabat = 'wajib'): array
     {
         $medanData = (array) $request?->input('medan_data', []);
+        $idPejabat = $medanPejabat === 'wajib' ? [] : JenisMedan::idMedanPejabat($jenisDokumen->fields);
         $peraturanMedan = [];
         foreach ($jenisDokumen->fields as $field) {
             if ($request && !JenisMedan::kelihatan($field, $jenisDokumen->fields, $medanData)) {
                 continue;
+            }
+            if (in_array($field->dokumen_field_id, $idPejabat, true)) {
+                if ($medanPejabat === 'abai') {
+                    continue;
+                }
+                $field = tap(clone $field, fn ($f) => $f->is_required = false);
             }
             $peraturanMedan += JenisMedan::peraturan($field);
         }

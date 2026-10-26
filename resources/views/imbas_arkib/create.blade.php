@@ -47,7 +47,7 @@
                     <select name="jenis_dokumen_id" class="dms-input" required>
                         <option value="">Pilih Jenis Dokumen...</option>
                         @foreach($jenisDokumenSenarai as $jd)
-                            <option value="{{ $jd->jenis_dokumen_id }}">{{ $jd->nama_dokumen }} ({{ $jd->kod_dokumen }})</option>
+                            <option value="{{ $jd->jenis_dokumen_id }}" {{ $idTerpilih === $jd->jenis_dokumen_id ? 'selected' : '' }}>{{ $jd->nama_dokumen }} ({{ $jd->kod_dokumen }})</option>
                         @endforeach
                     </select>
                     <div class="dms-hint">Medan yang akan cuba diisi automatik bergantung kategori ini.</div>

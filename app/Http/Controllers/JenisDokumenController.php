@@ -120,6 +120,7 @@ class JenisDokumenController extends Controller
         return view('dokumen.partials.medan-senarai', [
             'medanSenarai' => $dokumen->fields,
             'nilaiAutoIsi' => JenisMedan::nilaiAutoIsi($dokumen->fields, Auth::user()),
+            'medanPejabat' => 'lipat',
         ]);
     }
 
@@ -320,6 +321,10 @@ class JenisDokumenController extends Controller
             $tunjukNilai = trim((string) ($row['tunjuk_nilai'] ?? ''));
             if ($tunjukKod !== '' && $tunjukNilai !== '') {
                 $tetapan['tunjuk_jika'] = ['kod' => $tunjukKod, 'nilai' => $tunjukNilai];
+            }
+            // Seksyen diisi oleh pegawai/pejabat (bukan pemohon), lihat JenisMedan::idMedanPejabat
+            if (in_array($jenisData, JenisMedan::TANPA_NILAI, true) && !empty($row['pejabat'])) {
+                $tetapan['pejabat'] = true;
             }
             // Auto-isi daripada profil: hanya sumber yang serasi dengan jenis data medan
             $autoIsi = (string) ($row['auto_isi'] ?? '');

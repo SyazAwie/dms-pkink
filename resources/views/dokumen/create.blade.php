@@ -36,7 +36,7 @@
                             class="dms-input @error('jenis_dokumen_id') is-invalid @enderror">
                         <option value="">Pilih Jenis Dokumen...</option>
                         @foreach($jenisDokumenSenarai as $jd)
-                            <option value="{{ $jd->jenis_dokumen_id }}" {{ old('jenis_dokumen_id') == $jd->jenis_dokumen_id ? 'selected' : '' }}>
+                            <option value="{{ $jd->jenis_dokumen_id }}" {{ $jenisTerpilih?->jenis_dokumen_id === $jd->jenis_dokumen_id ? 'selected' : '' }}>
                                 {{ $jd->nama_dokumen }} ({{ $jd->kod_dokumen }})
                             </option>
                         @endforeach
@@ -78,6 +78,7 @@
                             @include('dokumen.partials.medan-senarai', [
                                 'medanSenarai' => $jenisTerpilih->fields,
                                 'nilaiAutoIsi' => $nilaiAutoIsi,
+                                'medanPejabat' => 'lipat',
                             ])
                         @endif
                     </div>
@@ -135,7 +136,7 @@
                 <li><i class="bi bi-check2-circle"></i> Fail imbasan (jika ada) akan dilampirkan terus pada dokumen ini.</li>
                 <li><i class="bi bi-check2-circle"></i> Medan bertanda "Daripada profil" diisi automatik dan tidak boleh diubah.</li>
                 <li><i class="bi bi-check2-circle"></i> "Simpan &amp; Hantar" terus menghantar dokumen untuk kelulusan.</li>
-                <li><i class="bi bi-check2-circle"></i> Borang fizikal yang sudah anda isi? Guna <a href="{{ route('imbas-hantar.create') }}">Imbas &amp; Hantar</a> supaya sistem isi borang daripada imbasan.</li>
+                <li><i class="bi bi-check2-circle"></i> <span>Borang fizikal yang sudah anda isi? Guna <a href="{{ route('imbas-hantar.create') }}">Imbas &amp; Hantar</a> supaya sistem isi borang daripada imbasan.</span></li>
             </ul>
         </div>
     </div>

@@ -67,6 +67,18 @@
         font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-left: 4px;
         text-transform: uppercase; letter-spacing: .3px;
     }
+    /* Seksyen pejabat (Muat Naik): berlipat, tidak wajib bagi pemohon */
+    .medan-pejabat { margin: 14px 0 12px; border: 1px dashed var(--dms-line); border-radius: 10px; background: rgba(23,105,210,.025); }
+    .medan-pejabat summary {
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 10px 14px; cursor: pointer;
+        list-style: none;
+    }
+    .medan-pejabat summary::-webkit-details-marker { display: none; }
+    .medan-pejabat summary::before { content: "\25B8"; color: var(--dms-muted); transition: transform .15s ease; }
+    .medan-pejabat[open] summary::before { transform: rotate(90deg); }
+    .medan-pejabat-tajuk { font-size: 12.5px; font-weight: 800; color: var(--dms-brand); }
+    .medan-pejabat-nota { font-size: 11px; color: var(--dms-muted); }
+    .medan-pejabat-isi { padding: 4px 14px 2px; }
     /* Medan auto-isi daripada profil: dikunci, nilai diisi oleh pelayan */
     .medan-eav .dms-input[readonly] { background: var(--dms-surface-strong); color: var(--dms-muted); cursor: not-allowed; }
 </style>

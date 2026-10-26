@@ -360,10 +360,11 @@
                     @endif
                     @if(Auth::user()->can('create', \App\Models\Dokumen::class))
                     <li>
-                        <a href="{{ route('imbas-hantar.create') }}" class="nav-link {{ request()->routeIs('imbas-hantar.*') ? 'active' : '' }}">
-                            <i class="bi bi-send-check" aria-hidden="true"></i>
-                            <span>Imbas &amp; Hantar</span>
-                            @if(request()->routeIs('imbas-hantar.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        {{-- Isi Borang: pintu masuk Isi Digital & Imbas & Hantar --}}
+                        <a href="{{ route('isi-borang.index') }}" class="nav-link {{ request()->routeIs('isi-borang.*', 'imbas-hantar.*') ? 'active' : '' }}">
+                            <i class="bi bi-ui-checks-grid" aria-hidden="true"></i>
+                            <span>Isi Borang</span>
+                            @if(request()->routeIs('isi-borang.*', 'imbas-hantar.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
                     @endif

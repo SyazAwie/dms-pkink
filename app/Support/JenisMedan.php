@@ -27,6 +27,8 @@ use Illuminate\Validation\Rule;
  *                berkod `kod` bernilai `nilai` (lihat kelihatan() dan medan-skrip)
  *   auto_isi     sumber profil (SUMBER_AUTO_ISI): medan dikunci dan diisi oleh pelayan
  *                semasa Muat Naik/Kemaskini (lihat nilaiAutoIsi()); tidak terpakai dalam Imbas & Arkib
+ *   pejabat      (tajuk seksyen sahaja) true = medan seksyen ini diisi oleh pegawai/pejabat,
+ *                bukan pemohon (lihat idMedanPejabat())
  *
  * Kotak semak disimpan sebagai senarai JSON, cth. ["Emel","Lain-lain: Intranet"].
  * Jadual (baris berulang) diurus oleh App\Support\MedanJadual.
@@ -69,7 +71,8 @@ final class JenisMedan
 
     public const YA_TIDAK = ['Ya', 'Tidak'];
 
-    private const REGEX_TELEFON = '/^\+?[0-9][0-9\s\-()]{5,19}$/';
+    /** Juga digunakan oleh PeraturanProfil (no. telefon kakitangan). */
+    public const REGEX_TELEFON = '/^\+?[0-9][0-9\s\-()]{5,19}$/';
 
     public static function kod(): array
     {
@@ -101,18 +104,52 @@ final class JenisMedan
         return ['kod' => (string) $syarat['kod'], 'nilai' => (string) $syarat['nilai']];
     }
 
+    /** Tajuk seksyen bertanda "diisi oleh pegawai/pejabat, bukan pemohon" (tetapan.pejabat). */
+    public static function seksyenPejabat(DokumenField $medan): bool
+    {
+        return !self::adaNilai($medan) && !empty($medan->tetapan['pejabat']);
+    }
+
+    /**
+     * ID medan di bawah seksyen pejabat (termasuk tajuk seksyen itu): dari seksyen
+     * bertanda hingga tajuk seksyen seterusnya. Medan ini tidak wajib bagi pemohon
+     * (Muat Naik/Kemaskini), dan diabaikan dalam Imbas & Hantar (tidak dihantar kepada
+     * AI, tidak dipaparkan, tidak disimpan). Imbas & Arkib mengisi semuanya seperti biasa.
+     *
+     * @param iterable<DokumenField> $medanSemua tersusun ikut susunan
+     * @return int[]
+     */
+    public static function idMedanPejabat(iterable $medanSemua): array
+    {
+        $hasil = [];
+        $dalamPejabat = false;
+        foreach ($medanSemua as $medan) {
+            if (!self::adaNilai($medan)) {
+                $dalamPejabat = self::seksyenPejabat($medan);
+            }
+            if ($dalamPejabat) {
+                $hasil[] = $medan->dokumen_field_id;
+            }
+        }
+
+        return $hasil;
+    }
+
     /** Sumber auto-isi daripada profil pengguna (tetapan.auto_isi) => label dalam pembina medan. */
     public const SUMBER_AUTO_ISI = [
         'nama' => 'Nama',
         'no_kp' => 'No. KP',
         'emel' => 'Emel',
         'bahagian' => 'Bahagian',
+        'jawatan' => 'Jawatan',
+        'telefon' => 'No. Telefon',
     ];
 
     /** Jenis medan => sumber auto-isi yang serasi (nilai profil mesti lulus validasi jenis itu). */
     public const AUTO_ISI_SERASI = [
-        'teks' => ['nama', 'no_kp', 'emel', 'bahagian'],
+        'teks' => ['nama', 'no_kp', 'emel', 'bahagian', 'jawatan', 'telefon'],
         'emel' => ['emel'],
+        'telefon' => ['telefon'],
     ];
 
     /** Sumber auto-isi medan ini, atau null jika tiada / tidak serasi dengan jenis datanya. */
@@ -133,6 +170,8 @@ final class JenisMedan
             'no_kp' => $user?->ic_pekerja,
             'emel' => $user?->email,
             'bahagian' => $user?->bahagian?->nama_bahagian,
+            'jawatan' => $user?->jawatan,
+            'telefon' => $user?->no_telefon,
             default => null,
         };
     }

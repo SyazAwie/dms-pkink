@@ -12,6 +12,7 @@ use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
+use App\Http\Controllers\IsiBorangController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\PendaftaranStafController;
 
@@ -86,9 +87,10 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.pratonton');
     });
 
-    // ---- Imbas & Hantar: staf isi borang fizikal sendiri, OCR+AI isi borang digital,
+    // ---- Isi Borang + Imbas & Hantar: staf isi borang fizikal sendiri, OCR+AI isi borang digital,
     // staf sahkan, kemudian hantar untuk kelulusan (Dalam Proses). Semua peranan muat naik.
     Route::middleware('peranan:SUPERADMIN,ADMIN,KERANI,PENGURUS,STAFF')->group(function () {
+        Route::get('/isi-borang', [IsiBorangController::class, 'index'])->name('isi-borang.index');
         Route::get('/imbas-hantar', [ImbasHantarController::class, 'create'])->name('imbas-hantar.create');
         Route::post('/imbas-hantar/analisis', [ImbasHantarController::class, 'analisis'])->name('imbas-hantar.analisis');
         Route::get('/imbas-hantar/semak/{token}', [ImbasHantarController::class, 'semak'])

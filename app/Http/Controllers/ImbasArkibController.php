@@ -74,13 +74,32 @@ class ImbasArkibController extends DokumenController
         return $this->mod() === 'hantar';
     }
 
-    // Borang: pilih Jenis Dokumen + satu fail
-    public function create()
+    /**
+     * Medan yang diisi dalam mod ini. Imbas & Hantar: pemohon tidak mengisi seksyen
+     * pejabat (pengesahan/sokongan/urusan BD), jadi medan itu tidak dihantar kepada AI
+     * (elak nilai rekaan), tidak dipaparkan dan tidak disimpan.
+     */
+    private function medanUntukMod(JenisDokumen $jenisDokumen): \Illuminate\Support\Collection
+    {
+        if (!$this->modHantar()) {
+            return $jenisDokumen->fields;
+        }
+        $idPejabat = JenisMedan::idMedanPejabat($jenisDokumen->fields);
+
+        return $jenisDokumen->fields->reject(fn ($f) => in_array($f->dokumen_field_id, $idPejabat, true))->values();
+    }
+
+    // Borang: pilih Jenis Dokumen + satu fail (?jenis=ID: kategori dipilih dahulu, cth. dari Isi Borang)
+    public function create(Request $request)
     {
         Gate::authorize('create', Dokumen::class);
 
         $jenisDokumenSenarai = JenisDokumen::with('fields')->orderBy('nama_dokumen')->get();
-        return view('imbas_arkib.create', ['jenisDokumenSenarai' => $jenisDokumenSenarai, 'mod' => $this->mod()]);
+        return view('imbas_arkib.create', [
+            'jenisDokumenSenarai' => $jenisDokumenSenarai,
+            'mod' => $this->mod(),
+            'idTerpilih' => (int) old('jenis_dokumen_id', $request->integer('jenis')),
+        ]);
     }
 
     // OCR + ekstrak AI, simpan hasil dalam folder token, kemudian redirect ke skrin semak
@@ -119,7 +138,7 @@ class ImbasArkibController extends DokumenController
             if ($teksOcr === '') {
                 $mesejAmaran = 'OCR tidak kesan sebarang teks pada fail ini. Sila isi semua medan secara manual.';
             } else {
-                $nilaiEkstrak = app(OllamaExtractionService::class)->ekstrak($teksOcr, $jenisDokumen->fields);
+                $nilaiEkstrak = app(OllamaExtractionService::class)->ekstrak($teksOcr, $this->medanUntukMod($jenisDokumen));
             }
         } catch (\Throwable $e) {
             $mesejAmaran = 'OCR/AI gagal diproses automatik: ' . $e->getMessage() . ' — sila isi semua medan secara manual.';
@@ -212,7 +231,7 @@ class ImbasArkibController extends DokumenController
         $request->validate([
             'tarikh_dokumen' => 'required|date',
             'perkara' => 'nullable|max:255',
-        ] + $peraturanTambahan + $this->peraturanMedan($jenisDokumen, $request), $mesej);
+        ] + $peraturanTambahan + $this->peraturanMedan($jenisDokumen, $request, $this->modHantar() ? 'abai' : 'wajib'), $mesej);
 
         // Tuntut token secara atomik: rename hanya berjaya bagi SATU permintaan,
         // jadi klik dua kali / dua tab tidak mencipta dua dokumen.
@@ -294,7 +313,7 @@ class ImbasArkibController extends DokumenController
                         ]);
                     }
 
-                    foreach ($jenisDokumen->fields as $f) {
+                    foreach ($this->medanUntukMod($jenisDokumen) as $f) {
                         $nilai = JenisMedan::dariPermintaan($f, $request, $jenisDokumen->fields);
                         if ($nilai === null) {
                             continue;

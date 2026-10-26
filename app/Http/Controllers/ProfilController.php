@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LogAudit;
 use App\Support\PeraturanNama;
+use App\Support\PeraturanProfil;
 use App\Support\PolisiKataLaluan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,8 +29,8 @@ class ProfilController extends Controller
     }
 
     /**
-     * Kemaskini nama & emel sahaja. No. KP (ID log masuk) dan bahagian (skop
-     * PENGURUS & dokumen) hanya boleh diubah oleh admin. Tukar emel memerlukan
+     * Kemaskini nama, emel, jawatan & no. telefon. No. KP (ID log masuk) dan bahagian
+     * (skop PENGURUS & dokumen) hanya boleh diubah oleh admin. Tukar emel memerlukan
      * kata laluan semasa kerana emel digunakan untuk tetapan semula kata laluan.
      */
     public function kemaskiniMaklumat(Request $request)
@@ -42,7 +43,7 @@ class ProfilController extends Controller
             'email' => ['required', 'email', 'max:255',
                 Rule::unique('users', 'email')->ignore($user->user_id, 'user_id')->whereNull('deleted_at')],
             'kata_laluan_semasa' => [$tukarEmel ? 'required' : 'nullable', 'current_password'],
-        ], PeraturanNama::mesej() + [
+        ] + PeraturanProfil::peraturan(), PeraturanNama::mesej() + PeraturanProfil::mesej() + [
             'email.required' => 'Sila masukkan alamat emel.',
             'email.email' => 'Format alamat emel tidak sah.',
             'email.max' => 'Alamat emel terlalu panjang.',
@@ -51,10 +52,12 @@ class ProfilController extends Controller
             'kata_laluan_semasa.current_password' => 'Kata laluan semasa tidak betul.',
         ]);
 
-        // UserObserver merekod perubahan nama/emel dalam log audit
+        // UserObserver merekod perubahan maklumat dalam log audit
         $user->fill([
             'nama_staff' => $data['nama_staff'],
+            'jawatan' => $data['jawatan'] ?? null,
             'email' => $data['email'],
+            'no_telefon' => $data['no_telefon'] ?? null,
         ]);
 
         if (!$user->isDirty()) {
