@@ -27,6 +27,8 @@ use Illuminate\Validation\Rule;
  *                berkod `kod` bernilai `nilai` (lihat kelihatan() dan medan-skrip)
  *   auto_isi     sumber profil (SUMBER_AUTO_ISI): medan dikunci dan diisi oleh pelayan
  *                semasa Muat Naik/Kemaskini (lihat nilaiAutoIsi()); tidak terpakai dalam Imbas & Arkib
+ *   pejabat      (tajuk seksyen sahaja) true = medan seksyen ini diisi oleh pegawai/pejabat,
+ *                bukan pemohon (lihat idMedanPejabat())
  *
  * Kotak semak disimpan sebagai senarai JSON, cth. ["Emel","Lain-lain: Intranet"].
  * Jadual (baris berulang) diurus oleh App\Support\MedanJadual.
@@ -100,6 +102,37 @@ final class JenisMedan
         }
 
         return ['kod' => (string) $syarat['kod'], 'nilai' => (string) $syarat['nilai']];
+    }
+
+    /** Tajuk seksyen bertanda "diisi oleh pegawai/pejabat, bukan pemohon" (tetapan.pejabat). */
+    public static function seksyenPejabat(DokumenField $medan): bool
+    {
+        return !self::adaNilai($medan) && !empty($medan->tetapan['pejabat']);
+    }
+
+    /**
+     * ID medan di bawah seksyen pejabat (termasuk tajuk seksyen itu): dari seksyen
+     * bertanda hingga tajuk seksyen seterusnya. Medan ini tidak wajib bagi pemohon
+     * (Muat Naik/Kemaskini), dan diabaikan dalam Imbas & Hantar (tidak dihantar kepada
+     * AI, tidak dipaparkan, tidak disimpan). Imbas & Arkib mengisi semuanya seperti biasa.
+     *
+     * @param iterable<DokumenField> $medanSemua tersusun ikut susunan
+     * @return int[]
+     */
+    public static function idMedanPejabat(iterable $medanSemua): array
+    {
+        $hasil = [];
+        $dalamPejabat = false;
+        foreach ($medanSemua as $medan) {
+            if (!self::adaNilai($medan)) {
+                $dalamPejabat = self::seksyenPejabat($medan);
+            }
+            if ($dalamPejabat) {
+                $hasil[] = $medan->dokumen_field_id;
+            }
+        }
+
+        return $hasil;
     }
 
     /** Sumber auto-isi daripada profil pengguna (tetapan.auto_isi) => label dalam pembina medan. */

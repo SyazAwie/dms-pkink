@@ -70,6 +70,7 @@
                     'medanSenarai' => $dokumen->jenisDokumen->fields,
                     'nilaiSedia' => $nilaiSedia,
                     'nilaiAutoIsi' => $nilaiAutoIsi,
+                    'medanPejabat' => 'pilihan',
                 ])
 
                 <hr class="dms-divider">

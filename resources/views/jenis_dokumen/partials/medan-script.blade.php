@@ -107,6 +107,8 @@
         const tunjukNilai = tetapan.tunjuk_jika?.nilai ?? data.tunjuk_nilai ?? '';
         // Auto-isi daripada profil: tetapan.auto_isi (DB) atau auto_isi (old())
         let autoIsiDipilih = tetapan.auto_isi ?? data.auto_isi ?? '';
+        // Seksyen pejabat: tetapan.pejabat (DB) atau pejabat (old())
+        const pejabat = Boolean(tetapan.pejabat ?? (data.pejabat && data.pejabat !== '0'));
         // #16: bilangan nilai tersimpan & jenis asal (medan sedia ada sahaja)
         const bilNilai = Number(data.bil_nilai ?? 0);
         const jenisAsal = data.jenis_asal ?? (data.dokumen_field_id ? data.jenis_data : '');
@@ -180,6 +182,10 @@
                 <span class="medan-syarat-label">Isi automatik daripada profil</span>
                 <select name="medan[${idx}][auto_isi]" class="dms-input medan-auto-isi-pilih" aria-label="Isi automatik daripada profil"></select>
             </div>
+            <label class="medan-lain-pilihan medan-pejabat-pilihan" style="display:none;">
+                <input type="checkbox" name="medan[${idx}][pejabat]" value="1" ${pejabat ? 'checked' : ''}>
+                <span>Seksyen ini diisi oleh pegawai/pejabat, bukan pemohon (tidak wajib bagi pemohon; tidak dihantar kepada AI dalam Imbas &amp; Hantar)</span>
+            </label>
             <input type="hidden" name="medan[${idx}][bil_nilai]" value="${bilNilai}">
             <input type="hidden" name="medan[${idx}][jenis_asal]" value="${escAttr(jenisAsal)}">
             <div class="medan-amaran-tukar" style="display:none;">
@@ -266,6 +272,7 @@
             if (jenis === 'jadual' && !lajurSenarai.children.length) tambahLajur();
             // Tajuk seksyen tiada nilai: "Wajib" tidak berkaitan; teks bantuan menjadi keterangan seksyen
             const tanpaNilai = TANPA_NILAI.includes(jenis);
+            row.querySelector('.medan-pejabat-pilihan').style.display = tanpaNilai ? 'flex' : 'none';
             wajibCol.style.visibility = tanpaNilai ? 'hidden' : '';
             if (tanpaNilai) wajibCol.querySelector('input').checked = false;
             bantuanInput.placeholder = tanpaNilai

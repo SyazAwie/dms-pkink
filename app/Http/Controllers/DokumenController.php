@@ -125,7 +125,7 @@ class DokumenController extends Controller
             'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
             'tindakan' => 'nullable|in:simpan,hantar',
-        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request) : []), $mesejAutoIsi);
+        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request, 'pilihan') : []), $mesejAutoIsi);
 
         $jenisDokumen = $jenisDipilih;
         // "Simpan & Hantar untuk Kelulusan": borang "Dalam Proses" dicipta dalam transaksi yang sama
@@ -323,7 +323,7 @@ class DokumenController extends Controller
             'hapus_scan.*' => 'integer',
             'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ] + $this->peraturanMedan($dokumen->jenisDokumen, $request), $mesejAutoIsi);
+        ] + $this->peraturanMedan($dokumen->jenisDokumen, $request, 'pilihan'), $mesejAutoIsi);
 
         // Hanya fail milik dokumen ini boleh dibuang
         $idHapus = $dokumen->scans
@@ -461,14 +461,25 @@ class DokumenController extends Controller
      * Peraturan validasi dinamik bagi nilai medan EAV (dikongsi store, update
      * dan Imbas & Arkib). Peraturan setiap jenis data ada dalam JenisMedan.
      * Medan yang tersembunyi oleh syarat "tunjuk jika" tidak divalidasi.
+     *
+     * @param string $medanPejabat medan seksyen pejabat (JenisMedan::idMedanPejabat):
+     *   'wajib' ikut definisi (Imbas & Arkib), 'pilihan' tidak wajib (Muat Naik/Kemaskini),
+     *   'abai' tidak divalidasi langsung (Imbas & Hantar)
      */
-    protected function peraturanMedan(JenisDokumen $jenisDokumen, ?Request $request = null): array
+    protected function peraturanMedan(JenisDokumen $jenisDokumen, ?Request $request = null, string $medanPejabat = 'wajib'): array
     {
         $medanData = (array) $request?->input('medan_data', []);
+        $idPejabat = $medanPejabat === 'wajib' ? [] : JenisMedan::idMedanPejabat($jenisDokumen->fields);
         $peraturanMedan = [];
         foreach ($jenisDokumen->fields as $field) {
             if ($request && !JenisMedan::kelihatan($field, $jenisDokumen->fields, $medanData)) {
                 continue;
+            }
+            if (in_array($field->dokumen_field_id, $idPejabat, true)) {
+                if ($medanPejabat === 'abai') {
+                    continue;
+                }
+                $field = tap(clone $field, fn ($f) => $f->is_required = false);
             }
             $peraturanMedan += JenisMedan::peraturan($field);
         }

@@ -72,6 +72,7 @@
                     'nilaiSedia' => $nilaiEkstrak,
                     'diisiAi' => true,
                     'nilaiAutoIsi' => $nilaiAutoIsi,
+                    'medanPejabat' => $hantar ? 'sembunyi' : null,
                 ])
 
                 <hr class="dms-divider">

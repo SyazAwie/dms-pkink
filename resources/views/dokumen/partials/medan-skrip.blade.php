@@ -71,5 +71,10 @@
             }
         }
     });
+
+    // Seksyen pejabat berlipat (Muat Naik): buka jika ada ralat validasi di dalamnya
+    document.querySelectorAll('details.medan-pejabat').forEach((d) => {
+        if (d.querySelector('.is-invalid, .dms-error')) d.open = true;
+    });
 })();
 </script>
