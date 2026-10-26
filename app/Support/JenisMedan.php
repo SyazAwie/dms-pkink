@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\DokumenField;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
@@ -24,6 +25,8 @@ use Illuminate\Validation\Rule;
  *   lain     true = tambah pilihan "Lain-lain (nyatakan)" (dropdown/radio/kotak semak)
  *   tunjuk_jika  {kod, nilai}: medan hanya dipaparkan (dan disahkan/disimpan) jika medan
  *                berkod `kod` bernilai `nilai` (lihat kelihatan() dan medan-skrip)
+ *   auto_isi     sumber profil (SUMBER_AUTO_ISI): medan dikunci dan diisi oleh pelayan
+ *                semasa Muat Naik/Kemaskini (lihat nilaiAutoIsi()); tidak terpakai dalam Imbas & Arkib
  *
  * Kotak semak disimpan sebagai senarai JSON, cth. ["Emel","Lain-lain: Intranet"].
  * Jadual (baris berulang) diurus oleh App\Support\MedanJadual.
@@ -96,6 +99,65 @@ final class JenisMedan
         }
 
         return ['kod' => (string) $syarat['kod'], 'nilai' => (string) $syarat['nilai']];
+    }
+
+    /** Sumber auto-isi daripada profil pengguna (tetapan.auto_isi) => label dalam pembina medan. */
+    public const SUMBER_AUTO_ISI = [
+        'nama' => 'Nama',
+        'no_kp' => 'No. KP',
+        'emel' => 'Emel',
+        'bahagian' => 'Bahagian',
+    ];
+
+    /** Jenis medan => sumber auto-isi yang serasi (nilai profil mesti lulus validasi jenis itu). */
+    public const AUTO_ISI_SERASI = [
+        'teks' => ['nama', 'no_kp', 'emel', 'bahagian'],
+        'emel' => ['emel'],
+    ];
+
+    /** Sumber auto-isi medan ini, atau null jika tiada / tidak serasi dengan jenis datanya. */
+    public static function autoIsi(DokumenField $medan): ?string
+    {
+        $sumber = $medan->tetapan['auto_isi'] ?? null;
+
+        return is_string($sumber) && in_array($sumber, self::AUTO_ISI_SERASI[$medan->jenis_data] ?? [], true)
+            ? $sumber
+            : null;
+    }
+
+    /** Nilai profil bagi satu sumber auto-isi ('' jika pengguna tiada maklumat itu). */
+    public static function nilaiProfil(string $sumber, ?User $user): string
+    {
+        return (string) match ($sumber) {
+            'nama' => $user?->nama_staff,
+            'no_kp' => $user?->ic_pekerja,
+            'emel' => $user?->email,
+            'bahagian' => $user?->bahagian?->nama_bahagian,
+            default => null,
+        };
+    }
+
+    /**
+     * Nilai medan auto-isi bagi satu Jenis Dokumen: [dokumen_field_id => nilai].
+     * Medan ini dikunci dalam borang dan pelayan menggantikan input dengan nilai ini.
+     *
+     * @param iterable<DokumenField> $medanSemua
+     * @param array $nilaiSedia (edit) [dokumen_field_id => nilai tersimpan]: nilai tersimpan
+     *                          dikekalkan; hanya yang kosong diisi daripada profil $user
+     */
+    public static function nilaiAutoIsi(iterable $medanSemua, ?User $user, array $nilaiSedia = []): array
+    {
+        $hasil = [];
+        foreach ($medanSemua as $medan) {
+            $sumber = self::autoIsi($medan);
+            if ($sumber === null) {
+                continue;
+            }
+            $sedia = (string) ($nilaiSedia[$medan->dokumen_field_id] ?? '');
+            $hasil[$medan->dokumen_field_id] = $sedia !== '' ? $sedia : self::nilaiProfil($sumber, $user);
+        }
+
+        return $hasil;
     }
 
     /**

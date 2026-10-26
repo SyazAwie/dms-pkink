@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+{{-- Dikongsi Imbas & Arkib ($mod = 'arkib') dan Imbas & Hantar ($mod = 'hantar') --}}
+@php $hantar = $mod === 'hantar'; @endphp
+
 @section('title', 'Semak Hasil Imbasan')
 
 @section('content')
@@ -10,7 +13,7 @@
         <p>{{ $jenisDokumen->nama_dokumen }} &middot; {{ $namaAsal }}</p>
     </div>
     <div>
-        <a href="{{ route('imbas-arkib.create') }}" class="outline-button text-decoration-none">
+        <a href="{{ route("imbas-{$mod}.create") }}" class="outline-button text-decoration-none">
             <i class="bi bi-arrow-left"></i> <span>Mula Semula</span>
         </a>
     </div>
@@ -25,7 +28,7 @@
         <i class="bi bi-info-circle me-1"></i>
         Skor keyakinan OCR: <strong>{{ $skorOcr }}%</strong>.
         @if($skorOcr < 70)
-            Skor rendah — <strong>sila semak teliti</strong> setiap medan di bawah berbanding teks asal.
+            Skor rendah — <strong>sila semak teliti</strong> setiap medan di bawah berbanding fail imbasan.
         @else
             Sila tetap semak setiap medan sebelum simpan.
         @endif
@@ -39,14 +42,14 @@
 @endif
 
 <div class="row g-4">
-    <div class="col-lg-8">
+    <div class="col-lg-6 col-xxl-7">
         <div class="glass-panel form-panel">
             <div class="section-header px-4 pt-4 pb-3">
                 <h3>Langkah 2: Semak &amp; Sahkan Medan</h3>
             </div>
 
             {{-- Jenis dokumen, fail dan hasil OCR disimpan di pelayan (folder token), bukan dalam borang --}}
-            <form action="{{ route('imbas-arkib.simpan', $token) }}" method="POST" class="px-4 pb-4" id="formSimpan">
+            <form action="{{ route("imbas-{$mod}.simpan", $token) }}" method="POST" class="px-4 pb-4" id="formSimpan">
                 @csrf
 
                 <div class="mb-4">
@@ -62,45 +65,76 @@
 
                 <hr class="dms-divider">
 
-                <label class="dms-label mb-2">Medan Dokumen — disahkan oleh AI, sila semak</label>
+                <label class="dms-label mb-2">Medan Dokumen — diisi oleh AI, sila semak</label>
 
                 @include('dokumen.partials.medan-senarai', [
                     'medanSenarai' => $jenisDokumen->fields,
                     'nilaiSedia' => $nilaiEkstrak,
                     'diisiAi' => true,
+                    'nilaiAutoIsi' => $nilaiAutoIsi,
                 ])
 
                 <hr class="dms-divider">
 
-                <div class="d-flex justify-content-end gap-2 mt-3">
-                    <a href="{{ route('imbas-arkib.create') }}" class="outline-button text-decoration-none"><span>Batal</span></a>
+                @if($hantar)
+                    <label class="pengesahan-kotak @error('pengesahan') is-invalid @enderror">
+                        <input type="checkbox" name="pengesahan" value="1" {{ old('pengesahan') ? 'checked' : '' }} required>
+                        <span>Saya sahkan maklumat di atas sepadan dengan borang fizikal yang saya isi.</span>
+                    </label>
+                    @error('pengesahan') <div class="dms-error">{{ $message }}</div> @enderror
+                @endif
+
+                <div class="status-selepas mt-3">
+                    <i class="bi {{ $hantar ? 'bi-hourglass-split' : 'bi-patch-check' }}"></i>
+                    @if($hantar)
+                        <span>Selepas dihantar, borang berstatus <strong>"Dalam Proses"</strong> dan menunggu Penyokong, kemudian Pelulus. Medan bertanda "Daripada profil" diisi daripada profil anda.</span>
+                    @else
+                        <span>Dokumen ini akan terus bertanda <strong>"Diluluskan"</strong>, kerana ia arkib dokumen yang sedia lulus secara fizikal, bukan permohonan kelulusan baharu.</span>
+                    @endif
+                </div>
+
+                <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 mt-3">
+                    <a href="{{ route("imbas-{$mod}.create") }}" class="outline-button text-decoration-none"><span>Batal</span></a>
                     <button type="submit" id="btnSimpan" class="btn text-white save-btn">
-                        <i class="bi bi-check2-circle me-2"></i> Sahkan &amp; Simpan (Diluluskan)
+                        @if($hantar)
+                            <i class="bi bi-send me-2"></i> Sahkan &amp; Hantar
+                        @else
+                            <i class="bi bi-check2-circle me-2"></i> Sahkan &amp; Simpan (Diluluskan)
+                        @endif
                     </button>
                 </div>
             </form>
         </div>
-    </div>
-
-    <div class="col-lg-4">
-        <div class="glass-panel tips-panel mb-4">
-            <div class="summary-head px-1">
-                <div><div class="summary-label">STATUS SELEPAS SIMPAN</div></div>
-                <div class="summary-icon" style="color: var(--dms-mint); background: rgba(37,169,121,.12);"><i class="bi bi-patch-check"></i></div>
-            </div>
-            <p class="dms-hint mt-2 mb-0">Dokumen ini akan terus bertanda <strong>"Diluluskan"</strong> — sebab ia arkib dokumen yang sedia lulus secara fizikal, bukan permohonan kelulusan baharu.</p>
-        </div>
 
         @if($teksOcr)
-        <div class="glass-panel tips-panel">
-            <div class="summary-head px-1">
-                <div><div class="summary-label">TEKS OCR PENUH</div></div>
-                <div class="summary-icon"><i class="bi bi-text-paragraph"></i></div>
-            </div>
-            <div class="dms-hint mt-1 mb-2">Rujuk teks asal untuk sahkan nilai di sebelah betul.</div>
-            <pre class="ocr-preview">{{ $teksOcr }}</pre>
+        <div class="glass-panel tips-panel mt-4">
+            <details>
+                <summary class="summary-label">TEKS OCR PENUH</summary>
+                <div class="dms-hint mt-2 mb-2">Teks yang dibaca daripada imbasan, untuk rujukan.</div>
+                <pre class="ocr-preview">{{ $teksOcr }}</pre>
+            </details>
         </div>
         @endif
+    </div>
+
+    <div class="col-lg-6 col-xxl-5">
+        <div class="pratonton-lekat">
+            {{-- Fail imbasan sementara (hanya pemilik token boleh buka), untuk banding dengan medan di sebelah --}}
+            <div class="glass-panel tips-panel">
+                <div class="summary-head px-1">
+                    <div><div class="summary-label">FAIL IMBASAN</div></div>
+                    <a href="{{ route("imbas-{$mod}.pratonton", $token) }}" target="_blank" rel="noopener" class="summary-icon text-decoration-none" title="Buka dalam tab baharu">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+                @if($pratontonImej)
+                    <img src="{{ route("imbas-{$mod}.pratonton", $token) }}" alt="Imbasan {{ $namaAsal }}" class="pratonton-fail mt-2">
+                @else
+                    <iframe src="{{ route("imbas-{$mod}.pratonton", $token) }}" title="Imbasan {{ $namaAsal }}" class="pratonton-fail mt-2"></iframe>
+                @endif
+            </div>
+
+        </div>
     </div>
 </div>
 
@@ -129,6 +163,27 @@
     }
     .save-btn:hover { color: #fff; }
     .save-btn:disabled { opacity: .7; cursor: wait; }
+    .pengesahan-kotak {
+        display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 12px 14px;
+        border: 1px solid var(--dms-line); border-radius: 10px; background: rgba(23,105,210,.04);
+        font-size: 13px; font-weight: 600; color: var(--dms-text); cursor: pointer;
+    }
+    .pengesahan-kotak input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; }
+    .pengesahan-kotak.is-invalid { border-color: var(--dms-danger); }
+    /* Pratonton kekal kelihatan semasa skrol medan (skrin lebar sahaja) */
+    .status-selepas { display: flex; gap: 8px; align-items: flex-start; font-size: 11.5px; color: var(--dms-muted); }
+    .status-selepas i { color: var(--dms-mint); margin-top: 1px; }
+    /* Pratonton kekal kelihatan semasa skrol medan (skrin lebar sahaja); di bawah topbar 80px */
+    @media (min-width: 992px) {
+        .pratonton-lekat { position: sticky; top: 96px; }
+        iframe.pratonton-fail { height: calc(100vh - 190px); }
+    }
+    .pratonton-fail {
+        display: block; width: 100%; height: 70vh; min-height: 360px; border: 1px solid var(--dms-line);
+        border-radius: 10px; background: #fff;
+    }
+    img.pratonton-fail { height: auto; min-height: 0; max-height: 70vh; object-fit: contain; }
+    details summary { cursor: pointer; }
     .ocr-preview {
         margin: 0; max-height: 420px; overflow: auto; font-size: 11.5px;
         white-space: pre-wrap; word-break: break-word; color: var(--dms-text);

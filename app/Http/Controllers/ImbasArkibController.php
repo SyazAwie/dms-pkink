@@ -42,6 +42,12 @@ use Illuminate\Support\Str;
  * fail, teks & skor OCR dibaca semula daripada meta.json semasa simpan.
  * Token terikat pada pengguna yang memuat naik dan tamat selepas 120 minit.
  *
+ * Mod (OCR 3 Situasi): aliran token yang sama digunakan oleh dua mod.
+ *   arkib   Imbas & Arkib (kelas ini): KERANI/ADMIN/SUPERADMIN, terus "Diluluskan".
+ *   hantar  Imbas & Hantar (ImbasHantarController): staf isi borang fizikal sendiri,
+ *           sahkan hasil OCR/AI, kemudian borang "Dalam Proses" → Penyokong → Pelulus.
+ * Mod disimpan dalam meta.json; token satu mod tidak boleh disimpan melalui mod lain.
+ *
  * Warisi DokumenController untuk guna semula peraturanMedan() & janaNoRujukan()
  * (protected) — elak duplikasi logik.
  * ============================================================================
@@ -51,13 +57,30 @@ class ImbasArkibController extends DokumenController
     private const FOLDER_SEMENTARA = 'ocr_sementara';
     private const MINIT_TAMAT = 120;
 
+    /** 'arkib' atau 'hantar' (ImbasHantarController). */
+    protected function mod(): string
+    {
+        return 'arkib';
+    }
+
+    /** Nama laluan bagi mod ini, cth. imbas-arkib.semak / imbas-hantar.semak */
+    protected function laluan(string $nama): string
+    {
+        return "imbas-{$this->mod()}.{$nama}";
+    }
+
+    private function modHantar(): bool
+    {
+        return $this->mod() === 'hantar';
+    }
+
     // Borang: pilih Jenis Dokumen + satu fail
     public function create()
     {
         Gate::authorize('create', Dokumen::class);
 
         $jenisDokumenSenarai = JenisDokumen::with('fields')->orderBy('nama_dokumen')->get();
-        return view('imbas_arkib.create', compact('jenisDokumenSenarai'));
+        return view('imbas_arkib.create', ['jenisDokumenSenarai' => $jenisDokumenSenarai, 'mod' => $this->mod()]);
     }
 
     // OCR + ekstrak AI, simpan hasil dalam folder token, kemudian redirect ke skrin semak
@@ -103,6 +126,7 @@ class ImbasArkibController extends DokumenController
         }
 
         Storage::disk('local')->put($this->folderToken($token) . '/meta.json', json_encode([
+            'mod' => $this->mod(),
             'user_id' => Auth::id(),
             'jenis_dokumen_id' => $jenisDokumen->jenis_dokumen_id,
             'nama_asal' => $fail->getClientOriginalName(),
@@ -114,7 +138,7 @@ class ImbasArkibController extends DokumenController
             'dicipta_pada' => now()->toIso8601String(),
         ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR));
 
-        return redirect()->route('imbas-arkib.semak', $token);
+        return redirect()->route($this->laluan('semak'), $token);
     }
 
     // Skrin semak (GET): boleh dimuat semula (F5) dan menjadi sasaran back() bila validasi gagal
@@ -127,18 +151,44 @@ class ImbasArkibController extends DokumenController
             return $this->sesiTamat();
         }
 
+        $jenisDokumen = JenisDokumen::with('fields')->findOrFail($meta['jenis_dokumen_id']);
+
         return view('imbas_arkib.semak', [
+            'mod' => $this->mod(),
             'token' => $token,
-            'jenisDokumen' => JenisDokumen::with('fields')->findOrFail($meta['jenis_dokumen_id']),
+            'jenisDokumen' => $jenisDokumen,
             'namaAsal' => $meta['nama_asal'],
+            'pratontonImej' => in_array(pathinfo($meta['fail'], PATHINFO_EXTENSION), ['jpg', 'jpeg', 'png'], true),
             'teksOcr' => $meta['teks_ocr'],
             'skorOcr' => $meta['skor_ocr'],
             'nilaiEkstrak' => $meta['nilai_ekstrak'],
             'mesejAmaran' => $meta['mesej_amaran'],
+            // Imbas & Hantar: borang milik pengguna sendiri, jadi medan auto-isi profil mengatasi AI.
+            // Imbas & Arkib: borang milik orang lain, jadi nilai AI digunakan.
+            'nilaiAutoIsi' => $this->modHantar() ? JenisMedan::nilaiAutoIsi($jenisDokumen->fields, Auth::user()) : [],
         ]);
     }
 
-    // Pegawai sahkan/betulkan nilai, simpan Dokumen + data + scan + OCR + Borang (terus Diluluskan)
+    /**
+     * Pratonton fail imbasan sementara di skrin semak (iframe/img). Hanya pemilik
+     * token (bacaMeta: 404 bagi pengguna lain) dan hanya sebelum disimpan.
+     */
+    public function pratonton(string $token)
+    {
+        Gate::authorize('create', Dokumen::class);
+
+        $meta = $this->bacaMeta($token);
+        abort_if($meta === null, 404);
+
+        return Storage::disk('local')->response(
+            $this->folderToken($token) . '/' . $meta['fail'],
+            $meta['nama_asal'],
+            ['Cache-Control' => 'private, no-store']
+        );
+    }
+
+    // Pegawai sahkan/betulkan nilai, simpan Dokumen + data + scan + OCR + Borang
+    // (arkib: terus Diluluskan; hantar: Dalam Proses untuk kelulusan)
     public function simpan(Request $request, string $token)
     {
         Gate::authorize('create', Dokumen::class);
@@ -150,11 +200,19 @@ class ImbasArkibController extends DokumenController
 
         $jenisDokumen = JenisDokumen::with('fields')->findOrFail($meta['jenis_dokumen_id']);
 
+        $mesej = [];
+        $peraturanTambahan = [];
+        if ($this->modHantar()) {
+            $mesej = $this->gantiNilaiAutoIsi($request, $jenisDokumen, JenisMedan::nilaiAutoIsi($jenisDokumen->fields, Auth::user()));
+            $peraturanTambahan['pengesahan'] = 'accepted';
+            $mesej['pengesahan.accepted'] = 'Sila tandakan pengesahan bahawa maklumat ini sepadan dengan borang fizikal yang anda isi.';
+        }
+
         // Hanya tarikh, perkara dan nilai medan datang daripada borang
         $request->validate([
             'tarikh_dokumen' => 'required|date',
             'perkara' => 'nullable|max:255',
-        ] + $this->peraturanMedan($jenisDokumen, $request));
+        ] + $peraturanTambahan + $this->peraturanMedan($jenisDokumen, $request), $mesej);
 
         // Tuntut token secara atomik: rename hanya berjaya bagi SATU permintaan,
         // jadi klik dua kali / dua tab tidak mencipta dua dokumen.
@@ -174,8 +232,11 @@ class ImbasArkibController extends DokumenController
         // Fail sementara dipadam hanya selepas commit berjaya
         Storage::disk('local')->deleteDirectory($folder);
 
-        return redirect()->route('dokumen.show', $dokumen->dokumen_id)
-                         ->with('success', "Dokumen {$dokumen->no_rujukan} berjaya diarkibkan (status: Diluluskan).");
+        $mesejBerjaya = $this->modHantar()
+            ? "Dokumen {$dokumen->no_rujukan} berjaya dihantar untuk kelulusan (status: Dalam Proses)."
+            : "Dokumen {$dokumen->no_rujukan} berjaya diarkibkan (status: Diluluskan).";
+
+        return redirect()->route('dokumen.show', $dokumen->dokumen_id)->with('success', $mesejBerjaya);
     }
 
     /**
@@ -196,15 +257,15 @@ class ImbasArkibController extends DokumenController
                 return DB::transaction(function () use ($request, $jenisDokumen, $meta, $laluanSementara, &$laluanSalinan) {
                     $noRujukan = $this->janaNoRujukan($jenisDokumen, $request->tarikh_dokumen);
 
+                    // Mod hantar: status dokumen ikut lalai DB, sama seperti Muat Naik biasa
                     $dokumenBaharu = Dokumen::create([
                         'jenis_dokumen_id' => $jenisDokumen->jenis_dokumen_id,
                         'no_rujukan' => $noRujukan,
                         'tarikh_dokumen' => $request->tarikh_dokumen,
                         'perkara' => $request->perkara,
-                        'status' => 'Archived',
                         'bahagian_id' => Auth::user()->bahagian_id,
                         'created_by' => Auth::id(),
-                    ]);
+                    ] + ($this->modHantar() ? [] : ['status' => 'Archived']));
 
                     // Salin fail daripada folder token ke lokasi kekal (nama rawak seperti store())
                     $namaFolder = Str::slug($noRujukan, '_');
@@ -243,6 +304,35 @@ class ImbasArkibController extends DokumenController
                             'dokumen_field_id' => $f->dokumen_field_id,
                             'nilai_data' => $nilai,
                         ]);
+                    }
+
+                    if ($this->modHantar()) {
+                        // Imbas & Hantar: permohonan baharu oleh pengisi borang sendiri,
+                        // melalui aliran Penyokong → Pelulus sedia ada (BorangController)
+                        $borang = Borang::create([
+                            'dokumen_id' => $dokumenBaharu->dokumen_id,
+                            'pemohon_id' => Auth::id(),
+                            'status_permohonan' => 'Dalam Proses',
+                            'tarikh_permohonan' => now(),
+                        ]);
+
+                        LogAudit::create([
+                            'user_id' => Auth::id(),
+                            'tindakan' => 'Hantar untuk Kelulusan',
+                            'nama_jadual' => 'borang',
+                            'rekod_id' => $borang->borang_id,
+                            'data_lama' => null,
+                            'data_baharu' => [
+                                'dokumen' => $noRujukan,
+                                'status_permohonan' => 'Dalam Proses',
+                                'kaedah' => 'Imbas & Hantar (disahkan pemohon)',
+                            ],
+                            'alamat_ip' => request()->ip(),
+                            'peranti_pengguna' => request()->userAgent(),
+                            'created_at' => now(),
+                        ]);
+
+                        return $dokumenBaharu;
                     }
 
                     // Borang TERUS "Diluluskan" — ini arkib dokumen yang sedia lulus
@@ -315,6 +405,9 @@ class ImbasArkibController extends DokumenController
             && preg_match('/^fail\.[a-z0-9]+$/', $meta['fail']);
         abort_unless($lengkap, 404);
         abort_unless((int) $meta['user_id'] === (int) Auth::id(), 404);
+        // Token mod hantar tidak boleh disimpan melalui Imbas & Arkib (terus Diluluskan), dan
+        // sebaliknya. Token lama tanpa 'mod' dicipta oleh Imbas & Arkib.
+        abort_unless(($meta['mod'] ?? 'arkib') === $this->mod(), 404);
 
         $tamat = Carbon::parse($meta['dicipta_pada'])->addMinutes(self::MINIT_TAMAT)->isPast();
         if ($tamat || !Storage::disk('local')->exists("{$folder}/{$meta['fail']}")) {
@@ -327,7 +420,7 @@ class ImbasArkibController extends DokumenController
 
     private function sesiTamat()
     {
-        return redirect()->route('imbas-arkib.create')->withErrors([
+        return redirect()->route($this->laluan('create'))->withErrors([
             'token' => 'Sesi semakan ini telah tamat tempoh atau sudah disimpan. Sila muat naik semula fail imbasan.',
         ]);
     }

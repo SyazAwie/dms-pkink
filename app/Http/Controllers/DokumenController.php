@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bahagian;
+use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\DokumenData;
 use App\Models\DokumenScan;
@@ -100,8 +101,9 @@ class DokumenController extends Controller
         $jenisTerpilih = old('jenis_dokumen_id')
             ? JenisDokumen::with('fields')->find(old('jenis_dokumen_id'))
             : null;
+        $nilaiAutoIsi = $jenisTerpilih ? JenisMedan::nilaiAutoIsi($jenisTerpilih->fields, Auth::user()) : [];
 
-        return view('dokumen.create', compact('jenisDokumenSenarai', 'jenisTerpilih'));
+        return view('dokumen.create', compact('jenisDokumenSenarai', 'jenisTerpilih', 'nilaiAutoIsi'));
     }
 
     // Simpan dokumen + nilai medan EAV + fail imbasan
@@ -112,16 +114,23 @@ class DokumenController extends Controller
         // Peraturan validasi DINAMIK ikut definisi dokumen_field bagi Jenis Dokumen dipilih,
         // disahkan sekali dengan medan tetap supaya semua ralat dipaparkan serentak.
         $jenisDipilih = JenisDokumen::with('fields')->find($request->input('jenis_dokumen_id'));
+        $mesejAutoIsi = $jenisDipilih
+            ? $this->gantiNilaiAutoIsi($request, $jenisDipilih, JenisMedan::nilaiAutoIsi($jenisDipilih->fields, Auth::user()))
+            : [];
 
         $request->validate([
             'jenis_dokumen_id' => 'required|exists:jenis_dokumen,jenis_dokumen_id',
             'tarikh_dokumen' => 'required|date',
             'perkara' => 'nullable|max:255',
-            'fail_scan' => 'required|array|min:1',
+            // Pilihan: borang boleh diisi secara digital tanpa fail imbasan (Situasi 2)
+            'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request) : []));
+            'tindakan' => 'nullable|in:simpan,hantar',
+        ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request) : []), $mesejAutoIsi);
 
         $jenisDokumen = $jenisDipilih;
+        // "Simpan & Hantar untuk Kelulusan": borang "Dalam Proses" dicipta dalam transaksi yang sama
+        $hantar = $request->input('tindakan') === 'hantar';
 
         // Cuba simpan dengan percubaan semula sekiranya no_rujukan bertembung
         // (dua staf muat naik jenis+tahun sama pada masa hampir serentak).
@@ -130,7 +139,7 @@ class DokumenController extends Controller
             $laluanDitulis = [];
 
             try {
-                $dokumen = DB::transaction(function () use ($request, $jenisDokumen, &$laluanDitulis) {
+                $dokumen = DB::transaction(function () use ($request, $jenisDokumen, $hantar, &$laluanDitulis) {
                     $noRujukan = $this->janaNoRujukan($jenisDokumen, $request->tarikh_dokumen);
 
                     $dokumenBaharu = Dokumen::create([
@@ -167,6 +176,31 @@ class DokumenController extends Controller
                         ]);
                     }
 
+                    if ($hantar) {
+                        // Sama seperti BorangController::hantar bagi dokumen baharu
+                        $borang = Borang::create([
+                            'dokumen_id' => $dokumenBaharu->dokumen_id,
+                            'pemohon_id' => Auth::id(),
+                            'status_permohonan' => 'Dalam Proses',
+                            'tarikh_permohonan' => now(),
+                        ]);
+
+                        LogAudit::create([
+                            'user_id' => Auth::id(),
+                            'tindakan' => 'Hantar untuk Kelulusan',
+                            'nama_jadual' => 'borang',
+                            'rekod_id' => $borang->borang_id,
+                            'data_lama' => null,
+                            'data_baharu' => [
+                                'dokumen' => $dokumenBaharu->no_rujukan,
+                                'status_permohonan' => $borang->status_permohonan,
+                            ],
+                            'alamat_ip' => $request->ip(),
+                            'peranti_pengguna' => $request->userAgent(),
+                            'created_at' => now(),
+                        ]);
+                    }
+
                     return $dokumenBaharu;
                 });
 
@@ -187,6 +221,11 @@ class DokumenController extends Controller
                 // Ulang gelung: janaNoRujukan() akan kira semula bilangan rekod terkini
             }
         } while ($percubaan < 3);
+
+        if ($hantar) {
+            return redirect()->route('dokumen.show', $dokumen->dokumen_id)
+                             ->with('success', "Dokumen {$dokumen->no_rujukan} berjaya disimpan dan dihantar untuk kelulusan.");
+        }
 
         return redirect()->route('dokumen.index')
                          ->with('success', "Dokumen berjaya dimuat naik! No. Rujukan: {$dokumen->no_rujukan}");
@@ -251,8 +290,23 @@ class DokumenController extends Controller
         Gate::authorize('update', $dokumen);
 
         $nilaiSedia = $dokumen->data->pluck('nilai_data', 'dokumen_field_id');
+        $nilaiAutoIsi = $this->nilaiAutoIsiEdit($dokumen);
 
-        return view('dokumen.edit', compact('dokumen', 'nilaiSedia'));
+        return view('dokumen.edit', compact('dokumen', 'nilaiSedia', 'nilaiAutoIsi'));
+    }
+
+    /**
+     * Medan auto-isi semasa edit: kekal nilai pemohon asal (bukan profil penyunting).
+     * Nilai yang masih kosong (cth. medan ditetapkan auto-isi selepas dokumen dicipta)
+     * diisi daripada profil pemuat naik dokumen.
+     */
+    private function nilaiAutoIsiEdit(Dokumen $dokumen): array
+    {
+        return JenisMedan::nilaiAutoIsi(
+            $dokumen->jenisDokumen->fields,
+            $dokumen->pemuatNaik,
+            $dokumen->data->pluck('nilai_data', 'dokumen_field_id')->all()
+        );
     }
 
     // Kemaskini tarikh, perkara, nilai medan EAV dan fail imbasan
@@ -261,6 +315,8 @@ class DokumenController extends Controller
         $dokumen = Dokumen::with(['jenisDokumen.fields', 'data', 'scans'])->findOrFail($id);
         Gate::authorize('update', $dokumen);
 
+        $mesejAutoIsi = $this->gantiNilaiAutoIsi($request, $dokumen->jenisDokumen, $this->nilaiAutoIsiEdit($dokumen));
+
         $request->validate([
             'tarikh_dokumen' => 'required|date',
             'perkara' => 'nullable|max:255',
@@ -268,7 +324,7 @@ class DokumenController extends Controller
             'hapus_scan.*' => 'integer',
             'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
-        ] + $this->peraturanMedan($dokumen->jenisDokumen, $request));
+        ] + $this->peraturanMedan($dokumen->jenisDokumen, $request), $mesejAutoIsi);
 
         // Hanya fail milik dokumen ini boleh dibuang
         $idHapus = $dokumen->scans
@@ -276,9 +332,10 @@ class DokumenController extends Controller
             ->pluck('dokumen_scan_id')
             ->all();
 
-        // Mesti ada sekurang-kurangnya satu fail imbasan selepas kemaskini
+        // Dokumen yang ada fail imbasan mesti kekal ada sekurang-kurangnya satu (arkib imbasan
+        // tidak boleh dikosongkan). Dokumen yang diisi secara digital boleh kekal tanpa fail.
         $bakiFail = $dokumen->scans->count() - count($idHapus) + count($request->file('fail_scan', []));
-        if ($bakiFail < 1) {
+        if ($dokumen->scans->isNotEmpty() && $bakiFail < 1) {
             return back()->withInput()->withErrors([
                 'fail_scan' => 'Dokumen mesti mempunyai sekurang-kurangnya satu fail imbasan.',
             ]);
@@ -418,6 +475,33 @@ class DokumenController extends Controller
         }
 
         return $peraturanMedan;
+    }
+
+    /**
+     * Medan auto-isi (tetapan.auto_isi): ganti input dengan nilai profil SEBELUM validasi,
+     * supaya apa sahaja yang dihantar dari pelayar diabaikan (tidak boleh dipalsukan).
+     * Pulangkan mesej validasi bagi medan wajib yang profilnya tiada maklumat itu.
+     *
+     * @param array $nilaiAutoIsi [dokumen_field_id => nilai] daripada JenisMedan::nilaiAutoIsi()
+     */
+    protected function gantiNilaiAutoIsi(Request $request, JenisDokumen $jenisDokumen, array $nilaiAutoIsi): array
+    {
+        if (!$nilaiAutoIsi) {
+            return [];
+        }
+
+        $request->merge(['medan_data' => array_replace((array) $request->input('medan_data', []), $nilaiAutoIsi)]);
+
+        $mesej = [];
+        foreach ($jenisDokumen->fields as $field) {
+            if (array_key_exists($field->dokumen_field_id, $nilaiAutoIsi)) {
+                $label = mb_strtolower(JenisMedan::SUMBER_AUTO_ISI[JenisMedan::autoIsi($field)]);
+                $mesej["medan_data.{$field->dokumen_field_id}.required"] =
+                    "Medan {$field->nama_field} diisi daripada profil, tetapi profil tiada maklumat {$label}. Sila kemas kini profil terlebih dahulu.";
+            }
+        }
+
+        return $mesej;
     }
 
     /**

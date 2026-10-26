@@ -11,6 +11,7 @@ use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImbasArkibController;
+use App\Http\Controllers\ImbasHantarController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\PendaftaranStafController;
 
@@ -81,6 +82,21 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.semak');
         Route::post('/imbas-arkib/simpan/{token}', [ImbasArkibController::class, 'simpan'])
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.simpan');
+        Route::get('/imbas-arkib/pratonton/{token}', [ImbasArkibController::class, 'pratonton'])
+            ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.pratonton');
+    });
+
+    // ---- Imbas & Hantar: staf isi borang fizikal sendiri, OCR+AI isi borang digital,
+    // staf sahkan, kemudian hantar untuk kelulusan (Dalam Proses). Semua peranan muat naik.
+    Route::middleware('peranan:SUPERADMIN,ADMIN,KERANI,PENGURUS,STAFF')->group(function () {
+        Route::get('/imbas-hantar', [ImbasHantarController::class, 'create'])->name('imbas-hantar.create');
+        Route::post('/imbas-hantar/analisis', [ImbasHantarController::class, 'analisis'])->name('imbas-hantar.analisis');
+        Route::get('/imbas-hantar/semak/{token}', [ImbasHantarController::class, 'semak'])
+            ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.semak');
+        Route::post('/imbas-hantar/simpan/{token}', [ImbasHantarController::class, 'simpan'])
+            ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.simpan');
+        Route::get('/imbas-hantar/pratonton/{token}', [ImbasHantarController::class, 'pratonton'])
+            ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.pratonton');
     });
 
     // ---- Aliran Kelulusan (versi asas — lihat nota dalam BorangController) ----

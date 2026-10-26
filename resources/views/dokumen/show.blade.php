@@ -212,7 +212,7 @@
                         @endif
                     </div>
                 @empty
-                <div class="dms-hint py-3 text-center">Tiada fail imbasan dilampirkan.</div>
+                <div class="dms-hint py-3 text-center"><i class="bi bi-ui-checks me-1"></i> Diisi secara digital (tiada fail imbasan).</div>
                 @endforelse
             </div>
         </div>

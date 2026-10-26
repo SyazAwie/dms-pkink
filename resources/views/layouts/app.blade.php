@@ -358,6 +358,15 @@
                         </a>
                     </li>
                     @endif
+                    @if(Auth::user()->can('create', \App\Models\Dokumen::class))
+                    <li>
+                        <a href="{{ route('imbas-hantar.create') }}" class="nav-link {{ request()->routeIs('imbas-hantar.*') ? 'active' : '' }}">
+                            <i class="bi bi-send-check" aria-hidden="true"></i>
+                            <span>Imbas &amp; Hantar</span>
+                            @if(request()->routeIs('imbas-hantar.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    @endif
                     @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN'))
                     <li>
                         <a href="{{ route('bahagian.index') }}" class="nav-link {{ request()->routeIs('bahagian.*') ? 'active' : '' }}">
