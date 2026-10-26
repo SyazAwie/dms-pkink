@@ -189,6 +189,25 @@ class ImbasArkibController extends DokumenController
     }
 
     /**
+     * Panaskan model AI (dipanggil oleh skrip halaman Imbas semasa pengguna memilih fail),
+     * supaya analisis tidak menunggu model dimuat (~7 saat jika sejuk). Pulang segera jika
+     * model sudah dimuat. Ralat diabaikan: analisis akan memuat model seperti biasa.
+     */
+    public function panaskanAi()
+    {
+        Gate::authorize('create', Dokumen::class);
+
+        try {
+            $ai = app(OllamaExtractionService::class);
+            $sedia = $ai->sudahDimuat() || $ai->panaskan();
+        } catch (\Throwable) {
+            $sedia = false;
+        }
+
+        return response()->json(['sedia' => $sedia]);
+    }
+
+    /**
      * Pratonton fail imbasan sementara di skrin semak (iframe/img). Hanya pemilik
      * token (bacaMeta: 404 bagi pengguna lain) dan hanya sebelum disimpan.
      */

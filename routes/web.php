@@ -91,6 +91,8 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     // staf sahkan, kemudian hantar untuk kelulusan (Dalam Proses). Semua peranan muat naik.
     Route::middleware('peranan:SUPERADMIN,ADMIN,KERANI,PENGURUS,STAFF')->group(function () {
         Route::get('/isi-borang', [IsiBorangController::class, 'index'])->name('isi-borang.index');
+        // Muat model AI lebih awal (halaman Imbas & Arkib / Imbas & Hantar)
+        Route::post('/imbas/panaskan-ai', [ImbasHantarController::class, 'panaskanAi'])->name('imbas.panaskan-ai');
         Route::get('/imbas-hantar', [ImbasHantarController::class, 'create'])->name('imbas-hantar.create');
         Route::post('/imbas-hantar/analisis', [ImbasHantarController::class, 'analisis'])->name('imbas-hantar.analisis');
         Route::get('/imbas-hantar/semak/{token}', [ImbasHantarController::class, 'semak'])

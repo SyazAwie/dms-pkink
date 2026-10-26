@@ -103,6 +103,15 @@ class OllamaExtractionService
         return $respons->successful();
     }
 
+    /** True jika model sudah dimuat dalam memori Ollama (semakan pantas, /api/ps). */
+    public function sudahDimuat(): bool
+    {
+        $model = Http::timeout(3)->get("{$this->urlAsas}/api/ps")->json('models') ?? [];
+
+        return collect($model)->contains(fn ($m) => in_array($this->model, [$m['name'] ?? null, $m['model'] ?? null], true)
+            || str_starts_with((string) ($m['name'] ?? ''), $this->model . ':'));
+    }
+
     /** Opsyen prestasi Ollama yang menentukan cara model dimuat (config services.ollama). */
     private function opsyen(): array
     {

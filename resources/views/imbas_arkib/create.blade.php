@@ -120,6 +120,12 @@
 
 @push('scripts')
 <script>
+    // Muat model AI di latar belakang semasa pengguna memilih fail (lihat ImbasArkibController::panaskanAi)
+    fetch(@json(route('imbas.panaskan-ai')), {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
+    }).catch(() => {});
+
     document.getElementById('formAnalisis').addEventListener('submit', function () {
         const btn = document.getElementById('btnAnalisis');
         btn.disabled = true;
