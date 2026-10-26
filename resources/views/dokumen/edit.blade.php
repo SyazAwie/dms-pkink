@@ -69,6 +69,7 @@
                 @include('dokumen.partials.medan-senarai', [
                     'medanSenarai' => $dokumen->jenisDokumen->fields,
                     'nilaiSedia' => $nilaiSedia,
+                    'nilaiAutoIsi' => $nilaiAutoIsi,
                 ])
 
                 <hr class="dms-divider">

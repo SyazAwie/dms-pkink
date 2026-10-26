@@ -62,4 +62,11 @@
         font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-left: 4px;
         text-transform: uppercase; letter-spacing: .3px;
     }
+    .tag-profil {
+        background: rgba(23, 105, 210, .1); color: var(--dms-primary);
+        font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; margin-left: 4px;
+        text-transform: uppercase; letter-spacing: .3px;
+    }
+    /* Medan auto-isi daripada profil: dikunci, nilai diisi oleh pelayan */
+    .medan-eav .dms-input[readonly] { background: var(--dms-surface-strong); color: var(--dms-muted); cursor: not-allowed; }
 </style>

@@ -75,7 +75,10 @@
                     {{-- Selepas ralat validasi, medan dirender di sini dengan nilai old(); jika tidak, dimuatkan melalui fetch() --}}
                     <div id="medanDataContainer">
                         @if($jenisTerpilih)
-                            @include('dokumen.partials.medan-senarai', ['medanSenarai' => $jenisTerpilih->fields])
+                            @include('dokumen.partials.medan-senarai', [
+                                'medanSenarai' => $jenisTerpilih->fields,
+                                'nilaiAutoIsi' => $nilaiAutoIsi,
+                            ])
                         @endif
                     </div>
                     <div id="medanDataLoading" class="dms-hint text-center py-3" style="display:none;">

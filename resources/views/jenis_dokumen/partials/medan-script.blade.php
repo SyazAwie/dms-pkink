@@ -28,6 +28,9 @@
     .medan-syarat .dms-input { padding: 7px 10px; font-size: 12px; }
     .medan-syarat-label { font-size: 11.5px; font-weight: 600; color: var(--dms-muted); white-space: nowrap; }
     @media (max-width: 576px) { .medan-syarat { grid-template-columns: 1fr; } }
+    /* Auto-isi daripada profil (hanya jenis dalam JenisMedan::AUTO_ISI_SERASI) */
+    .medan-auto-isi { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; align-items: center; margin-top: 6px; }
+    .medan-auto-isi .dms-input { padding: 7px 10px; font-size: 12px; }
     .medan-amaran-tukar { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(220, 150, 20, .1); color: #8a5a00; font-size: 12px; }
     .medan-amaran-tukar .medan-lain-pilihan { display: flex; color: #8a5a00; }
     .lajur-tambah { border: 1px dashed var(--dms-primary); background: rgba(23, 105, 210, .04); color: var(--dms-primary); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
@@ -45,6 +48,8 @@
     const ADA_PILIHAN = @json(\App\Support\JenisMedan::ADA_PILIHAN);
     const TANPA_NILAI = @json(\App\Support\JenisMedan::TANPA_NILAI);
     const JENIS_LAJUR = @json(\App\Support\MedanJadual::JENIS_LAJUR);
+    const SUMBER_AUTO_ISI = @json(\App\Support\JenisMedan::SUMBER_AUTO_ISI);
+    const AUTO_ISI_SERASI = @json(\App\Support\JenisMedan::AUTO_ISI_SERASI);
 
     let counter = 0;
     let idDipadam = inputDipadam.value ? inputDipadam.value.split(',').filter(Boolean) : [];
@@ -100,6 +105,8 @@
         // Syarat "tunjuk jika": tetapan.tunjuk_jika (DB) atau tunjuk_kod/tunjuk_nilai (old())
         const tunjukKod = tetapan.tunjuk_jika?.kod ?? data.tunjuk_kod ?? '';
         const tunjukNilai = tetapan.tunjuk_jika?.nilai ?? data.tunjuk_nilai ?? '';
+        // Auto-isi daripada profil: tetapan.auto_isi (DB) atau auto_isi (old())
+        let autoIsiDipilih = tetapan.auto_isi ?? data.auto_isi ?? '';
         // #16: bilangan nilai tersimpan & jenis asal (medan sedia ada sahaja)
         const bilNilai = Number(data.bil_nilai ?? 0);
         const jenisAsal = data.jenis_asal ?? (data.dokumen_field_id ? data.jenis_data : '');
@@ -168,6 +175,10 @@
                 <span class="medan-syarat-label">=</span>
                 <input type="text" name="medan[${idx}][tunjuk_nilai]" class="dms-input medan-syarat-nilai"
                        value="${escAttr(tunjukNilai)}" maxlength="255" placeholder="nilai, cth: Khidmat Luar" aria-label="Nilai syarat">
+            </div>
+            <div class="medan-auto-isi" style="display:none;">
+                <span class="medan-syarat-label">Isi automatik daripada profil</span>
+                <select name="medan[${idx}][auto_isi]" class="dms-input medan-auto-isi-pilih" aria-label="Isi automatik daripada profil"></select>
             </div>
             <input type="hidden" name="medan[${idx}][bil_nilai]" value="${bilNilai}">
             <input type="hidden" name="medan[${idx}][jenis_asal]" value="${escAttr(jenisAsal)}">
@@ -238,8 +249,17 @@
         const wajibCol = row.querySelector('.medan-col-wajib');
         const bantuanInput = row.querySelector('.medan-bantuan');
         const jadualPembina = row.querySelector('.medan-jadual-pembina');
+        const autoIsiWrap = row.querySelector('.medan-auto-isi');
+        const autoIsiPilih = row.querySelector('.medan-auto-isi-pilih');
+        autoIsiPilih.addEventListener('change', () => { autoIsiDipilih = autoIsiPilih.value; });
         function kemaskiniIkutJenis() {
             const jenis = jenisSelect.value;
+            // Auto-isi: hanya sumber yang serasi dengan jenis ini (pilihan diingat jika jenis ditukar balik)
+            const serasi = AUTO_ISI_SERASI[jenis] ?? [];
+            autoIsiWrap.style.display = serasi.length ? '' : 'none';
+            autoIsiPilih.innerHTML = '<option value="">Tiada (pengguna isi sendiri)</option>' + serasi
+                .map((kod) => `<option value="${kod}" ${kod === autoIsiDipilih ? 'selected' : ''}>${escAttr(SUMBER_AUTO_ISI[kod])}</option>`)
+                .join('');
             pilihanWrap.style.display = ADA_PILIHAN.includes(jenis) ? 'flex' : 'none';
             jadualPembina.style.display = jenis === 'jadual' ? '' : 'none';
             // Jadual baharu: mula dengan satu lajur kosong

@@ -7,6 +7,7 @@
       $nilai      nilai input semasa (sudah termasuk old()): string/null, atau senarai bagi kotak semak
       $nilaiLain  (pilihan) teks "Lain-lain (nyatakan)"
       $diisiAi    (pilihan) true jika nilai dicadangkan oleh AI
+      $autoIsi    (pilihan) true jika nilai daripada profil (tetapan.auto_isi): input dikunci (readonly)
 --}}
 @php
     use App\Support\JenisMedan;
@@ -21,6 +22,8 @@
     $nilai = is_array($nilai) ? '' : (string) ($nilai ?? '');
     $nilaiLain = (string) ($nilaiLain ?? '');
     $wajib = $field->is_required ? 'required' : '';
+    // Auto-isi hanya bagi jenis teks/emel (JenisMedan::AUTO_ISI_SERASI); pelayan abaikan nilai yang dihantar
+    $kunci = ($autoIsi ?? false) ? 'readonly' : '';
     $kelasRalat = $errors->has("medan_data.{$fid}") ? 'is-invalid' : '';
     $bantuan = $field->tetapan['bantuan'] ?? null;
     $adaLain = JenisMedan::adaLain($field);
@@ -51,7 +54,8 @@
     <label class="dms-label" @if(!in_array($field->jenis_data, ['radio', 'ya_tidak', 'kotak_semak', 'jadual'], true)) for="medan_{{ $fid }}" @endif>
         {{ $field->nama_field }}
         @if($field->is_required)<span class="text-danger">*</span>@endif
-        @if($diisiAi ?? false)<span class="badge tag-ai">Diisi AI</span>@endif
+        @if($autoIsi ?? false)<span class="badge tag-profil">Daripada profil</span>
+        @elseif($diisiAi ?? false)<span class="badge tag-ai">Diisi AI</span>@endif
     </label>
 
     @switch($field->jenis_data)
@@ -74,7 +78,7 @@
             <input type="datetime-local" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" {{ $wajib }}>
             @break
         @case('emel')
-            <input type="email" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="255" placeholder="nama@contoh.com" {{ $wajib }}>
+            <input type="email" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="255" placeholder="nama@contoh.com" {{ $wajib }} {{ $kunci }}>
             @break
         @case('telefon')
             <input type="tel" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="20" placeholder="Cth: 09-748 1234" {{ $wajib }}>
@@ -192,7 +196,7 @@
             <textarea id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" rows="3" {{ $wajib }}>{{ $nilai }}</textarea>
             @break
         @default
-            <input type="text" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" {{ $wajib }}>
+            <input type="text" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" {{ $wajib }} {{ $kunci }}>
     @endswitch
 
     @if($adaLain)

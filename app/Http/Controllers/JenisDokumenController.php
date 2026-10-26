@@ -11,6 +11,7 @@ use App\Support\TemplatKategori;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class JenisDokumenController extends Controller
@@ -116,7 +117,10 @@ class JenisDokumenController extends Controller
     {
         $dokumen = JenisDokumen::with('fields')->findOrFail($id);
 
-        return view('dokumen.partials.medan-senarai', ['medanSenarai' => $dokumen->fields]);
+        return view('dokumen.partials.medan-senarai', [
+            'medanSenarai' => $dokumen->fields,
+            'nilaiAutoIsi' => JenisMedan::nilaiAutoIsi($dokumen->fields, Auth::user()),
+        ]);
     }
 
     // 6. Padam rekod
@@ -316,6 +320,11 @@ class JenisDokumenController extends Controller
             $tunjukNilai = trim((string) ($row['tunjuk_nilai'] ?? ''));
             if ($tunjukKod !== '' && $tunjukNilai !== '') {
                 $tetapan['tunjuk_jika'] = ['kod' => $tunjukKod, 'nilai' => $tunjukNilai];
+            }
+            // Auto-isi daripada profil: hanya sumber yang serasi dengan jenis data medan
+            $autoIsi = (string) ($row['auto_isi'] ?? '');
+            if (in_array($autoIsi, JenisMedan::AUTO_ISI_SERASI[$jenisData] ?? [], true)) {
+                $tetapan['auto_isi'] = $autoIsi;
             }
 
             $data = [
