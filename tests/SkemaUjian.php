@@ -33,7 +33,9 @@ trait SkemaUjian
             $t->id('user_id');
             $t->string('ic_pekerja', 20);
             $t->string('nama_staff');
+            $t->string('jawatan', 150)->nullable();
             $t->string('email');
+            $t->string('no_telefon', 20)->nullable();
             $t->string('password');
             $t->boolean('perlu_tukar_kata_laluan')->default(false);
             $t->timestamp('kata_laluan_tamat_pada')->nullable();
@@ -195,7 +197,7 @@ trait SkemaUjian
             'nama_staff' => "Pengguna Ujian {$akhiran}",
             'email' => "ujian{$kiraan}@pkink.test",
             'password' => Hash::make('Lama1234'),
-        ], array_intersect_key($atribut, array_flip(['ic_pekerja', 'nama_staff', 'email', 'password', 'bahagian_id']))));
+        ], array_intersect_key($atribut, array_flip(['ic_pekerja', 'nama_staff', 'jawatan', 'email', 'no_telefon', 'password', 'bahagian_id']))));
 
         foreach (['perlu_tukar_kata_laluan', 'kata_laluan_tamat_pada'] as $lajur) {
             if (array_key_exists($lajur, $atribut)) {

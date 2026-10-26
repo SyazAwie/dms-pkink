@@ -74,6 +74,33 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-4">
+                        <label class="dms-label">Jawatan / Gred <span class="dms-optional">(Pilihan)</span></label>
+                        <input type="text"
+                               name="jawatan"
+                               id="jawatan"
+                               class="dms-input @error('jawatan') is-invalid @enderror"
+                               value="{{ old('jawatan', $user->jawatan) }}"
+                               maxlength="150"
+                               placeholder="Cth: Pegawai Teknologi Maklumat F41"
+                               autocomplete="off">
+                        @error('jawatan') <div class="dms-error">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <label class="dms-label">No. Telefon <span class="dms-optional">(Pilihan)</span></label>
+                        <input type="tel"
+                               name="no_telefon"
+                               id="no_telefon"
+                               class="dms-input @error('no_telefon') is-invalid @enderror"
+                               value="{{ old('no_telefon', $user->no_telefon) }}"
+                               maxlength="20"
+                               placeholder="Cth: 012-345 6789"
+                               autocomplete="off">
+                        @error('no_telefon') <div class="dms-error">{{ $message }}</div> @enderror
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-4">
                         <label class="dms-label">Penempatan Bahagian <span class="text-danger">*</span></label>
                         <select name="bahagian_id" id="bahagian_id" class="dms-input dms-select @error('bahagian_id') is-invalid @enderror" required>
                             <option value="">-- Pilih Bahagian --</option>
@@ -211,6 +238,7 @@
     .section-header p { margin: 4px 0 0; color: var(--dms-muted); font-size: 11px; }
 
     .dms-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--dms-text); margin-bottom: 6px; }
+    .dms-optional { font-weight: 500; color: var(--dms-muted); font-size: 11.5px; }
     .dms-input {
         width: 100%;
         padding: 11px 14px;

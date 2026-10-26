@@ -65,6 +65,26 @@
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label class="dms-label" for="jawatan">Jawatan / Gred <span class="dms-optional">(Pilihan)</span></label>
+                        <input type="text" name="jawatan" id="jawatan" maxlength="150" autocomplete="organization-title"
+                               placeholder="Cth: Pegawai Teknologi Maklumat F41"
+                               class="dms-input @if($ralatMaklumat->has('jawatan')) is-invalid @endif"
+                               value="{{ $ralatMaklumat->any() ? old('jawatan') : $user->jawatan }}">
+                        @if($ralatMaklumat->has('jawatan'))<div class="dms-error">{{ $ralatMaklumat->first('jawatan') }}</div>@endif
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <label class="dms-label" for="no_telefon">No. Telefon <span class="dms-optional">(Pilihan)</span></label>
+                        <input type="tel" name="no_telefon" id="no_telefon" maxlength="20" autocomplete="tel"
+                               placeholder="Cth: 012-345 6789"
+                               class="dms-input @if($ralatMaklumat->has('no_telefon')) is-invalid @endif"
+                               value="{{ $ralatMaklumat->any() ? old('no_telefon') : $user->no_telefon }}">
+                        @if($ralatMaklumat->has('no_telefon'))<div class="dms-error">{{ $ralatMaklumat->first('no_telefon') }}</div>@endif
+                    </div>
+                </div>
+                <div class="dms-hint mb-3" style="margin-top: -10px;">Jawatan dan no. telefon digunakan untuk mengisi borang secara automatik.</div>
+
                 <div class="mb-4" id="sahEmel" @if(!$ralatMaklumat->has('kata_laluan_semasa')) hidden @endif>
                     <label class="dms-label" for="kata_laluan_semasa">Kata Laluan Semasa <span class="text-danger">*</span></label>
                     <input type="password" name="kata_laluan_semasa" id="kata_laluan_semasa" autocomplete="current-password"
@@ -138,6 +158,8 @@
             <ul class="meta-list">
                 <li><span>Peranan</span><strong>{{ $user->roles->pluck('nama_roles')->join(', ') ?: 'Tiada peranan' }}</strong></li>
                 <li><span>Bahagian</span><strong>{{ $user->bahagian->nama_bahagian ?? '-' }}</strong></li>
+                <li><span>Jawatan</span><strong>{{ $user->jawatan ?: '-' }}</strong></li>
+                <li><span>No. Telefon</span><strong>{{ $user->no_telefon ?: '-' }}</strong></li>
                 <li><span>Akaun dicipta</span><strong>{{ $user->created_at?->format('d/m/Y') }}</strong></li>
             </ul>
         </div>
@@ -155,6 +177,7 @@
     .section-header p { margin: 4px 0 0; color: var(--dms-muted); font-size: 11px; }
 
     .dms-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--dms-text); margin-bottom: 6px; }
+    .dms-optional { font-weight: 500; color: var(--dms-muted); font-size: 11.5px; }
     .dms-input {
         width: 100%;
         padding: 11px 14px;

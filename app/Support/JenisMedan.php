@@ -69,7 +69,8 @@ final class JenisMedan
 
     public const YA_TIDAK = ['Ya', 'Tidak'];
 
-    private const REGEX_TELEFON = '/^\+?[0-9][0-9\s\-()]{5,19}$/';
+    /** Juga digunakan oleh PeraturanProfil (no. telefon kakitangan). */
+    public const REGEX_TELEFON = '/^\+?[0-9][0-9\s\-()]{5,19}$/';
 
     public static function kod(): array
     {
@@ -107,12 +108,15 @@ final class JenisMedan
         'no_kp' => 'No. KP',
         'emel' => 'Emel',
         'bahagian' => 'Bahagian',
+        'jawatan' => 'Jawatan',
+        'telefon' => 'No. Telefon',
     ];
 
     /** Jenis medan => sumber auto-isi yang serasi (nilai profil mesti lulus validasi jenis itu). */
     public const AUTO_ISI_SERASI = [
-        'teks' => ['nama', 'no_kp', 'emel', 'bahagian'],
+        'teks' => ['nama', 'no_kp', 'emel', 'bahagian', 'jawatan', 'telefon'],
         'emel' => ['emel'],
+        'telefon' => ['telefon'],
     ];
 
     /** Sumber auto-isi medan ini, atau null jika tiada / tidak serasi dengan jenis datanya. */
@@ -133,6 +137,8 @@ final class JenisMedan
             'no_kp' => $user?->ic_pekerja,
             'emel' => $user?->email,
             'bahagian' => $user?->bahagian?->nama_bahagian,
+            'jawatan' => $user?->jawatan,
+            'telefon' => $user?->no_telefon,
             default => null,
         };
     }

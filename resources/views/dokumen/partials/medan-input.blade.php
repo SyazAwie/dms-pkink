@@ -22,7 +22,7 @@
     $nilai = is_array($nilai) ? '' : (string) ($nilai ?? '');
     $nilaiLain = (string) ($nilaiLain ?? '');
     $wajib = $field->is_required ? 'required' : '';
-    // Auto-isi hanya bagi jenis teks/emel (JenisMedan::AUTO_ISI_SERASI); pelayan abaikan nilai yang dihantar
+    // Auto-isi hanya bagi jenis teks/emel/telefon (JenisMedan::AUTO_ISI_SERASI); pelayan abaikan nilai yang dihantar
     $kunci = ($autoIsi ?? false) ? 'readonly' : '';
     $kelasRalat = $errors->has("medan_data.{$fid}") ? 'is-invalid' : '';
     $bantuan = $field->tetapan['bantuan'] ?? null;
@@ -81,7 +81,7 @@
             <input type="email" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="255" placeholder="nama@contoh.com" {{ $wajib }} {{ $kunci }}>
             @break
         @case('telefon')
-            <input type="tel" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="20" placeholder="Cth: 09-748 1234" {{ $wajib }}>
+            <input type="tel" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="20" placeholder="Cth: 09-748 1234" {{ $wajib }} {{ $kunci }}>
             @break
         @case('url')
             <input type="url" id="medan_{{ $fid }}" name="{{ $nama }}" class="dms-input {{ $kelasRalat }}" value="{{ $nilai }}" maxlength="2048" placeholder="https://" {{ $wajib }}>

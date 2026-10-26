@@ -7,6 +7,7 @@ use App\Models\LogAudit;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\PeraturanNama;
+use App\Support\PeraturanProfil;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,7 @@ class UserController extends Controller
             'password' => 'required|min:6',
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,roles_id',
-        ], $this->mesejBahagian());
+        ] + PeraturanProfil::peraturan(), $this->mesejBahagian() + PeraturanProfil::mesej());
 
         // Hanya SUPERADMIN boleh menetapkan peranan. Jika pendaftar ialah ADMIN
         // (atau tiada peranan dipilih), kakitangan baharu mendapat peranan lalai STAFF.
@@ -55,7 +56,9 @@ class UserController extends Controller
             $user = new User([
                 'ic_pekerja' => $request->ic_pekerja,
                 'nama_staff' => $request->nama_staff,
+                'jawatan' => $request->jawatan,
                 'email' => $request->email,
+                'no_telefon' => $request->no_telefon,
                 'bahagian_id' => $request->bahagian_id,
                 'password' => Hash::make($request->password),
             ]);
@@ -94,7 +97,7 @@ class UserController extends Controller
             'bahagian_id' => $this->peraturanBahagian(),
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,roles_id',
-        ], $this->mesejBahagian());
+        ] + PeraturanProfil::peraturan(), $this->mesejBahagian() + PeraturanProfil::mesej());
 
         // Peranan hanya boleh diubah oleh SUPERADMIN, dan hanya jika borang menghantar bahagian peranan
         $tukarPeranan = Auth::user()->hasRole('SUPERADMIN') && $request->boolean('roles_dihantar');
@@ -122,7 +125,9 @@ class UserController extends Controller
         $dataKemaskini = [
             'ic_pekerja' => $request->ic_pekerja,
             'nama_staff' => $request->nama_staff,
+            'jawatan' => $request->jawatan,
             'email' => $request->email,
+            'no_telefon' => $request->no_telefon,
             'bahagian_id' => $request->bahagian_id,
         ];
 
