@@ -89,8 +89,8 @@ class DokumenController extends Controller
         return view('dokumen.index', compact('senarai', 'jenisDokumenSenarai', 'bahagianSenarai', 'adaPenapis'));
     }
 
-    // Borang muat naik dokumen baharu
-    public function create()
+    // Borang muat naik dokumen baharu (?jenis=ID: kategori dipilih dahulu, cth. dari halaman Isi Borang)
+    public function create(Request $request)
     {
         Gate::authorize('create', Dokumen::class);
 
@@ -98,9 +98,8 @@ class DokumenController extends Controller
 
         // Selepas ralat validasi, render semula medan kategori yang dipilih di pelayan
         // supaya nilai yang ditaip (old()) dan mesej ralat medan dipaparkan.
-        $jenisTerpilih = old('jenis_dokumen_id')
-            ? JenisDokumen::with('fields')->find(old('jenis_dokumen_id'))
-            : null;
+        $idTerpilih = old('jenis_dokumen_id', $request->integer('jenis') ?: null);
+        $jenisTerpilih = $idTerpilih ? JenisDokumen::with('fields')->find($idTerpilih) : null;
         $nilaiAutoIsi = $jenisTerpilih ? JenisMedan::nilaiAutoIsi($jenisTerpilih->fields, Auth::user()) : [];
 
         return view('dokumen.create', compact('jenisDokumenSenarai', 'jenisTerpilih', 'nilaiAutoIsi'));

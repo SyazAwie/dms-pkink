@@ -74,13 +74,17 @@ class ImbasArkibController extends DokumenController
         return $this->mod() === 'hantar';
     }
 
-    // Borang: pilih Jenis Dokumen + satu fail
-    public function create()
+    // Borang: pilih Jenis Dokumen + satu fail (?jenis=ID: kategori dipilih dahulu, cth. dari Isi Borang)
+    public function create(Request $request)
     {
         Gate::authorize('create', Dokumen::class);
 
         $jenisDokumenSenarai = JenisDokumen::with('fields')->orderBy('nama_dokumen')->get();
-        return view('imbas_arkib.create', ['jenisDokumenSenarai' => $jenisDokumenSenarai, 'mod' => $this->mod()]);
+        return view('imbas_arkib.create', [
+            'jenisDokumenSenarai' => $jenisDokumenSenarai,
+            'mod' => $this->mod(),
+            'idTerpilih' => (int) old('jenis_dokumen_id', $request->integer('jenis')),
+        ]);
     }
 
     // OCR + ekstrak AI, simpan hasil dalam folder token, kemudian redirect ke skrin semak

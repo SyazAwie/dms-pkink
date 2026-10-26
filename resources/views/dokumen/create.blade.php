@@ -36,7 +36,7 @@
                             class="dms-input @error('jenis_dokumen_id') is-invalid @enderror">
                         <option value="">Pilih Jenis Dokumen...</option>
                         @foreach($jenisDokumenSenarai as $jd)
-                            <option value="{{ $jd->jenis_dokumen_id }}" {{ old('jenis_dokumen_id') == $jd->jenis_dokumen_id ? 'selected' : '' }}>
+                            <option value="{{ $jd->jenis_dokumen_id }}" {{ $jenisTerpilih?->jenis_dokumen_id === $jd->jenis_dokumen_id ? 'selected' : '' }}>
                                 {{ $jd->nama_dokumen }} ({{ $jd->kod_dokumen }})
                             </option>
                         @endforeach
