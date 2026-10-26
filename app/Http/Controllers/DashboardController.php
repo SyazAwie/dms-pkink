@@ -28,6 +28,16 @@ class DashboardController extends Controller
         $user = Auth::user();
         $bahagian = [];
 
+        // Tugas kelulusan dahulu: ada orang menunggu tindakan pengguna ini
+        if ($user->hasRole('PENYOKONG')) {
+            $bahagian['penyokong'] = $this->dataGiliran($user, 'Dalam Proses', 'tarikh_permohonan', 'pegawai_penyokong_id', 'tarikh_sokongan');
+        }
+        if ($user->hasRole('PELULUS')) {
+            $bahagian['pelulus'] = $this->dataGiliran($user, 'Disokong', 'tarikh_sokongan', 'pegawai_pelulus_id', 'tarikh_kelulusan');
+        }
+        if ($user->hasRole('AUDIT')) {
+            $bahagian['audit'] = $this->dataAudit();
+        }
         if ($user->hasRole('KERANI')) {
             $bahagian['kerani'] = $this->dataKerani($user);
         }
@@ -39,7 +49,7 @@ class DashboardController extends Controller
         }
 
         // Peranan yang belum dibina semula: paparan lama (sementara)
-        if ($user->hasAnyRole('SUPERADMIN', 'ADMIN', 'PENYOKONG', 'PELULUS', 'AUDIT')) {
+        if ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
             $bahagian = ['lama' => $this->dataLama($user)] + $bahagian;
         }
 
@@ -133,6 +143,47 @@ class DashboardController extends Controller
             'belumOcr' => DokumenScan::where('status_ocr', 'Pending')->whereHas('dokumen', fn ($q) => $q->bolehDilihat($user))->count(),
             'jumlahDokumen' => (clone $skop)->count(),
             'dokumenTerkini' => (clone $skop)->with(['jenisDokumen', 'pemuatNaik'])->latest('dokumen_id')->limit(5)->get(),
+        ];
+    }
+
+    /** Hari menunggu yang dianggap tertunggak (giliran kelulusan & perhatian pentadbir). */
+    public const HARI_TERTUNGGAK = 3;
+
+    /**
+     * PENYOKONG / PELULUS: giliran permohonan pada peringkat $status, paling lama dahulu
+     * (FIFO), dengan umur (hari) sejak masuk giliran ($lajurMasuk).
+     */
+    private function dataGiliran(User $user, string $status, string $lajurMasuk, string $lajurPegawai, string $lajurSelesai): array
+    {
+        $giliran = fn () => Borang::dokumenAktif()->where('status_permohonan', $status);
+        $tertua = $giliran()->min($lajurMasuk);
+
+        return [
+            'menunggu' => $giliran()->count(),
+            'tertunggak' => $giliran()->where($lajurMasuk, '<', now()->subDays(self::HARI_TERTUNGGAK))->count(),
+            'palingLama' => $tertua ? (int) \Illuminate\Support\Carbon::parse($tertua)->diffInDays(now()) : null,
+            'selesaiBulanIni' => Borang::dokumenAktif()->where($lajurPegawai, $user->user_id)
+                ->whereMonth($lajurSelesai, now()->month)->whereYear($lajurSelesai, now()->year)->count(),
+            'senarai' => $giliran()->with(['dokumen.jenisDokumen', 'pemohon'])->orderBy($lajurMasuk)->limit(5)->get(),
+            'lajurMasuk' => $lajurMasuk,
+        ];
+    }
+
+    /** AUDIT: aktiviti sistem 7 hari, tindakan sensitif (padam) dan log terkini. */
+    private function dataAudit(): array
+    {
+        $minggu = fn () => LogAudit::where('created_at', '>=', now()->subDays(7));
+        $pecahan = $this->pecahanTindakan();
+
+        return [
+            'logHariIni' => LogAudit::whereDate('created_at', today())->count(),
+            'logMingguIni' => $minggu()->count(),
+            'padamMingguIni' => $minggu()->where('tindakan', 'like', 'Padam%')->count(),
+            'penggunaAktif' => LogAudit::whereDate('created_at', today())->whereNotNull('user_id')->distinct()->count('user_id'),
+            // Tiada aktiviti: senarai kosong (keadaan kosong), bukan empat bar bernilai 0
+            'pecahanTindakan' => array_sum($pecahan['nilai']) === 0 ? []
+                : array_map(fn ($l, $n) => ['label' => $l, 'nilai' => $n], $pecahan['label'], $pecahan['nilai']),
+            'logTerkini' => LogAudit::with('pengguna')->latest('created_at')->limit(6)->get(),
         ];
     }
 

@@ -107,6 +107,49 @@ class DashboardTest extends TestCase
             ->assertDontSee('Permohonan Saya');
     }
 
+    public function test_penyokong_nampak_giliran_paling_lama_dahulu(): void
+    {
+        $penyokong = $this->buatPengguna(['PENYOKONG']);
+        $staf = $this->buatPengguna(['STAFF'], ['nama_staff' => 'Pemohon Lama']);
+        $lama = $this->dokumen($staf, 'Dalam Proses');
+        Borang::where('dokumen_id', $lama->dokumen_id)->update(['tarikh_permohonan' => now()->subDays(5)]);
+        $this->dokumen($staf, 'Dalam Proses');
+        $this->dokumen($staf, 'Disokong');                 // giliran Pelulus: tidak dikira
+
+        $this->actingAs($penyokong)->get(route('dashboard'))->assertOk()
+            ->assertSee('Giliran Sokongan')
+            ->assertSeeInOrder(['2', 'Menunggu Sokongan', '1', 'Tertunggak &gt; 3 Hari', '5', 'hari', 'Paling Lama Menunggu'], false)
+            ->assertSeeInOrder([$lama->no_rujukan, '5 hari', 'Hari ini'])
+            ->assertSee(route('kelulusan.index'))
+            ->assertDontSee('Giliran Kelulusan')
+            ->assertDontSee('Permohonan Saya');
+    }
+
+    public function test_pelulus_tanpa_giliran_nampak_keadaan_kosong(): void
+    {
+        $this->actingAs($this->buatPengguna(['PELULUS']))->get(route('dashboard'))->assertOk()
+            ->assertSee('Giliran Kelulusan')
+            ->assertSee('Tiada permohonan menunggu kelulusan anda.');
+    }
+
+    public function test_audit_nampak_aktiviti_dan_tindakan_padam(): void
+    {
+        $audit = $this->buatPengguna(['AUDIT']);
+        $admin = $this->buatPengguna(['ADMIN'], ['nama_staff' => 'Pentadbir Ujian']);
+        foreach (['Cipta', 'Kemaskini', 'Padam (Soft Delete)'] as $t) {
+            \App\Models\LogAudit::create(['user_id' => $admin->user_id, 'tindakan' => $t, 'nama_jadual' => 'dokumen',
+                'rekod_id' => 1, 'created_at' => now()]);
+        }
+
+        $this->actingAs($audit)->get(route('dashboard'))->assertOk()
+            ->assertSee('Aktiviti Sistem')
+            // Bilangan log termasuk log UserObserver semasa pengguna ujian dicipta
+            ->assertSeeInOrder(['Log Hari Ini', 'Log 7 Hari', '<div class="pp-kad-nilai">1', 'Tindakan Padam', 'Pengguna Aktif'], false)
+            ->assertSee('Pentadbir Ujian')
+            ->assertSee('Padam (Soft Delete)')
+            ->assertSee(route('log-audit.index'));
+    }
+
     public function test_staf_tanpa_dokumen_nampak_keadaan_kosong(): void
     {
         $this->actingAs($this->buatPengguna(['STAFF']))->get(route('dashboard'))
