@@ -52,12 +52,14 @@ class OllamaExtractionService
 
         $badan = [
             'model' => $this->model,
-            'prompt' => $this->binaPrompt($teksOcr, $medan, $medanAsas),
+            'prompt' => $this->binaPrompt(self::normalTahun($teksOcr), $medan, $medanAsas),
             'format' => 'json',
             'stream' => false,
             'keep_alive' => config('services.ollama.keep_alive', '30m'),
+            // Suhu 0 + seed tetap: hasil sama bagi dokumen sama (suhu 0.1 memberi nilai berbeza antara larian)
             'options' => $this->opsyen() + [
-                'temperature' => 0.1,
+                'temperature' => 0,
+                'seed' => 42,
                 'num_predict' => (int) config('services.ollama.num_predict', 2048),
             ],
         ];
@@ -140,7 +142,7 @@ class OllamaExtractionService
         $senaraiMedan = $medan
             ->map(fn ($f) => "- kod \"{$f->kod_field}\" ({$f->nama_field}): " . JenisMedan::panduanAi($f))
             ->when($medanAsas, fn ($s) => $s->push(
-                '- kod "' . self::TARIKH_DOKUMEN . '" (Tarikh Dokumen): tarikh dokumen itu sendiri (tarikh surat, memo, borang atau mesyuarat), format YYYY-MM-DD',
+                '- kod "' . self::TARIKH_DOKUMEN . '" (Tarikh Dokumen): tarikh dokumen itu sendiri (tarikh surat, memo atau mesyuarat, atau tarikh borang diisi oleh pemohon; BUKAN tarikh dalam bahagian pengesahan/sokongan/kegunaan pejabat), format YYYY-MM-DD',
                 '- kod "' . self::PERKARA . '" (Perkara): tajuk utama dokumen seperti tertulis (perkara surat/memo, tajuk penuh minit mesyuarat, atau nama borang), maksimum 200 aksara'
             ))
             ->implode("\n");
@@ -176,6 +178,22 @@ Teks OCR:
 Jawab dengan JSON padat dalam SATU baris (tanpa baris baharu atau ruang tambahan),
 contoh bentuk: {"kod_medan_1":"nilai","kod_medan_2":null}
 PROMPT;
+    }
+
+    /**
+     * Tarikh bertahun 2 digit (dd/mm/yy, lazim dalam borang tulisan tangan) ditukar kepada 4 digit
+     * sebelum dihantar kepada AI, kerana AI kerap salah teka abad (cth. "20/9/26" → 2021).
+     * yy <= tahun semasa + 1 → 20yy, selainnya 19yy.
+     */
+    public static function normalTahun(string $teks): string
+    {
+        $had = (int) date('y') + 1;
+
+        return preg_replace_callback(
+            '#(?<![\d/])(0?[1-9]|[12]\d|3[01])\s*([/.-])\s*(0?[1-9]|1[0-2])\s*\2\s*(\d{2})(?![\d/])#',
+            fn ($m) => "{$m[1]}/{$m[3]}/" . ((int) $m[4] <= $had ? '20' : '19') . $m[4],
+            $teks
+        );
     }
 
     /** Tarikh Dokumen (tarikh sah, tahun munasabah) & Perkara (teks, maks 255) daripada AI. */

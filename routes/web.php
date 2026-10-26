@@ -85,6 +85,8 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.simpan');
         Route::get('/imbas-arkib/pratonton/{token}', [ImbasArkibController::class, 'pratonton'])
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.pratonton');
+        Route::post('/imbas-arkib/semak/{token}/baca-semula', [ImbasArkibController::class, 'bacaSemula'])
+            ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.baca-semula');
     });
 
     // ---- Isi Borang + Imbas & Hantar: staf isi borang fizikal sendiri, OCR+AI isi borang digital,
@@ -101,6 +103,8 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.simpan');
         Route::get('/imbas-hantar/pratonton/{token}', [ImbasHantarController::class, 'pratonton'])
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.pratonton');
+        Route::post('/imbas-hantar/semak/{token}/baca-semula', [ImbasHantarController::class, 'bacaSemula'])
+            ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.baca-semula');
     });
 
     // ---- Aliran Kelulusan (versi asas — lihat nota dalam BorangController) ----

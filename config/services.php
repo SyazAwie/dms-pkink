@@ -45,6 +45,12 @@ return [
         // Buang garisan kotak/jadual sebelum OCR (App\Support\BuangGarisan); hasil terbaik
         // antara imej asal dan imej bersih dipilih bagi setiap muka surat
         'buang_garisan' => (bool) env('OCR_BUANG_GARISAN', true),
+        // Laluan hibrid: muka surat dengan skor Tesseract < ambang (cth. tulisan tangan) dibaca
+        // semula oleh model penglihatan tempatan (VlmOcrService). Ujian: tulisan tangan ~77%,
+        // dokumen bertaip 81-92%. Kosongkan OCR_VLM_MODEL atau OCR_VLM_AKTIF=false untuk matikan.
+        'vlm_aktif' => (bool) env('OCR_VLM_AKTIF', true),
+        'vlm_model' => env('OCR_VLM_MODEL', 'glm-ocr:q8_0'),
+        'vlm_ambang' => (float) env('OCR_VLM_AMBANG', 80),
     ],
 
     'ollama' => [
