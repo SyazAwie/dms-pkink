@@ -44,13 +44,25 @@ class OllamaExtractionService
             return $medan->mapWithKeys(fn ($f) => [$f->dokumen_field_id => null])->all();
         }
 
-        $respons = Http::timeout(120)->post("{$this->urlAsas}/api/generate", [
+        $badan = [
             'model' => $this->model,
             'prompt' => $this->binaPrompt($teksOcr, $medan),
             'format' => 'json',
             'stream' => false,
-            'options' => ['temperature' => 0.1],
-        ]);
+            'keep_alive' => config('services.ollama.keep_alive', '30m'),
+            'options' => $this->opsyen() + [
+                'temperature' => 0.1,
+                'num_predict' => (int) config('services.ollama.num_predict', 2048),
+            ],
+        ];
+        $respons = $this->hantar($badan);
+
+        // Model gagal dimuat sepenuhnya ke GPU (cth. VRAM digunakan aplikasi lain):
+        // ulang sekali dengan pembahagian GPU/CPU lalai Ollama
+        if ($respons->failed() && isset($badan['options']['num_gpu'])) {
+            unset($badan['options']['num_gpu']);
+            $respons = $this->hantar($badan);
+        }
 
         if ($respons->failed()) {
             throw new \RuntimeException(
@@ -66,6 +78,44 @@ class OllamaExtractionService
         }
 
         return $this->bersihkanNilai($data, $medan);
+    }
+
+    /**
+     * Muatkan model ke memori GPU lebih awal (prompt kosong), supaya imbasan pertama tidak
+     * menunggu model dimuat. Dipanggil apabila halaman Imbas & Arkib / Imbas & Hantar dibuka.
+     * Opsyen mesti sama dengan ekstrak(): num_ctx/num_gpu berbeza menyebabkan Ollama memuat semula.
+     */
+    public function panaskan(): bool
+    {
+        $badan = [
+            'model' => $this->model,
+            'prompt' => '',
+            'stream' => false,
+            'keep_alive' => config('services.ollama.keep_alive', '30m'),
+            'options' => $this->opsyen(),
+        ];
+        $respons = $this->hantar($badan);
+        if ($respons->failed() && isset($badan['options']['num_gpu'])) {
+            unset($badan['options']['num_gpu']);
+            $respons = $this->hantar($badan);
+        }
+
+        return $respons->successful();
+    }
+
+    /** Opsyen prestasi Ollama yang menentukan cara model dimuat (config services.ollama). */
+    private function opsyen(): array
+    {
+        $numGpu = config('services.ollama.num_gpu');
+
+        return ['num_ctx' => (int) config('services.ollama.num_ctx', 4096)]
+            + ($numGpu !== null && $numGpu !== '' ? ['num_gpu' => (int) $numGpu] : []);
+    }
+
+    private function hantar(array $badan): \Illuminate\Http\Client\Response
+    {
+        return Http::timeout((int) config('services.ollama.had_masa', 180))
+            ->post("{$this->urlAsas}/api/generate", $badan);
     }
 
     private function binaPrompt(string $teksOcr, Collection $medan): string
