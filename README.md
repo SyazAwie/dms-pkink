@@ -418,7 +418,20 @@ Ukuran dengan 7 dokumen ujian (data rekaan), OCR + AI:
 | Surat Masuk | 15.7 s, pengirim kosong, nilai diteka | 10.5 s, pengirim/rujukan/tarikh/perkara betul |
 | Minit Mesyuarat (2 muka surat) | 56.3 s | 37.1 s |
 
-**Had:** Tesseract tidak dapat membaca **tulisan tangan** dengan baik (borang diisi tangan perlu disemak/diisi manual di skrin semak, dengan pratonton fail di sebelah). Model *vision* tempatan ialah pilihan masa depan, tetapi bersaing dengan SEA-LION untuk VRAM 6GB.
+**Tulisan tangan: laluan hibrid Tesseract → GLM-OCR** (cawangan `ocr-hibrid-glm`, 2026-10-26)
+
+Tesseract tidak dapat membaca tulisan tangan (borang tulisan tangan dibaca sebagai "L ARY AWN AW"). Eksperimen dengan model penglihatan tempatan (Qwen3-VL 4B, GLM-OCR) menunjukkan **GLM-OCR** (0.9B, 1.8GB, lesen MIT, melalui Ollama) membaca tulisan tangan blok hampir sepenuhnya betul dalam ~2 s/muka surat, tetapi lebih lemah daripada Tesseract bagi huruf dalam kotak, kepala surat berwarna dan medan kosong. Oleh itu:
+
+| Langkah | Fail | Tetapan |
+|---|---|---|
+| Tesseract dahulu bagi setiap muka surat (pantas, terbaik untuk teks bercetak) | `OcrService` | — |
+| Muka surat dengan skor < ambang dibaca semula oleh GLM-OCR; jika gagal, teks Tesseract kekal | `VlmOcrService` | `OCR_VLM_AMBANG=80`, `OCR_VLM_MODEL=glm-ocr:q8_0`, `OCR_VLM_AKTIF` |
+| Butang **"Baca semula (tulisan tangan)"** di skrin semak untuk paksa GLM-OCR | `ImbasArkibController::bacaSemula` | — |
+| AI suhu 0 + seed tetap; tahun 2 digit dinormalkan (`20/9/26` → `20/9/2026`) | `OllamaExtractionService` | — |
+
+Prasyarat: `ollama pull glm-ocr:q8_0`. Ujian 7 dokumen: hanya borang tulisan tangan dinaik taraf; nama, jabatan, peralatan, justifikasi dan tarikh dibaca betul (≈28–30 s, termasuk pertukaran model dalam GPU 6GB).
+
+**Had yang tinggal:** tanda ✓ tulisan tangan dalam jadual; medan yang KOSONG pada borang kadang-kadang diisi teks lain oleh AI (cadangan: templat zon, iaitu setiap medan dibaca daripada petaknya sendiri); tulisan sambung (cursive) dan Jawi belum diuji. GLM-OCR pada CPU terlalu perlahan (~100 s/dokumen).
 
 ---
 
