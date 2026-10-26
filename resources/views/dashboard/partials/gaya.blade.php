@@ -88,6 +88,48 @@
     .pp-bar-trek { height: 8px; border-radius: 999px; background: rgba(104, 121, 141, .12); overflow: hidden; }
     .pp-bar-isi { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--dms-brand), var(--dms-primary)); }
 
+    @media (min-width: 1200px) { .pp-dua-sama { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    /* ---- Pentadbir: perlu perhatian ---- */
+    .pp-perhatian { margin-bottom: 16px; padding: 14px 18px; box-shadow: inset 4px 0 0 var(--dms-danger); }
+    .pp-perhatian-ok { box-shadow: inset 4px 0 0 var(--dms-mint); }
+    .pp-perhatian-ok .pp-bahagian-tajuk { color: var(--dms-mint); }
+    .pp-perhatian .pp-bahagian-tajuk { color: var(--dms-danger); }
+    .pp-perhatian ul { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+    .pp-perhatian li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px; }
+    .pp-perhatian-bil { min-width: 30px; padding: 3px 8px; border-radius: 8px; font-weight: 800; text-align: center; }
+    .pp-perhatian-teks { flex: 1 1 200px; color: var(--dms-text); }
+    .pp-perhatian li a { color: var(--dms-primary); font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+    /* ---- Pentadbir: aliran kelulusan (bar bersegmen) ---- */
+    .pp-aliran { padding: 18px; }
+    .pp-aliran-bar { display: flex; height: 14px; overflow: hidden; border-radius: 999px; background: rgba(104, 121, 141, .12); }
+    .pp-aliran-bar span { display: block; height: 100%; }
+    .pp-aliran-bar .pp-status-proses, .pp-titik.pp-status-proses { background: #f59e0b; }
+    .pp-aliran-bar .pp-status-sokong, .pp-titik.pp-status-sokong { background: var(--dms-primary); }
+    .pp-aliran-bar .pp-status-lulus, .pp-titik.pp-status-lulus { background: var(--dms-mint); }
+    .pp-aliran-bar .pp-status-tolak, .pp-titik.pp-status-tolak { background: var(--dms-danger); }
+    .pp-aliran-legenda { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 12.5px; }
+    .pp-aliran-legenda li { display: flex; align-items: center; gap: 7px; }
+    .pp-aliran-legenda strong { margin-left: auto; color: var(--dms-brand); }
+    .pp-titik { display: inline-block; width: 10px; height: 10px; padding: 0; border-radius: 50%; }
+
+    /* ---- Pentadbir: trend (bar menegak HTML) ---- */
+    .pp-trend { display: flex; align-items: flex-end; gap: 10px; height: 170px; padding: 16px 18px 12px; }
+    .pp-trend-lajur { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+    .pp-trend-bar { width: 100%; max-width: 42px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, var(--dms-primary), var(--dms-brand)); }
+    .pp-trend-nilai { color: var(--dms-brand); font-size: 11.5px; font-weight: 800; }
+    .pp-trend-label { color: var(--dms-muted); font-size: 11px; font-weight: 600; }
+
+    /* ---- Pentadbir: bahagian berlipat ---- */
+    .pp-lipat { padding: 0; }
+    .pp-lipat summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 18px; color: var(--dms-brand); font-size: 14px; font-weight: 800; cursor: pointer; list-style: none; }
+    .pp-lipat summary::-webkit-details-marker { display: none; }
+    .pp-lipat summary::after { content: "\F282"; margin-left: auto; font-family: bootstrap-icons; transition: transform .2s ease; }
+    .pp-lipat[open] summary::after { transform: rotate(180deg); }
+    .pp-lipat[open] summary .pp-kecil { display: none; }
+    .pp-lipat-isi { padding: 4px 18px 18px; }
+
     /* ---- Keadaan kosong ---- */
     .pp-kosong { display: grid; justify-items: center; gap: 8px; padding: 28px 18px; color: var(--dms-muted); font-size: 13px; text-align: center; }
     .pp-kosong > i { font-size: 28px; color: var(--dms-primary); opacity: .6; }

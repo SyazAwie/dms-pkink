@@ -9,9 +9,9 @@ use App\Models\DokumenScan;
 use App\Models\DokumenOcr;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
+use App\Models\PendaftaranStaf;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Papan Pemuka — satu bahagian bagi setiap peranan pengguna, disusun ikut keutamaan
@@ -48,9 +48,9 @@ class DashboardController extends Controller
             $bahagian['staf'] = $this->dataStaf($user);
         }
 
-        // Peranan yang belum dibina semula: paparan lama (sementara)
+        // Pentadbir paling atas: perkara yang memerlukan perhatian seluruh sistem
         if ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
-            $bahagian = ['lama' => $this->dataLama($user)] + $bahagian;
+            $bahagian = ['pentadbir' => $this->dataPentadbir()] + $bahagian;
         }
 
         return view('dashboard.index', [
@@ -62,6 +62,18 @@ class DashboardController extends Controller
     /** Butang pintasan di bahagian atas, ikut gabungan peranan (maksimum 4). */
     private function tindakanPantas(User $user): array
     {
+        if ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
+            // Tugas pentadbir: kelulusan, kakitangan, kategori; Log Audit (SUPERADMIN) atau Imbas & Arkib (ADMIN)
+            return [
+                ['label' => 'Kelulusan', 'ikon' => 'bi-check2-square', 'url' => route('kelulusan.index'), 'utama' => true],
+                ['label' => 'Kakitangan', 'ikon' => 'bi-people', 'url' => route('users.index')],
+                ['label' => 'Kategori Dokumen', 'ikon' => 'bi-folder2-open', 'url' => route('jenis-dokumen.index')],
+                $user->hasRole('SUPERADMIN')
+                    ? ['label' => 'Log Audit', 'ikon' => 'bi-shield-check', 'url' => route('log-audit.index')]
+                    : ['label' => 'Imbas & Arkib', 'ikon' => 'bi-magic', 'url' => route('imbas-arkib.create')],
+            ];
+        }
+
         $tindakan = [];
         if ($user->can('create', Dokumen::class)) {
             $tindakan[] = ['label' => 'Isi Borang', 'ikon' => 'bi-ui-checks-grid', 'url' => route('isi-borang.index'), 'utama' => true];
@@ -71,13 +83,11 @@ class DashboardController extends Controller
             // Tugas utama kerani: mengarkib dokumen fizikal
             $tindakan = array_map(fn ($t) => ['utama' => false] + $t, $tindakan);
             array_unshift($tindakan, ['label' => 'Imbas & Arkib', 'ikon' => 'bi-magic', 'url' => route('imbas-arkib.create'), 'utama' => true]);
-        } elseif ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
-            $tindakan[] = ['label' => 'Imbas & Arkib', 'ikon' => 'bi-magic', 'url' => route('imbas-arkib.create')];
         }
         if ($user->hasAnyRole('PENYOKONG', 'PELULUS')) {
             array_unshift($tindakan, ['label' => 'Semak Kelulusan', 'ikon' => 'bi-check2-square', 'url' => route('kelulusan.index'), 'utama' => true]);
         }
-        if ($user->hasAnyRole('SUPERADMIN', 'AUDIT')) {
+        if ($user->hasRole('AUDIT')) {
             $tindakan[] = ['label' => 'Log Audit', 'ikon' => 'bi-shield-check', 'url' => route('log-audit.index')];
         }
 
@@ -187,6 +197,97 @@ class DashboardController extends Controller
         ];
     }
 
+    /**
+     * SUPERADMIN / ADMIN: seluruh sistem. Bahagian atas ialah "Perlu Perhatian" (hanya
+     * perkara > 0), kemudian 4 KPI, aliran kelulusan, trend; analitik terperinci (OCR/AI,
+     * kategori, bahagian) dalam bahagian berlipat.
+     */
+    private function dataPentadbir(): array
+    {
+        $tertunggak = Borang::dokumenAktif()->where(fn ($q) => $q
+            ->where(fn ($d) => $d->where('status_permohonan', 'Dalam Proses')->where('tarikh_permohonan', '<', now()->subDays(self::HARI_TERTUNGGAK)))
+            ->orWhere(fn ($d) => $d->where('status_permohonan', 'Disokong')->where('tarikh_sokongan', '<', now()->subDays(self::HARI_TERTUNGGAK)))
+        )->count();
+        $pendaftaran = PendaftaranStaf::where('status', PendaftaranStaf::MENUNGGU)->count();
+        $belumOcr = DokumenScan::where('status_ocr', 'Pending')->whereHas('dokumen')->count();
+
+        $status = Borang::dokumenAktif()->selectRaw('status_permohonan, COUNT(*) as jumlah')
+            ->groupBy('status_permohonan')->pluck('jumlah', 'status_permohonan');
+        $purataOcr = DokumenOcr::whereNotNull('skor_padanan')->avg('skor_padanan');
+
+        return [
+            'perhatian' => array_values(array_filter([
+                ['bil' => $pendaftaran, 'teks' => 'pendaftaran staf baharu menunggu pengesahan', 'url' => route('pendaftaran.index'), 'butang' => 'Sahkan', 'tahap' => 'merah'],
+                ['bil' => $tertunggak, 'teks' => 'permohonan tertunggak lebih ' . self::HARI_TERTUNGGAK . ' hari', 'url' => route('kelulusan.index'), 'butang' => 'Semak', 'tahap' => 'merah'],
+                ['bil' => $belumOcr, 'teks' => 'fail imbasan belum di-OCR', 'url' => route('dokumen.index'), 'butang' => 'Lihat', 'tahap' => 'kuning'],
+            ], fn ($p) => $p['bil'] > 0)),
+            'jumlahDokumen' => Dokumen::count(),
+            'dokumenBulanIni' => Dokumen::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+            'statusPermohonan' => collect(['Dalam Proses', 'Disokong', 'Diluluskan', 'Ditolak'])
+                ->mapWithKeys(fn ($s) => [$s => (int) ($status[$s] ?? 0)])->all(),
+            'purataJamKelulusan' => $this->purataJamKelulusan(),
+            'jumlahKakitangan' => User::count(),
+            'jumlahBahagian' => Bahagian::count(),
+            'trend' => $this->trendEnamBulan(),
+            // Analitik terperinci (berlipat)
+            'arkibTerusAi' => Borang::dokumenAktif()->where('status_permohonan', 'Diluluskan')
+                ->whereNull('pegawai_penyokong_id')->whereNull('pegawai_pelulus_id')->count(),
+            'jumlahFail' => DokumenScan::whereHas('dokumen')->count(),
+            'purataOcr' => $purataOcr !== null ? round((float) $purataOcr, 1) : null,
+            'jumlahKategori' => JenisDokumen::count(),
+            'kategoriTeratas' => $this->senaraiKategori(Dokumen::query()),
+            'bahagianTeratas' => $this->senaraiBahagian(),
+            'dokumenTerkini' => Dokumen::with(['jenisDokumen', 'pemuatNaik', 'borang'])->latest('dokumen_id')->limit(5)->get(),
+        ];
+    }
+
+    /**
+     * Bilangan dokumen 6 bulan terakhir, termasuk bulan tanpa rekod. Dikira dalam PHP
+     * (bukan DATE_FORMAT MySQL) supaya mudah alih & boleh diuji dengan SQLite.
+     *
+     * @return list<array{label: string, nilai: int}>
+     */
+    private function trendEnamBulan(): array
+    {
+        $mula = now()->subMonths(5)->startOfMonth();
+        $kiraan = Dokumen::where('created_at', '>=', $mula)->pluck('created_at')
+            ->countBy(fn ($t) => $t->format('Y-m'));
+
+        return collect(range(5, 0))->map(function ($i) use ($kiraan) {
+            $bulan = now()->subMonths($i);
+
+            return ['label' => $bulan->locale('ms')->translatedFormat('M'), 'nilai' => (int) ($kiraan[$bulan->format('Y-m')] ?? 0)];
+        })->all();
+    }
+
+    /** Purata jam dari dihantar hingga diluluskan (borang Diluluskan melalui aliran sebenar). */
+    private function purataJamKelulusan(): ?float
+    {
+        $jam = Borang::dokumenAktif()->where('status_permohonan', 'Diluluskan')
+            ->whereNotNull('tarikh_permohonan')->whereNotNull('tarikh_kelulusan')
+            ->whereNotNull('pegawai_pelulus_id')   // kecualikan arkib terus (tiada kelulusan sebenar)
+            ->get(['tarikh_permohonan', 'tarikh_kelulusan'])
+            ->map(fn ($b) => $b->tarikh_permohonan->diffInMinutes($b->tarikh_kelulusan) / 60);
+
+        return $jam->isEmpty() ? null : round($jam->avg(), 1);
+    }
+
+    /** Bahagian teratas (bar HTML); kosong jika kurang daripada 2 bahagian (tiada perbandingan). */
+    private function senaraiBahagian(int $had = 5): array
+    {
+        $baris = Dokumen::query()
+            ->join('bahagian', 'dokumen.bahagian_id', '=', 'bahagian.bahagian_id')
+            ->selectRaw('bahagian.nama_bahagian as label, COUNT(*) as nilai')
+            ->groupBy('bahagian.nama_bahagian')
+            ->orderByDesc('nilai')
+            ->limit($had)
+            ->get()
+            ->map(fn ($b) => ['label' => $b->label, 'nilai' => (int) $b->nilai])
+            ->all();
+
+        return count($baris) >= 2 ? $baris : [];
+    }
+
     /** Kategori teratas (bar HTML): [['label' => nama, 'nilai' => bilangan], ...] */
     private function senaraiKategori($query, int $had = 5): array
     {
@@ -214,129 +315,6 @@ class DashboardController extends Controller
         };
     }
 
-    /** Paparan lama bagi peranan yang belum dibina semula (dibuang dalam commit terakhir). */
-    private function dataLama(User $user): array
-    {
-        $data = [];
-
-        if ($user->hasAnyRole('PENGURUS', 'KERANI', 'ADMIN', 'SUPERADMIN')) {
-            $skop = Dokumen::bolehDilihat($user);
-
-            $data['jumlahDokumen'] = (clone $skop)->count();
-            $skopScan = DokumenScan::whereHas('dokumen', fn ($q) => $q->bolehDilihat($user));
-            $data['ocrPending'] = (clone $skopScan)->where('status_ocr', 'Pending')->count();
-            $data['jumlahFailDiimbas'] = (clone $skopScan)->count();
-            $data['dokumenTerkini'] = (clone $skop)->with(['jenisDokumen', 'pemuatNaik'])
-                ->latest('dokumen_id')->limit(5)->get();
-            $data['trendBulanan'] = $this->trendBulanan(clone $skop);
-        }
-
-        if ($user->hasRole('PENGURUS') && $user->bahagian_id) {
-            $data['pecahanKategori'] = $this->pecahanKategori(Dokumen::bolehDilihat($user));
-        }
-
-        if ($user->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN')) {
-            $data['menungguSokongan'] = Borang::dokumenAktif()->where('status_permohonan', 'Dalam Proses')->count();
-            $data['disokongBulanIni'] = Borang::dokumenAktif()->where('pegawai_penyokong_id', $user->user_id)
-                ->whereMonth('tarikh_sokongan', now()->month)->whereYear('tarikh_sokongan', now()->year)->count();
-        }
-
-        if ($user->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN')) {
-            $data['menungguKelulusan'] = Borang::dokumenAktif()->where('status_permohonan', 'Disokong')->count();
-            $data['diluluskanBulanIni'] = Borang::dokumenAktif()->where('pegawai_pelulus_id', $user->user_id)
-                ->whereMonth('tarikh_kelulusan', now()->month)->whereYear('tarikh_kelulusan', now()->year)->count();
-        }
-
-        if ($user->hasAnyRole('PENYOKONG', 'PELULUS')) {
-            $statusDikehendaki = $user->hasRole('PELULUS') ? 'Disokong' : 'Dalam Proses';
-            $data['senaraiMenunggu'] = Borang::dokumenAktif()->with(['dokumen.jenisDokumen', 'pemohon'])
-                ->where('status_permohonan', $statusDikehendaki)
-                ->latest('borang_id')->limit(5)->get();
-        }
-
-        if ($user->hasRole('AUDIT')) {
-            $data['logHariIni'] = LogAudit::whereDate('created_at', today())->count();
-            $data['logMingguIni'] = LogAudit::where('created_at', '>=', now()->subDays(7))->count();
-            $data['pecahanTindakan'] = $this->pecahanTindakan();
-        }
-
-        if ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
-            $data['jumlahKategori'] = JenisDokumen::count();
-            $data['jumlahKakitangan'] = User::count();
-            $data['logHariIni'] = LogAudit::whereDate('created_at', today())->count();
-            $data['permohonanBreakdown'] = Borang::dokumenAktif()->selectRaw('status_permohonan, COUNT(*) as jumlah')
-                ->groupBy('status_permohonan')->pluck('jumlah', 'status_permohonan');
-            $data['purataMasaKelulusan'] = $this->purataMasaKelulusanJam();
-            $data['pecahanKategori'] = $this->pecahanKategori(Dokumen::query());
-            $data['pecahanBahagian'] = $this->pecahanBahagian();
-            $data['arkibTerusAi'] = Borang::dokumenAktif()->where('status_permohonan', 'Diluluskan')
-                ->whereNull('pegawai_penyokong_id')->whereNull('pegawai_pelulus_id')->count();
-            $data['kelulusanBiasa'] = Borang::dokumenAktif()->where('status_permohonan', 'Diluluskan')
-                ->where(fn ($q) => $q->whereNotNull('pegawai_penyokong_id')->orWhereNotNull('pegawai_pelulus_id'))
-                ->count();
-            $data['purataSkorOcr'] = DokumenOcr::whereNotNull('skor_padanan')->avg('skor_padanan');
-            if ($data['purataSkorOcr'] !== null) {
-                $data['purataSkorOcr'] = round((float) $data['purataSkorOcr'], 1);
-            }
-        }
-
-        return $data;
-    }
-
-    /**
-     * Bilangan dokumen 6 bulan terakhir (termasuk bulan tanpa rekod, supaya
-     * carta tidak terputus/mengelirukan).
-     */
-    private function trendBulanan($query): array
-    {
-        $mula = now()->subMonths(5)->startOfMonth();
-
-        $mentah = (clone $query)
-            ->where('dokumen.created_at', '>=', $mula)
-            ->selectRaw("DATE_FORMAT(dokumen.created_at, '%Y-%m') as bulan, COUNT(*) as jumlah")
-            ->groupBy('bulan')
-            ->pluck('jumlah', 'bulan');
-
-        $label = [];
-        $nilai = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $tarikh = now()->subMonths($i);
-            $kunci = $tarikh->format('Y-m');
-            $label[] = $tarikh->translatedFormat('M Y');
-            $nilai[] = (int) ($mentah[$kunci] ?? 0);
-        }
-
-        return ['label' => $label, 'nilai' => $nilai];
-    }
-
-    /** Pecahan bilangan dokumen ikut Jenis Dokumen. */
-    private function pecahanKategori($query): array
-    {
-        $baris = (clone $query)
-            ->join('jenis_dokumen', 'dokumen.jenis_dokumen_id', '=', 'jenis_dokumen.jenis_dokumen_id')
-            ->selectRaw('jenis_dokumen.nama_dokumen as label, COUNT(*) as jumlah')
-            ->groupBy('jenis_dokumen.nama_dokumen')
-            ->orderByDesc('jumlah')
-            ->limit(6)
-            ->get();
-
-        return ['label' => $baris->pluck('label')->all(), 'nilai' => $baris->pluck('jumlah')->all()];
-    }
-
-    /** Pecahan bilangan dokumen ikut Bahagian (top 6). */
-    private function pecahanBahagian(): array
-    {
-        $baris = Dokumen::query()
-            ->join('bahagian', 'dokumen.bahagian_id', '=', 'bahagian.bahagian_id')
-            ->selectRaw('bahagian.nama_bahagian as label, COUNT(*) as jumlah')
-            ->groupBy('bahagian.nama_bahagian')
-            ->orderByDesc('jumlah')
-            ->limit(6)
-            ->get();
-
-        return ['label' => $baris->pluck('label')->all(), 'nilai' => $baris->pluck('jumlah')->all()];
-    }
-
     /** Pecahan log audit minggu ini ikut kumpulan tindakan (Cipta/Kemaskini/Padam/Lain). */
     private function pecahanTindakan(): array
     {
@@ -355,16 +333,5 @@ class DashboardController extends Controller
 
         $susunan = ['Cipta', 'Kemaskini', 'Padam', 'Lain-lain'];
         return ['label' => $susunan, 'nilai' => array_map(fn ($k) => (int) ($baris[$k] ?? 0), $susunan)];
-    }
-
-    /** Purata masa (jam) dari dihantar hingga diluluskan, bagi borang yang sudah Diluluskan. */
-    private function purataMasaKelulusanJam(): ?float
-    {
-        $purata = Borang::dokumenAktif()->where('status_permohonan', 'Diluluskan')
-            ->whereNotNull('tarikh_kelulusan')
-            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, tarikh_permohonan, tarikh_kelulusan)) as purata')
-            ->value('purata');
-
-        return $purata !== null ? round((float) $purata, 1) : null;
     }
 }

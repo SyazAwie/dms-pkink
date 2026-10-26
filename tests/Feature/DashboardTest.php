@@ -150,6 +150,47 @@ class DashboardTest extends TestCase
             ->assertSee(route('log-audit.index'));
     }
 
+    public function test_pentadbir_nampak_perhatian_kpi_dan_analitik_berlipat(): void
+    {
+        $admin = $this->buatPengguna(['ADMIN'], ['nama_staff' => 'Nurul Aina binti Ahmad']);
+        $staf = $this->buatPengguna(['STAFF']);
+        $lama = $this->dokumen($staf, 'Dalam Proses');
+        Borang::where('dokumen_id', $lama->dokumen_id)->update(['tarikh_permohonan' => now()->subDays(5)]);
+        $this->dokumen($staf, 'Disokong');
+        $lulus = $this->dokumen($staf, 'Diluluskan');
+        Borang::where('dokumen_id', $lulus->dokumen_id)->update([
+            'pegawai_pelulus_id' => $admin->user_id, 'tarikh_permohonan' => now()->subHours(48), 'tarikh_kelulusan' => now(),
+        ]);
+        \App\Models\PendaftaranStaf::create(['ic_pekerja' => '010101010101', 'nama_staff' => 'Pemohon Baharu',
+            'email' => 'baharu@pkink.test', 'bahagian_id' => $this->buatBahagian()->bahagian_id]);
+
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk()
+            ->assertSee('Perlu Perhatian')
+            ->assertSeeInOrder(['1', 'pendaftaran staf baharu menunggu pengesahan', '1', 'permohonan tertunggak lebih 3 hari'])
+            ->assertSee(route('pendaftaran.index'))
+            ->assertSeeInOrder(['Jumlah Dokumen', '2', 'Permohonan Aktif', '2.0', 'hari', 'Purata Kelulusan', 'Kakitangan'])
+            ->assertSee('Aliran Kelulusan')
+            ->assertSee('Dokumen Baharu (6 Bulan)')
+            ->assertSee('<details class="glass-panel pp-lipat', false)
+            ->assertSee('Prestasi Imbas &amp; AI', false)
+            // Satu bahagian sahaja: perbandingan bahagian tidak dipaparkan
+            ->assertSee('sekurang-kurangnya 2 bahagian')
+            // Kad lama yang mengelirukan untuk pentadbir tidak lagi wujud
+            ->assertDontSee('Menunggu Sokongan Anda')
+            ->assertDontSee('Oleh anda')
+            ->assertDontSee('Fail Menunggu OCR')
+            // Tindakan pantas pentadbir
+            ->assertSee(route('users.index'))
+            ->assertSee(route('jenis-dokumen.index'));
+    }
+
+    public function test_pentadbir_tiada_perkara_perhatian(): void
+    {
+        $this->actingAs($this->buatPengguna(['SUPERADMIN']))->get(route('dashboard'))->assertOk()
+            ->assertSee('Tiada perkara memerlukan perhatian')
+            ->assertSee(route('log-audit.index'));
+    }
+
     public function test_staf_tanpa_dokumen_nampak_keadaan_kosong(): void
     {
         $this->actingAs($this->buatPengguna(['STAFF']))->get(route('dashboard'))
