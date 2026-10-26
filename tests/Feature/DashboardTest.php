@@ -66,6 +66,47 @@ class DashboardTest extends TestCase
             ->assertDontSee('Fail Menunggu OCR');
     }
 
+    public function test_pengurus_nampak_bahagian_sendiri_sahaja(): void
+    {
+        $dig = $this->buatBahagian('DIG', 'Bahagian Digital');
+        $kew = $this->buatBahagian('KEW', 'Bahagian Kewangan');
+        $pengurus = $this->buatPengguna(['PENGURUS'], ['bahagian_id' => $dig->bahagian_id]);
+        $stafDig = $this->buatPengguna(['STAFF'], ['nama_staff' => 'Pemohon Digital', 'bahagian_id' => $dig->bahagian_id]);
+        $stafKew = $this->buatPengguna(['STAFF'], ['nama_staff' => 'Pemohon Kewangan', 'bahagian_id' => $kew->bahagian_id]);
+        $this->dokumen($stafDig, 'Dalam Proses');
+        $this->dokumen($stafDig, 'Disokong');
+        $this->dokumen($stafDig, 'Ditolak');
+        $this->dokumen($stafKew, 'Dalam Proses');   // bahagian lain: tidak dikira
+
+        $this->actingAs($pengurus)->get(route('dashboard'))->assertOk()
+            ->assertSee('Bahagian Digital')
+            ->assertSeeInOrder(['3', 'Dokumen Bulan Ini', '2', 'Menunggu Kelulusan', '0', 'Diluluskan Bulan Ini', '1', 'Ditolak'])
+            ->assertSee('Pemohon Digital')
+            ->assertDontSee('Pemohon Kewangan')
+            ->assertSee('Kategori Teratas')
+            ->assertSee('Borang Permohonan')
+            ->assertDontSee('Fail Menunggu OCR');
+    }
+
+    public function test_kerani_nampak_kerja_arkib(): void
+    {
+        $kerani = $this->buatPengguna(['KERANI']);
+        $staf = $this->buatPengguna(['STAFF']);
+        $arkib = $this->dokumen($kerani);
+        Borang::create(['dokumen_id' => $arkib->dokumen_id, 'pemohon_id' => $kerani->user_id,
+            'status_permohonan' => 'Diluluskan', 'tarikh_permohonan' => now(), 'tarikh_kelulusan' => now()]);
+        $this->dokumen($staf, 'Dalam Proses');
+        \App\Models\DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'a.pdf', 'lokasi_fail' => 'x/a.pdf', 'status_ocr' => 'Pending']);
+
+        $this->actingAs($kerani)->get(route('dashboard'))->assertOk()
+            ->assertSee('Arkib Dokumen')
+            // Tindakan pantas: Imbas & Arkib dahulu sebagai butang utama
+            ->assertSeeInOrder(['pp-pantas', 'href="' . route('imbas-arkib.create') . '" class="utama"', route('isi-borang.index')], false)
+            ->assertSeeInOrder(['1', 'Dimuat Naik Bulan Ini', '1', 'Diarkib Bulan Ini', '1', 'Fail Belum Di-OCR', '2', 'Jumlah Dokumen'])
+            ->assertSee('Dokumen Terkini')
+            ->assertDontSee('Permohonan Saya');
+    }
+
     public function test_staf_tanpa_dokumen_nampak_keadaan_kosong(): void
     {
         $this->actingAs($this->buatPengguna(['STAFF']))->get(route('dashboard'))

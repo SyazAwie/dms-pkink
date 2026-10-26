@@ -76,6 +76,18 @@
     .pp-status-lulus { background: rgba(37, 169, 121, .12); color: var(--dms-mint); }
     .pp-status-tolak { background: rgba(196, 61, 78, .1); color: var(--dms-danger); }
 
+    /* ---- Dua panel bersebelahan (desktop), bertindan (tablet/telefon) ---- */
+    .pp-dua { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 1200px) { .pp-dua { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
+
+    /* ---- Bar mendatar HTML ---- */
+    .pp-bar { display: grid; gap: 12px; margin: 0; padding: 16px 18px; list-style: none; }
+    .pp-bar-teks { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px; font-size: 12.5px; }
+    .pp-bar-teks span { color: var(--dms-text); line-height: 1.35; }
+    .pp-bar-teks strong { color: var(--dms-brand); }
+    .pp-bar-trek { height: 8px; border-radius: 999px; background: rgba(104, 121, 141, .12); overflow: hidden; }
+    .pp-bar-isi { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--dms-brand), var(--dms-primary)); }
+
     /* ---- Keadaan kosong ---- */
     .pp-kosong { display: grid; justify-items: center; gap: 8px; padding: 28px 18px; color: var(--dms-muted); font-size: 13px; text-align: center; }
     .pp-kosong > i { font-size: 28px; color: var(--dms-primary); opacity: .6; }

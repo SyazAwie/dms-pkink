@@ -28,12 +28,18 @@ class DashboardController extends Controller
         $user = Auth::user();
         $bahagian = [];
 
+        if ($user->hasRole('KERANI')) {
+            $bahagian['kerani'] = $this->dataKerani($user);
+        }
+        if ($user->hasRole('PENGURUS') && $user->bahagian_id) {
+            $bahagian['pengurus'] = $this->dataPengurus($user);
+        }
         if ($user->hasRole('STAFF')) {
             $bahagian['staf'] = $this->dataStaf($user);
         }
 
         // Peranan yang belum dibina semula: paparan lama (sementara)
-        if ($user->hasAnyRole('SUPERADMIN', 'ADMIN', 'PENYOKONG', 'PELULUS', 'AUDIT', 'KERANI', 'PENGURUS')) {
+        if ($user->hasAnyRole('SUPERADMIN', 'ADMIN', 'PENYOKONG', 'PELULUS', 'AUDIT')) {
             $bahagian = ['lama' => $this->dataLama($user)] + $bahagian;
         }
 
@@ -51,7 +57,11 @@ class DashboardController extends Controller
             $tindakan[] = ['label' => 'Isi Borang', 'ikon' => 'bi-ui-checks-grid', 'url' => route('isi-borang.index'), 'utama' => true];
             $tindakan[] = ['label' => 'Imbas & Hantar', 'ikon' => 'bi-send-check', 'url' => route('imbas-hantar.create')];
         }
-        if ($user->hasAnyRole('SUPERADMIN', 'ADMIN', 'KERANI')) {
+        if ($user->hasRole('KERANI')) {
+            // Tugas utama kerani: mengarkib dokumen fizikal
+            $tindakan = array_map(fn ($t) => ['utama' => false] + $t, $tindakan);
+            array_unshift($tindakan, ['label' => 'Imbas & Arkib', 'ikon' => 'bi-magic', 'url' => route('imbas-arkib.create'), 'utama' => true]);
+        } elseif ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
             $tindakan[] = ['label' => 'Imbas & Arkib', 'ikon' => 'bi-magic', 'url' => route('imbas-arkib.create')];
         }
         if ($user->hasAnyRole('PENYOKONG', 'PELULUS')) {
@@ -83,6 +93,61 @@ class DashboardController extends Controller
             'belumDihantar' => (clone $dokumenSaya)->doesntHave('borang')->count(),
             'terkini' => (clone $dokumenSaya)->with(['jenisDokumen', 'borang'])->latest('dokumen_id')->limit(5)->get(),
         ];
+    }
+
+    /**
+     * PENGURUS: dokumen & permohonan bahagian sendiri (skop sama seperti
+     * Dokumen::bolehDilihat bagi PENGURUS).
+     */
+    private function dataPengurus(User $user): array
+    {
+        $skop = Dokumen::where('bahagian_id', $user->bahagian_id);
+        $borang = fn () => Borang::dokumenAktif()->whereHas('dokumen', fn ($q) => $q->where('bahagian_id', $user->bahagian_id));
+
+        return [
+            'namaBahagian' => $user->bahagian?->nama_bahagian,
+            'dokumenBulanIni' => (clone $skop)->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+            'jumlahDokumen' => (clone $skop)->count(),
+            'menunggu' => $borang()->whereIn('status_permohonan', ['Dalam Proses', 'Disokong'])->count(),
+            'diluluskanBulanIni' => $borang()->where('status_permohonan', 'Diluluskan')
+                ->whereMonth('tarikh_kelulusan', now()->month)->whereYear('tarikh_kelulusan', now()->year)->count(),
+            'ditolak' => $borang()->where('status_permohonan', 'Ditolak')->count(),
+            'permohonanTerkini' => $borang()->with(['dokumen.jenisDokumen', 'pemohon'])->latest('borang_id')->limit(5)->get(),
+            'kategoriTeratas' => $this->senaraiKategori($skop),
+        ];
+    }
+
+    /**
+     * KERANI: kerja mengarkib. "Diarkib terus" = borang Diluluskan tanpa Penyokong/Pelulus
+     * (dicipta oleh Imbas & Arkib); "belum di-OCR" = fail berstatus Pending (OCR manual).
+     */
+    private function dataKerani(User $user): array
+    {
+        $skop = Dokumen::bolehDilihat($user);
+        $bulanIni = fn ($q, string $lajur) => $q->whereMonth($lajur, now()->month)->whereYear($lajur, now()->year);
+
+        return [
+            'dimuatNaikBulanIni' => $bulanIni(Dokumen::where('created_by', $user->user_id), 'created_at')->count(),
+            'diarkibBulanIni' => $bulanIni(Borang::dokumenAktif()->where('pemohon_id', $user->user_id)
+                ->where('status_permohonan', 'Diluluskan')->whereNull('pegawai_penyokong_id')->whereNull('pegawai_pelulus_id'), 'tarikh_kelulusan')->count(),
+            'belumOcr' => DokumenScan::where('status_ocr', 'Pending')->whereHas('dokumen', fn ($q) => $q->bolehDilihat($user))->count(),
+            'jumlahDokumen' => (clone $skop)->count(),
+            'dokumenTerkini' => (clone $skop)->with(['jenisDokumen', 'pemuatNaik'])->latest('dokumen_id')->limit(5)->get(),
+        ];
+    }
+
+    /** Kategori teratas (bar HTML): [['label' => nama, 'nilai' => bilangan], ...] */
+    private function senaraiKategori($query, int $had = 5): array
+    {
+        return (clone $query)
+            ->join('jenis_dokumen', 'dokumen.jenis_dokumen_id', '=', 'jenis_dokumen.jenis_dokumen_id')
+            ->selectRaw('jenis_dokumen.nama_dokumen as label, COUNT(*) as nilai')
+            ->groupBy('jenis_dokumen.nama_dokumen')
+            ->orderByDesc('nilai')
+            ->limit($had)
+            ->get()
+            ->map(fn ($b) => ['label' => $b->label, 'nilai' => (int) $b->nilai])
+            ->all();
     }
 
     /** Langkah seterusnya bagi status borang (dipaparkan dalam senarai STAFF). */
