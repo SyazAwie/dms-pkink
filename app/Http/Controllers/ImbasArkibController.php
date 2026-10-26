@@ -138,6 +138,34 @@ class ImbasArkibController extends DokumenController
     }
 
     /**
+     * Butang "Baca semula (tulisan tangan)" di skrin semak: baca SEMUA muka surat dengan model
+     * penglihatan (GLM-OCR) walaupun skor Tesseract melepasi ambang, kemudian ekstrak semula.
+     * Untuk dokumen tulisan tangan yang tidak dikesan secara automatik.
+     */
+    public function bacaSemula(string $token)
+    {
+        Gate::authorize('create', Dokumen::class);
+
+        $meta = $this->bacaMeta($token);
+        if ($meta === null) {
+            return $this->sesiTamat();
+        }
+        $jenisDokumen = JenisDokumen::with('fields')->findOrFail($meta['jenis_dokumen_id']);
+
+        set_time_limit((int) config('services.ocr.had_masa', 300));
+        $baharu = $this->jalankanOcrAi($this->folderToken($token) . '/' . $meta['fail'], $jenisDokumen, true);
+
+        // Token mungkin telah disimpan (dituntut) semasa bacaan berjalan: jangan hidupkan semula
+        if (!Storage::disk('local')->exists($this->folderToken($token) . '/meta.json')) {
+            return $this->sesiTamat();
+        }
+        $this->tulisMeta($token, array_merge($meta, $baharu));
+
+        return redirect()->route($this->laluan('semak'), $token)
+            ->with('success', 'Dokumen dibaca semula dengan AI penglihatan. Sila semak semula setiap medan.');
+    }
+
+    /**
      * OCR (hibrid Tesseract → model penglihatan, lihat OcrService) + pengekstrakan AI.
      * Kegagalan OCR/AI tidak menghalang semakan: amaran dipaparkan dan medan diisi manual.
      *
@@ -205,6 +233,9 @@ class ImbasArkibController extends DokumenController
             'masa' => $meta['masa'] ?? null,
             // Nombor muka surat (1-based) yang dibaca oleh model penglihatan (tulisan tangan)
             'mukaVlm' => array_map(fn ($i) => $i + 1, array_keys(array_filter($meta['enjin'] ?? [], fn ($e) => $e === 'vlm'))),
+            // Butang "Baca semula" disembunyikan jika semua muka surat sudah dibaca model penglihatan
+            'bolehBacaSemula' => app(\App\Services\VlmOcrService::class)->aktif()
+                && in_array('tesseract', $meta['enjin'] ?? ['tesseract'], true),
             'mesejAmaran' => $meta['mesej_amaran'],
             // Imbas & Hantar: borang milik pengguna sendiri, jadi medan auto-isi profil mengatasi AI.
             // Imbas & Arkib: borang milik orang lain, jadi nilai AI digunakan.

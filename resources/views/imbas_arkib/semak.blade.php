@@ -19,6 +19,10 @@
     </div>
 </div>
 
+@if(session('success'))
+    <div class="alert alert-success"><i class="bi bi-check2-circle me-1"></i> {{ session('success') }}</div>
+@endif
+
 @if($mesejAmaran)
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle me-1"></i> {{ $mesejAmaran }}
@@ -41,6 +45,17 @@
             Sila tetap semak setiap medan sebelum simpan.
         @endif
     </div>
+@endif
+
+@if($bolehBacaSemula)
+    {{-- Tulisan tangan tidak dikesan secara automatik: staf boleh paksa bacaan model penglihatan --}}
+    <form action="{{ route("imbas-{$mod}.baca-semula", $token) }}" method="POST" class="baca-semula mb-3" id="formBacaSemula">
+        @csrf
+        <span class="dms-hint m-0"><i class="bi bi-pen me-1"></i> Medan kosong atau salah kerana borang ditulis tangan? Baca semula dengan AI penglihatan (±30 saat). Nilai yang telah anda ubah akan diganti.</span>
+        <button type="submit" class="outline-button" id="btnBacaSemula">
+            <i class="bi bi-arrow-repeat"></i> <span>Baca semula (tulisan tangan)</span>
+        </button>
+    </form>
 @endif
 
 @if($errors->any())
@@ -186,6 +201,9 @@
     .pengesahan-kotak.is-invalid { border-color: var(--dms-danger); }
     /* Pratonton kekal kelihatan semasa skrol medan (skrin lebar sahaja) */
     .masa-proses { margin-left: 4px; }
+    .baca-semula { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+        padding: 10px 14px; border: 1px dashed var(--dms-line); border-radius: 10px; background: rgba(23,105,210,.03); }
+    .baca-semula .outline-button { white-space: nowrap; }
     .status-selepas { display: flex; gap: 8px; align-items: flex-start; font-size: 11.5px; color: var(--dms-muted); }
     .status-selepas i { color: var(--dms-mint); margin-top: 1px; }
     /* Pratonton kekal kelihatan semasa skrol medan (skrin lebar sahaja); di bawah topbar 80px */
@@ -216,6 +234,19 @@
         const btn = document.getElementById('btnSimpan');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+    });
+
+    // Baca semula: kunci kedua-dua butang dan papar masa berlalu
+    document.getElementById('formBacaSemula')?.addEventListener('submit', function () {
+        const btn = document.getElementById('btnBacaSemula');
+        btn.disabled = true;
+        document.getElementById('btnSimpan').disabled = true;
+        const mula = Date.now();
+        const papar = () => {
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> <span>Membaca semula... ${Math.floor((Date.now() - mula) / 1000)} s</span>`;
+        };
+        papar();
+        setInterval(papar, 1000);
     });
 </script>
 @endpush

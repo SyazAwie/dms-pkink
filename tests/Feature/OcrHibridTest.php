@@ -171,6 +171,46 @@ class OcrHibridTest extends TestCase
         $this->actingAs($kerani)->get(route('imbas-arkib.semak', $token))
             ->assertOk()
             ->assertSee('Muka surat 1 dibaca dengan')
-            ->assertSee('AI penglihatan');
+            ->assertSee('AI penglihatan')
+            // Semua muka surat sudah dibaca model penglihatan: tiada butang baca semula
+            ->assertDontSee(route('imbas-arkib.baca-semula', $token));
+    }
+
+    public function test_baca_semula_paksa_vlm_dan_kemas_kini_nilai(): void
+    {
+        $this->sediakanSkema();
+        $staf = $this->buatPengguna(['STAFF']);
+        $jenis = JenisDokumen::create(['kod_dokumen' => 'TUKAR', 'nama_dokumen' => 'Borang Tukar']);
+        $medan = DokumenField::create([
+            'jenis_dokumen_id' => $jenis->jenis_dokumen_id, 'nama_field' => 'Jenis Peralatan',
+            'kod_field' => 'jenis_peralatan', 'jenis_data' => 'teks', 'is_required' => false, 'susunan' => 1,
+        ]);
+        $this->mock(OcrService::class, fn (MockInterface $m) => $m->shouldReceive('proses')
+            ->andReturnUsing(fn ($laluan, $paksa = false) => $paksa
+                ? ['teks' => 'Jenis Peralatan: LAPTOP', 'skor' => 85.0, 'enjin' => ['vlm']]
+                : ['teks' => 'Jenis Peralatan: Vy L Navors', 'skor' => 85.0, 'enjin' => ['tesseract']]));
+        $this->mock(OllamaExtractionService::class, fn (MockInterface $m) => $m->shouldReceive('ekstrak')
+            ->andReturnUsing(fn ($teks) => [$medan->dokumen_field_id => str_contains($teks, 'LAPTOP') ? 'LAPTOP' : 'Vy L Navors']));
+
+        $res = $this->actingAs($staf)->post(route('imbas-hantar.analisis'), [
+            'jenis_dokumen_id' => $jenis->jenis_dokumen_id,
+            'fail_scan' => UploadedFile::fake()->create('borang.pdf', 10, 'application/pdf'),
+        ]);
+        $token = basename(parse_url($res->headers->get('Location'), PHP_URL_PATH));
+
+        $this->actingAs($staf)->get(route('imbas-hantar.semak', $token))
+            ->assertSee('value="Vy L Navors"', false)
+            ->assertSee(route('imbas-hantar.baca-semula', $token));
+
+        $this->actingAs($staf)->post(route('imbas-hantar.baca-semula', $token))
+            ->assertRedirect(route('imbas-hantar.semak', $token))
+            ->assertSessionHas('success');
+
+        $this->actingAs($staf)->get(route('imbas-hantar.semak', $token))
+            ->assertSee('value="LAPTOP"', false)
+            ->assertSee('Muka surat 1 dibaca dengan');
+
+        // Pengguna lain tidak boleh baca semula token ini
+        $this->actingAs($this->buatPengguna(['STAFF']))->post(route('imbas-hantar.baca-semula', $token))->assertNotFound();
     }
 }
