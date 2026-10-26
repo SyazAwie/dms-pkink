@@ -95,7 +95,7 @@
                            class="dms-input @error('fail_scan') is-invalid @enderror"
                            accept=".pdf,.jpg,.jpeg,.png"
                            multiple>
-                    <div class="dms-hint">PDF, JPG, PNG. Maksimum 10MB setiap fail. Dokumen mesti kekal ada sekurang-kurangnya satu fail.</div>
+                    <div class="dms-hint">PDF, JPG, PNG. Maksimum 10MB setiap fail.@if($dokumen->scans->isNotEmpty()) Dokumen mesti kekal ada sekurang-kurangnya satu fail.@endif</div>
                     @error('fail_scan') <div class="dms-error">{{ $message }}</div> @enderror
                     @error('fail_scan.*') <div class="dms-error">{{ $message }}</div> @enderror
                 </div>

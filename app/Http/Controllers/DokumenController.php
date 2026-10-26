@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bahagian;
+use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\DokumenData;
 use App\Models\DokumenScan;
@@ -121,11 +122,15 @@ class DokumenController extends Controller
             'jenis_dokumen_id' => 'required|exists:jenis_dokumen,jenis_dokumen_id',
             'tarikh_dokumen' => 'required|date',
             'perkara' => 'nullable|max:255',
-            'fail_scan' => 'required|array|min:1',
+            // Pilihan: borang boleh diisi secara digital tanpa fail imbasan (Situasi 2)
+            'fail_scan' => 'nullable|array',
             'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'tindakan' => 'nullable|in:simpan,hantar',
         ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request) : []), $mesejAutoIsi);
 
         $jenisDokumen = $jenisDipilih;
+        // "Simpan & Hantar untuk Kelulusan": borang "Dalam Proses" dicipta dalam transaksi yang sama
+        $hantar = $request->input('tindakan') === 'hantar';
 
         // Cuba simpan dengan percubaan semula sekiranya no_rujukan bertembung
         // (dua staf muat naik jenis+tahun sama pada masa hampir serentak).
@@ -134,7 +139,7 @@ class DokumenController extends Controller
             $laluanDitulis = [];
 
             try {
-                $dokumen = DB::transaction(function () use ($request, $jenisDokumen, &$laluanDitulis) {
+                $dokumen = DB::transaction(function () use ($request, $jenisDokumen, $hantar, &$laluanDitulis) {
                     $noRujukan = $this->janaNoRujukan($jenisDokumen, $request->tarikh_dokumen);
 
                     $dokumenBaharu = Dokumen::create([
@@ -171,6 +176,31 @@ class DokumenController extends Controller
                         ]);
                     }
 
+                    if ($hantar) {
+                        // Sama seperti BorangController::hantar bagi dokumen baharu
+                        $borang = Borang::create([
+                            'dokumen_id' => $dokumenBaharu->dokumen_id,
+                            'pemohon_id' => Auth::id(),
+                            'status_permohonan' => 'Dalam Proses',
+                            'tarikh_permohonan' => now(),
+                        ]);
+
+                        LogAudit::create([
+                            'user_id' => Auth::id(),
+                            'tindakan' => 'Hantar untuk Kelulusan',
+                            'nama_jadual' => 'borang',
+                            'rekod_id' => $borang->borang_id,
+                            'data_lama' => null,
+                            'data_baharu' => [
+                                'dokumen' => $dokumenBaharu->no_rujukan,
+                                'status_permohonan' => $borang->status_permohonan,
+                            ],
+                            'alamat_ip' => $request->ip(),
+                            'peranti_pengguna' => $request->userAgent(),
+                            'created_at' => now(),
+                        ]);
+                    }
+
                     return $dokumenBaharu;
                 });
 
@@ -191,6 +221,11 @@ class DokumenController extends Controller
                 // Ulang gelung: janaNoRujukan() akan kira semula bilangan rekod terkini
             }
         } while ($percubaan < 3);
+
+        if ($hantar) {
+            return redirect()->route('dokumen.show', $dokumen->dokumen_id)
+                             ->with('success', "Dokumen {$dokumen->no_rujukan} berjaya disimpan dan dihantar untuk kelulusan.");
+        }
 
         return redirect()->route('dokumen.index')
                          ->with('success', "Dokumen berjaya dimuat naik! No. Rujukan: {$dokumen->no_rujukan}");
@@ -297,9 +332,10 @@ class DokumenController extends Controller
             ->pluck('dokumen_scan_id')
             ->all();
 
-        // Mesti ada sekurang-kurangnya satu fail imbasan selepas kemaskini
+        // Dokumen yang ada fail imbasan mesti kekal ada sekurang-kurangnya satu (arkib imbasan
+        // tidak boleh dikosongkan). Dokumen yang diisi secara digital boleh kekal tanpa fail.
         $bakiFail = $dokumen->scans->count() - count($idHapus) + count($request->file('fail_scan', []));
-        if ($bakiFail < 1) {
+        if ($dokumen->scans->isNotEmpty() && $bakiFail < 1) {
             return back()->withInput()->withErrors([
                 'fail_scan' => 'Dokumen mesti mempunyai sekurang-kurangnya satu fail imbasan.',
             ]);

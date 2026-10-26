@@ -92,25 +92,28 @@
                 <hr class="dms-divider">
 
                 <div class="mb-2">
-                    <label class="dms-label">Fail Imbasan <span class="text-danger">*</span></label>
+                    <label class="dms-label">Fail Imbasan <span class="dms-optional">(Pilihan)</span></label>
                     <input type="file"
                            name="fail_scan[]"
                            class="dms-input @error('fail_scan') is-invalid @enderror"
                            accept=".pdf,.jpg,.jpeg,.png"
                            multiple>
-                    <div class="dms-hint">Format dibenarkan: PDF, JPG, PNG. Maksimum 10MB setiap fail. Boleh pilih lebih dari satu fail.</div>
+                    <div class="dms-hint">Format dibenarkan: PDF, JPG, PNG. Maksimum 10MB setiap fail. Boleh pilih lebih dari satu fail. Kosongkan jika borang diisi secara digital.</div>
                     @error('fail_scan') <div class="dms-error">{{ $message }}</div> @enderror
                     @error('fail_scan.*') <div class="dms-error">{{ $message }}</div> @enderror
                 </div>
 
                 <hr class="dms-divider">
 
-                <div class="d-flex justify-content-end gap-2 mt-3">
+                <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 mt-3">
                     <a href="{{ route('dokumen.index') }}" class="outline-button text-decoration-none">
                         <span>Batal</span>
                     </a>
-                    <button type="submit" class="btn text-white save-btn">
-                        <i class="bi bi-cloud-upload me-2"></i> Muat Naik Dokumen
+                    <button type="submit" name="tindakan" value="simpan" class="outline-button" title="Simpan tanpa hantar">
+                        <i class="bi bi-floppy"></i> <span>Simpan</span>
+                    </button>
+                    <button type="submit" name="tindakan" value="hantar" class="btn text-white save-btn" title="Simpan &amp; Hantar untuk Kelulusan">
+                        <i class="bi bi-send me-2"></i> Simpan &amp; Hantar
                     </button>
                 </div>
             </form>
@@ -129,7 +132,9 @@
                 <li><i class="bi bi-check2-circle"></i> No. Rujukan dijana automatik: {KOD}/{TAHUN}/{TURUTAN}.</li>
                 <li><i class="bi bi-check2-circle"></i> Pilih Jenis Dokumen dahulu untuk papar medan berkaitan.</li>
                 <li><i class="bi bi-check2-circle"></i> Medan bertanda <span class="text-danger">*</span> wajib diisi.</li>
-                <li><i class="bi bi-check2-circle"></i> Fail imbasan akan dilampirkan terus pada dokumen ini.</li>
+                <li><i class="bi bi-check2-circle"></i> Fail imbasan (jika ada) akan dilampirkan terus pada dokumen ini.</li>
+                <li><i class="bi bi-check2-circle"></i> Medan bertanda "Daripada profil" diisi automatik dan tidak boleh diubah.</li>
+                <li><i class="bi bi-check2-circle"></i> "Simpan &amp; Hantar" terus menghantar dokumen untuk kelulusan.</li>
             </ul>
         </div>
     </div>
