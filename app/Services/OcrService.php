@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\BuangGarisan;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
@@ -67,7 +68,7 @@ class OcrService
             $semuaSkor = [];
 
             foreach ($failImej as $imej) {
-                [$teks, $skor] = $this->ocrSatuImej($imej, $folderSementara);
+                [$teks, $skor] = $this->ocrTerbaik($imej, $folderSementara);
 
                 if ($teks !== '') {
                     $semuaTeks[] = $teks;
@@ -111,14 +112,50 @@ class OcrService
         return $failImej;
     }
 
-    /** Jalankan tesseract atas SATU imej, output format TSV (teks + skor keyakinan sekali). */
-    private function ocrSatuImej(string $laluanImej, string $folderSementara): array
+    /**
+     * OCR satu muka surat. Jika OCR_BUANG_GARISAN aktif, Tesseract dijalankan SERENTAK atas
+     * imej asal dan imej tanpa garisan kotak/jadual (App\Support\BuangGarisan); hasil dengan
+     * skor keyakinan lebih tinggi dipilih, jadi dokumen tanpa kotak tidak menjadi lebih teruk.
+     *
+     * @return array{0: string, 1: float|null}
+     */
+    private function ocrTerbaik(string $laluanImej, string $folderSementara): array
+    {
+        $asal = $this->mulaTesseract($laluanImej, $folderSementara);
+        if (!config('services.ocr.buang_garisan', true)) {
+            return $this->selesaiTesseract(...$asal);
+        }
+
+        // Tesseract imej asal berjalan semasa garisan dibuang
+        $laluanBersih = $folderSementara . DIRECTORY_SEPARATOR . Str::random(8) . '_bersih.png';
+        $bersih = BuangGarisan::proses($laluanImej, $laluanBersih)
+            ? $this->mulaTesseract($laluanBersih, $folderSementara)
+            : null;
+
+        $hasilAsal = $this->selesaiTesseract(...$asal);
+        if ($bersih === null) {
+            return $hasilAsal;
+        }
+        $hasilBersih = $this->selesaiTesseract(...$bersih);
+
+        return ($hasilBersih[1] ?? -1) > ($hasilAsal[1] ?? -1) ? $hasilBersih : $hasilAsal;
+    }
+
+    /** Mulakan tesseract (tak segerak) atas SATU imej, output TSV (teks + skor keyakinan sekali). */
+    private function mulaTesseract(string $laluanImej, string $folderSementara): array
     {
         $awalanOutput = $folderSementara . DIRECTORY_SEPARATOR . Str::random(8);
 
         $proses = new Process([$this->tesseractBin, $laluanImej, $awalanOutput, '-l', $this->bahasa, 'tsv']);
         $proses->setTimeout(90);
-        $proses->run();
+        $proses->start();
+
+        return [$proses, $awalanOutput];
+    }
+
+    private function selesaiTesseract(Process $proses, string $awalanOutput): array
+    {
+        $proses->wait();
 
         if (!$proses->isSuccessful()) {
             throw new \RuntimeException(
@@ -137,6 +174,8 @@ class OcrService
     /**
      * Urai output TSV Tesseract: lajur 'text' (perkataan demi perkataan) dan
      * 'conf' (keyakinan 0-100, -1 bermakna bukan teks/garisan struktur).
+     * Perkataan dikumpul ikut baris asal (block/par/line), supaya pasangan
+     * "Label: nilai" dan baris jadual kekal pada baris sendiri untuk AI.
      */
     private function uraiTsv(string $laluanTsv): array
     {
@@ -148,12 +187,13 @@ class OcrService
         $header = explode("\t", array_shift($baris));
         $idxTeks = array_search('text', $header);
         $idxConf = array_search('conf', $header);
+        $idxBaris = array_map(fn ($k) => array_search($k, $header), ['block_num', 'par_num', 'line_num']);
 
         if ($idxTeks === false) {
             return ['', null];
         }
 
-        $perkataan = [];
+        $barisTeks = [];
         $skor = [];
 
         foreach ($baris as $b) {
@@ -163,7 +203,8 @@ class OcrService
                 continue;
             }
 
-            $perkataan[] = $teks;
+            $kunci = implode('.', array_map(fn ($i) => $i === false ? '0' : ($lajur[$i] ?? '0'), $idxBaris));
+            $barisTeks[$kunci][] = $teks;
 
             $conf = (float) ($lajur[$idxConf] ?? -1);
             if ($conf >= 0) {
@@ -172,7 +213,7 @@ class OcrService
         }
 
         return [
-            implode(' ', $perkataan),
+            implode("\n", array_map(fn ($p) => implode(' ', $p), $barisTeks)),
             $skor ? round(array_sum($skor) / count($skor), 2) : null,
         ];
     }
