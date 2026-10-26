@@ -12,3 +12,23 @@ Artisan::command('inspire', function () {
 // Nota: jadual ini hanya berjalan jika pelayan menjalankan `php artisan schedule:run`
 // setiap minit (cron / Task Scheduler). Tanpanya, jalankan arahan ini secara manual.
 Schedule::command('imbas-arkib:bersih')->daily();
+
+// Muat model AI (Ollama) ke GPU sebelum digunakan, cth. sebelum demo/pembentangan,
+// supaya imbasan pertama tidak menunggu model dimuat. Model kekal selama OLLAMA_KEEP_ALIVE.
+Artisan::command('ai:panaskan', function () {
+    $ai = app(\App\Services\OllamaExtractionService::class);
+    if ($ai->sudahDimuat()) {
+        $this->info('Model AI sudah dimuat.');
+
+        return 0;
+    }
+    $mula = microtime(true);
+    if (!$ai->panaskan()) {
+        $this->error('Model AI gagal dimuat. Pastikan Ollama berjalan dan OLLAMA_MODEL betul.');
+
+        return 1;
+    }
+    $this->info(sprintf('Model AI dimuat dalam %.1f saat (kekal %s).', microtime(true) - $mula, config('services.ollama.keep_alive')));
+
+    return 0;
+})->purpose('Muat model AI Ollama ke GPU lebih awal');

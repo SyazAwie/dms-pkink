@@ -129,16 +129,23 @@ class ImbasArkibController extends DokumenController
         $teksOcr = '';
         $skorOcr = null;
         $nilaiEkstrak = [];
+        // Masa setiap langkah (saat), dipaparkan di skrin semak
+        $masa = ['ocr' => null, 'ai' => null];
 
         try {
+            $mula = microtime(true);
             $hasilOcr = app(OcrService::class)->proses($laluanSementara);
+            $masa['ocr'] = round(microtime(true) - $mula, 1);
             $teksOcr = $hasilOcr['teks'];
             $skorOcr = $hasilOcr['skor'];
 
             if ($teksOcr === '') {
                 $mesejAmaran = 'OCR tidak kesan sebarang teks pada fail ini. Sila isi semua medan secara manual.';
             } else {
-                $nilaiEkstrak = app(OllamaExtractionService::class)->ekstrak($teksOcr, $this->medanUntukMod($jenisDokumen));
+                $mula = microtime(true);
+                // Turut ekstrak Tarikh Dokumen & Perkara (medan asas, bukan EAV)
+                $nilaiEkstrak = app(OllamaExtractionService::class)->ekstrak($teksOcr, $this->medanUntukMod($jenisDokumen), true);
+                $masa['ai'] = round(microtime(true) - $mula, 1);
             }
         } catch (\Throwable $e) {
             $mesejAmaran = 'OCR/AI gagal diproses automatik: ' . $e->getMessage() . ' — sila isi semua medan secara manual.';
@@ -154,6 +161,7 @@ class ImbasArkibController extends DokumenController
             'skor_ocr' => $skorOcr,
             'nilai_ekstrak' => $nilaiEkstrak,
             'mesej_amaran' => $mesejAmaran,
+            'masa' => $masa,
             'dicipta_pada' => now()->toIso8601String(),
         ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR));
 
@@ -181,11 +189,33 @@ class ImbasArkibController extends DokumenController
             'teksOcr' => $meta['teks_ocr'],
             'skorOcr' => $meta['skor_ocr'],
             'nilaiEkstrak' => $meta['nilai_ekstrak'],
+            'tarikhAi' => $meta['nilai_ekstrak'][OllamaExtractionService::TARIKH_DOKUMEN] ?? null,
+            'perkaraAi' => $meta['nilai_ekstrak'][OllamaExtractionService::PERKARA] ?? null,
+            'masa' => $meta['masa'] ?? null,
             'mesejAmaran' => $meta['mesej_amaran'],
             // Imbas & Hantar: borang milik pengguna sendiri, jadi medan auto-isi profil mengatasi AI.
             // Imbas & Arkib: borang milik orang lain, jadi nilai AI digunakan.
             'nilaiAutoIsi' => $this->modHantar() ? JenisMedan::nilaiAutoIsi($jenisDokumen->fields, Auth::user()) : [],
         ]);
+    }
+
+    /**
+     * Panaskan model AI (dipanggil oleh skrip halaman Imbas semasa pengguna memilih fail),
+     * supaya analisis tidak menunggu model dimuat (~7 saat jika sejuk). Pulang segera jika
+     * model sudah dimuat. Ralat diabaikan: analisis akan memuat model seperti biasa.
+     */
+    public function panaskanAi()
+    {
+        Gate::authorize('create', Dokumen::class);
+
+        try {
+            $ai = app(OllamaExtractionService::class);
+            $sedia = $ai->sudahDimuat() || $ai->panaskan();
+        } catch (\Throwable) {
+            $sedia = false;
+        }
+
+        return response()->json(['sedia' => $sedia]);
     }
 
     /**

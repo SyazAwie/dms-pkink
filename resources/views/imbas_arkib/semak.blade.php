@@ -27,6 +27,10 @@
     <div class="alert alert-info">
         <i class="bi bi-info-circle me-1"></i>
         Skor keyakinan OCR: <strong>{{ $skorOcr }}%</strong>.
+        @if(isset($masa['ocr']))
+            <span class="masa-proses">Diproses dalam <strong>{{ number_format(($masa['ocr'] ?? 0) + ($masa['ai'] ?? 0), 1) }} saat</strong>
+                (OCR {{ number_format($masa['ocr'], 1) }} s{{ isset($masa['ai']) ? ', AI ' . number_format($masa['ai'], 1) . ' s' : '' }}).</span>
+        @endif
         @if($skorOcr < 70)
             Skor rendah — <strong>sila semak teliti</strong> setiap medan di bawah berbanding fail imbasan.
         @else
@@ -53,14 +57,19 @@
                 @csrf
 
                 <div class="mb-4">
-                    <label class="dms-label">Tarikh Dokumen <span class="text-danger">*</span></label>
-                    <input type="date" name="tarikh_dokumen" class="dms-input @error('tarikh_dokumen') is-invalid @enderror" value="{{ old('tarikh_dokumen', date('Y-m-d')) }}">
+                    <label class="dms-label">Tarikh Dokumen <span class="text-danger">*</span>
+                        @if($tarikhAi)<span class="badge tag-ai">Diisi AI</span>@endif
+                    </label>
+                    <input type="date" name="tarikh_dokumen" class="dms-input @error('tarikh_dokumen') is-invalid @enderror" value="{{ old('tarikh_dokumen', $tarikhAi ?? date('Y-m-d')) }}">
+                    @unless($tarikhAi)<div class="dms-hint">Tarikh dokumen tidak dikesan; tarikh hari ini digunakan. Sila semak.</div>@endunless
                     @error('tarikh_dokumen') <div class="dms-error">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="mb-2">
-                    <label class="dms-label">Perkara <span class="dms-optional">(Pilihan)</span></label>
-                    <input type="text" name="perkara" class="dms-input" value="{{ old('perkara') }}" maxlength="255" placeholder="Ringkasan perkara dokumen">
+                    <label class="dms-label">Perkara <span class="dms-optional">(Pilihan)</span>
+                        @if($perkaraAi)<span class="badge tag-ai">Diisi AI</span>@endif
+                    </label>
+                    <input type="text" name="perkara" class="dms-input" value="{{ old('perkara', $perkaraAi) }}" maxlength="255" placeholder="Ringkasan perkara dokumen">
                 </div>
 
                 <hr class="dms-divider">
@@ -172,6 +181,7 @@
     .pengesahan-kotak input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; }
     .pengesahan-kotak.is-invalid { border-color: var(--dms-danger); }
     /* Pratonton kekal kelihatan semasa skrol medan (skrin lebar sahaja) */
+    .masa-proses { margin-left: 4px; }
     .status-selepas { display: flex; gap: 8px; align-items: flex-start; font-size: 11.5px; color: var(--dms-muted); }
     .status-selepas i { color: var(--dms-mint); margin-top: 1px; }
     /* Pratonton kekal kelihatan semasa skrol medan (skrin lebar sahaja); di bawah topbar 80px */

@@ -61,7 +61,8 @@
 
                 <hr class="dms-divider">
 
-                <div class="d-flex justify-content-end">
+                <div class="d-flex justify-content-end align-items-center flex-wrap gap-2">
+                    <span id="notaMasa" class="dms-hint m-0" hidden>Biasanya 10–40 saat, bergantung pada bilangan muka surat dan medan.</span>
                     <button type="submit" id="btnAnalisis" class="btn text-white save-btn">
                         <i class="bi bi-magic me-2"></i> Analisis &amp; Isi Automatik
                     </button>
@@ -77,14 +78,14 @@
                 <div class="summary-icon" style="color: var(--dms-mint); background: rgba(37,169,121,.12);"><i class="bi bi-lightbulb"></i></div>
             </div>
             <ul class="tips-list">
-                <li><i class="bi bi-1-circle"></i> OCR baca teks daripada imbasan</li>
-                <li><i class="bi bi-2-circle"></i> AI tempatan cuba padankan teks ke medan yang betul</li>
+                <li><i class="bi bi-1-circle"></i> <span>OCR baca teks daripada imbasan</span></li>
+                <li><i class="bi bi-2-circle"></i> <span>AI tempatan cuba padankan teks ke medan yang betul</span></li>
                 @if($hantar)
-                    <li><i class="bi bi-3-circle"></i> <strong>Anda semak, betulkan &amp; sahkan</strong> maklumat sepadan dengan borang fizikal. Medan profil (cth. nama) diisi daripada profil anda</li>
-                    <li><i class="bi bi-4-circle"></i> Selepas hantar, borang berstatus <strong>Dalam Proses</strong> dan menunggu Penyokong, kemudian Pelulus</li>
+                    <li><i class="bi bi-3-circle"></i> <span><strong>Anda semak, betulkan &amp; sahkan</strong> maklumat sepadan dengan borang fizikal. Medan profil (cth. nama) diisi daripada profil anda</span></li>
+                    <li><i class="bi bi-4-circle"></i> <span>Selepas hantar, borang berstatus <strong>Dalam Proses</strong> dan menunggu Penyokong, kemudian Pelulus</span></li>
                 @else
-                    <li><i class="bi bi-3-circle"></i> <strong>Anda semak &amp; betulkan</strong> sebelum simpan — tiada apa disimpan secara automatik tanpa semakan</li>
-                    <li><i class="bi bi-4-circle"></i> Selepas simpan, dokumen terus bertanda <strong>Diluluskan</strong> (bukan perlu Penyokong/Pelulus)</li>
+                    <li><i class="bi bi-3-circle"></i> <span><strong>Anda semak &amp; betulkan</strong> sebelum simpan — tiada apa disimpan secara automatik tanpa semakan</span></li>
+                    <li><i class="bi bi-4-circle"></i> <span>Selepas simpan, dokumen terus bertanda <strong>Diluluskan</strong> (bukan perlu Penyokong/Pelulus)</span></li>
                 @endif
             </ul>
         </div>
@@ -120,10 +121,24 @@
 
 @push('scripts')
 <script>
+    // Muat model AI di latar belakang semasa pengguna memilih fail (lihat ImbasArkibController::panaskanAi)
+    fetch(@json(route('imbas.panaskan-ai')), {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
+    }).catch(() => {});
+
     document.getElementById('formAnalisis').addEventListener('submit', function () {
         const btn = document.getElementById('btnAnalisis');
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Memproses OCR + AI... (boleh ambil masa)';
+        // Pemasa masa berlalu supaya pengguna tahu sistem masih bekerja (OCR + AI berjalan segerak)
+        const mula = Date.now();
+        const papar = () => {
+            const saat = Math.floor((Date.now() - mula) / 1000);
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> Memproses OCR + AI... ${saat} s`;
+        };
+        papar();
+        setInterval(papar, 1000);
+        document.getElementById('notaMasa').hidden = false;
     });
 </script>
 @endpush
