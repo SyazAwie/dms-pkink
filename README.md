@@ -330,14 +330,18 @@ Pangkalan data (`dms_pkink_db`) mengandungi **14 jadual**, dibahagikan kepada 6 
 Log masuk guna emel + kata laluan. Tetapan semula kata laluan melalui token emel. Sesi diuruskan oleh jadual `sessions` Laravel.
 
 ### 5.2 Papan Pemuka (Dashboard)
-Kandungan **berbeza ikut peranan** pengguna yang log masuk — semua angka ditarik **secara langsung** daripada pangkalan data (tiada data statik/reka):
+Satu **bahagian bagi setiap peranan**, disusun ikut keutamaan (tugas yang memerlukan tindakan dahulu); pengguna berbilang peranan melihat beberapa bahagian. Setiap bahagian menjawab: *apa yang perlu saya buat*, *apa status saya*, dan (pentadbir) *apa trendnya*. Semua angka daripada pangkalan data sebenar. Kepala: ucapan ikut waktu, cip peranan & bahagian, serta **butang pantas** ikut peranan (maks 4).
 
-- **Semua peranan berasaskan dokumen:** Jumlah Dokumen (skop ikut kebenaran), Fail Menunggu OCR
-- **PENGURUS:** Carta pecahan kategori dokumen bahagian sendiri
-- **STAFF:** Status permohonan kelulusan dokumen sendiri
-- **PENYOKONG/PELULUS:** Bilangan menunggu tindakan, jadual ringkas permohonan
-- **AUDIT:** Ringkasan log audit, carta pecahan jenis tindakan
-- **ADMIN/SUPERADMIN:** Semua di atas + Jumlah Kakitangan, Jumlah Kategori, **Purata Masa Kelulusan** (dikira sebenar daripada cap masa `tarikh_permohonan` -> `tarikh_kelulusan`), carta trend muat naik 6 bulan
+| Peranan | Kad (maks 4) | Panel |
+|---|---|---|
+| STAFF | Perlu Tindakan (ditolak), Sedang Diproses, Diluluskan, Belum Dihantar | 5 dokumen terkini + status + langkah seterusnya |
+| PENGURUS | Dokumen bulan ini, Menunggu Kelulusan, Diluluskan bulan ini, Ditolak (bahagian sendiri) | Permohonan bahagian terkini, kategori teratas |
+| KERANI | Dimuat naik / diarkib bulan ini, Fail belum di-OCR, Jumlah dokumen | Dokumen terkini |
+| PENYOKONG / PELULUS | Menunggu, Tertunggak > 3 hari, Paling lama menunggu, Selesai bulan ini | Giliran paling lama dahulu (umur permohonan) |
+| AUDIT | Log hari ini, Log 7 hari, Tindakan padam, Pengguna aktif | Log terkini, pecahan tindakan |
+| ADMIN / SUPERADMIN | Jumlah dokumen, Permohonan aktif, Purata kelulusan (hari/jam), Kakitangan | **Perlu Perhatian** (pendaftaran, tertunggak, OCR), aliran kelulusan, trend 6 bulan, analitik OCR/AI & kategori/bahagian (berlipat), dokumen terkini |
+
+Responsif: kad 4 lajur (≥1200px) / 2×2 (tablet & telefon); jadual menjadi senarai kad di bawah 576px; carta ialah bar HTML (tiada Chart.js). Fail: `DashboardController`, `resources/views/dashboard/index.blade.php`, `dashboard/partials/*` (`kad-kpi`, `bar-senarai`, `giliran`, `gaya`, satu partial bagi setiap peranan).
 
 ### 5.3 Pengurusan Kategori Dokumen (`jenis_dokumen`)
 CRUD penuh dengan soft delete. Ciri utama: **pembina medan EAV dinamik** — admin klik "Tambah Medan" berulang kali dalam borang Cipta/Edit Kategori untuk tentukan medan (Teks/Nombor/Tarikh/Dropdown/Textarea), wajib/tidak, dan pilihan (untuk dropdown) — semua guna JavaScript sebelah klien, disahkan semula di pelayan semasa simpan. Kod medan disahkan unik dalam satu kategori, selamat dengan soft delete menggunakan lajur janaan (generated column) pangkalan data.
