@@ -395,6 +395,31 @@ Modul **BAHARU dan berasingan** daripada "Muat Naik Dokumen", khusus untuk digit
 
 **Kos & Privasi:** Kerana model AI dijalankan **sepenuhnya tempatan** (bukan hantar data ke syarikat luar), tiada bayaran berterusan dan tiada dokumen rasmi PKINK meninggalkan rangkaian/komputer tempatan.
 
+### 5.11 Prestasi & Ketepatan OCR/AI (tempatan, tanpa kos)
+Teknik yang digunakan (cawangan `ocr-pantas-tepat`, 2026-10-26):
+
+| Teknik | Fail | Kesan |
+|---|---|---|
+| Model AI **penuh dalam GPU** (`OLLAMA_NUM_GPU=99`, `OLLAMA_NUM_CTX=4096`), jika gagal dimuat diulang dengan tetapan lalai | `OllamaExtractionService`, `config/services.php` | RTX 3050 6GB: VRAM 75% → 100%, AI ~1.7× lebih laju |
+| Model kekal dimuat (`OLLAMA_KEEP_ALIVE=30m`) + **dipanaskan** bila halaman Imbas dibuka; `php artisan ai:panaskan` sebelum demo | `ImbasArkibController::panaskanAi` | Imbasan pertama tidak menunggu model dimuat (~7 s) |
+| **Buang garisan kotak/jadual** sebelum OCR; Tesseract dijalankan serentak atas imej asal & imej bersih, hasil terbaik dipilih (`OCR_BUANG_GARISAN`) | `App\Support\BuangGarisan`, `OcrService` | Borang huruf dalam kotak: 65% → 81% keyakinan |
+| Teks OCR **kekal ikut baris** (bukan satu baris panjang) | `OcrService::uraiTsv` | AI padankan "Label: nilai" dengan lebih tepat |
+| Prompt: abaikan teks bercetak borang, jangan teka, JSON padat; label borang yang disalin dibuang | `OllamaExtractionService::binaPrompt` | Kurang nilai rekaan; jawapan lebih pendek (lebih pantas) |
+| AI turut mengisi **Tarikh Dokumen & Perkara** | `ekstrak(..., medanAsas: true)` | Memo/surat/minit hampir terisi penuh |
+| Seksyen "Untuk kegunaan pejabat" tidak dihantar kepada AI dalam Imbas & Hantar | `JenisMedan::idMedanPejabat` | Tiada nilai rekaan bagi seksyen pegawai |
+
+Ukuran dengan 7 dokumen ujian (data rekaan), OCR + AI:
+
+| Dokumen | Sebelum | Selepas |
+|---|---|---|
+| Borang ICT (ditaip) | **gagal** (tamat masa 120 s) | 9.3 s |
+| Borang Daftar Emel (huruf dalam kotak) | 20.9 s, nama/telefon salah | 15.7 s, nama/alamat/jawatan/telefon betul |
+| Memo Dalaman | 9.9 s | 9.3 s, + Tarikh & Perkara |
+| Surat Masuk | 15.7 s, pengirim kosong, nilai diteka | 10.5 s, pengirim/rujukan/tarikh/perkara betul |
+| Minit Mesyuarat (2 muka surat) | 56.3 s | 37.1 s |
+
+**Had:** Tesseract tidak dapat membaca **tulisan tangan** dengan baik (borang diisi tangan perlu disemak/diisi manual di skrin semak, dengan pratonton fail di sebelah). Model *vision* tempatan ialah pilihan masa depan, tetapi bersaing dengan SEA-LION untuk VRAM 6GB.
+
 ---
 
 ## 6. Kawalan Akses Ikut Peranan (RBAC)
