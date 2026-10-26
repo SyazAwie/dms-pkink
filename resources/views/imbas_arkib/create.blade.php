@@ -1,13 +1,21 @@
 @extends('layouts.app')
 
-@section('title', 'Imbas & Arkib')
+{{-- Dikongsi Imbas & Arkib ($mod = 'arkib') dan Imbas & Hantar ($mod = 'hantar') --}}
+@php $hantar = $mod === 'hantar'; @endphp
+
+@section('title', $hantar ? 'Imbas & Hantar' : 'Imbas & Arkib')
 
 @section('content')
 
 <div class="page-intro">
     <div>
-        <h2>Imbas &amp; Arkib</h2>
-        <p>Khusus untuk dokumen <strong>fizikal yang sedia lulus</strong> — sekadar nak disimpan dalam bentuk digital. Sistem akan cuba isi medan secara automatik daripada imbasan.</p>
+        @if($hantar)
+            <h2>Imbas &amp; Hantar</h2>
+            <p>Untuk borang <strong>fizikal yang anda isi sendiri</strong>. Imbas borang itu, sistem akan cuba isi borang digital daripada imbasan, anda sahkan, kemudian hantar untuk kelulusan.</p>
+        @else
+            <h2>Imbas &amp; Arkib</h2>
+            <p>Khusus untuk dokumen <strong>fizikal yang sedia lulus</strong> — sekadar nak disimpan dalam bentuk digital. Sistem akan cuba isi medan secara automatik daripada imbasan.</p>
+        @endif
     </div>
     <div>
         <a href="{{ route('dokumen.index') }}" class="outline-button text-decoration-none">
@@ -31,7 +39,7 @@
                 <h3>Langkah 1: Pilih Jenis &amp; Muat Naik Fail</h3>
             </div>
 
-            <form action="{{ route('imbas-arkib.analisis') }}" method="POST" enctype="multipart/form-data" class="px-4 pb-4" id="formAnalisis">
+            <form action="{{ route("imbas-{$mod}.analisis") }}" method="POST" enctype="multipart/form-data" class="px-4 pb-4" id="formAnalisis">
                 @csrf
 
                 <div class="mb-4">
@@ -71,8 +79,13 @@
             <ul class="tips-list">
                 <li><i class="bi bi-1-circle"></i> OCR baca teks daripada imbasan</li>
                 <li><i class="bi bi-2-circle"></i> AI tempatan cuba padankan teks ke medan yang betul</li>
-                <li><i class="bi bi-3-circle"></i> <strong>Anda semak &amp; betulkan</strong> sebelum simpan — tiada apa disimpan secara automatik tanpa semakan</li>
-                <li><i class="bi bi-4-circle"></i> Selepas simpan, dokumen terus bertanda <strong>Diluluskan</strong> (bukan perlu Penyokong/Pelulus)</li>
+                @if($hantar)
+                    <li><i class="bi bi-3-circle"></i> <strong>Anda semak, betulkan &amp; sahkan</strong> maklumat sepadan dengan borang fizikal. Medan profil (cth. nama) diisi daripada profil anda</li>
+                    <li><i class="bi bi-4-circle"></i> Selepas hantar, borang berstatus <strong>Dalam Proses</strong> dan menunggu Penyokong, kemudian Pelulus</li>
+                @else
+                    <li><i class="bi bi-3-circle"></i> <strong>Anda semak &amp; betulkan</strong> sebelum simpan — tiada apa disimpan secara automatik tanpa semakan</li>
+                    <li><i class="bi bi-4-circle"></i> Selepas simpan, dokumen terus bertanda <strong>Diluluskan</strong> (bukan perlu Penyokong/Pelulus)</li>
+                @endif
             </ul>
         </div>
     </div>

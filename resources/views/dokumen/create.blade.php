@@ -135,6 +135,7 @@
                 <li><i class="bi bi-check2-circle"></i> Fail imbasan (jika ada) akan dilampirkan terus pada dokumen ini.</li>
                 <li><i class="bi bi-check2-circle"></i> Medan bertanda "Daripada profil" diisi automatik dan tidak boleh diubah.</li>
                 <li><i class="bi bi-check2-circle"></i> "Simpan &amp; Hantar" terus menghantar dokumen untuk kelulusan.</li>
+                <li><i class="bi bi-check2-circle"></i> Borang fizikal yang sudah anda isi? Guna <a href="{{ route('imbas-hantar.create') }}">Imbas &amp; Hantar</a> supaya sistem isi borang daripada imbasan.</li>
             </ul>
         </div>
     </div>
