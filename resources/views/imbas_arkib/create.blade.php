@@ -61,7 +61,8 @@
 
                 <hr class="dms-divider">
 
-                <div class="d-flex justify-content-end">
+                <div class="d-flex justify-content-end align-items-center flex-wrap gap-2">
+                    <span id="notaMasa" class="dms-hint m-0" hidden>Biasanya 10–40 saat, bergantung pada bilangan muka surat dan medan.</span>
                     <button type="submit" id="btnAnalisis" class="btn text-white save-btn">
                         <i class="bi bi-magic me-2"></i> Analisis &amp; Isi Automatik
                     </button>
@@ -129,7 +130,15 @@
     document.getElementById('formAnalisis').addEventListener('submit', function () {
         const btn = document.getElementById('btnAnalisis');
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Memproses OCR + AI... (boleh ambil masa)';
+        // Pemasa masa berlalu supaya pengguna tahu sistem masih bekerja (OCR + AI berjalan segerak)
+        const mula = Date.now();
+        const papar = () => {
+            const saat = Math.floor((Date.now() - mula) / 1000);
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> Memproses OCR + AI... ${saat} s`;
+        };
+        papar();
+        setInterval(papar, 1000);
+        document.getElementById('notaMasa').hidden = false;
     });
 </script>
 @endpush
