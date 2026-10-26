@@ -78,14 +78,14 @@
                 <div class="summary-icon" style="color: var(--dms-mint); background: rgba(37,169,121,.12);"><i class="bi bi-lightbulb"></i></div>
             </div>
             <ul class="tips-list">
-                <li><i class="bi bi-1-circle"></i> OCR baca teks daripada imbasan</li>
-                <li><i class="bi bi-2-circle"></i> AI tempatan cuba padankan teks ke medan yang betul</li>
+                <li><i class="bi bi-1-circle"></i> <span>OCR baca teks daripada imbasan</span></li>
+                <li><i class="bi bi-2-circle"></i> <span>AI tempatan cuba padankan teks ke medan yang betul</span></li>
                 @if($hantar)
-                    <li><i class="bi bi-3-circle"></i> <strong>Anda semak, betulkan &amp; sahkan</strong> maklumat sepadan dengan borang fizikal. Medan profil (cth. nama) diisi daripada profil anda</li>
-                    <li><i class="bi bi-4-circle"></i> Selepas hantar, borang berstatus <strong>Dalam Proses</strong> dan menunggu Penyokong, kemudian Pelulus</li>
+                    <li><i class="bi bi-3-circle"></i> <span><strong>Anda semak, betulkan &amp; sahkan</strong> maklumat sepadan dengan borang fizikal. Medan profil (cth. nama) diisi daripada profil anda</span></li>
+                    <li><i class="bi bi-4-circle"></i> <span>Selepas hantar, borang berstatus <strong>Dalam Proses</strong> dan menunggu Penyokong, kemudian Pelulus</span></li>
                 @else
-                    <li><i class="bi bi-3-circle"></i> <strong>Anda semak &amp; betulkan</strong> sebelum simpan — tiada apa disimpan secara automatik tanpa semakan</li>
-                    <li><i class="bi bi-4-circle"></i> Selepas simpan, dokumen terus bertanda <strong>Diluluskan</strong> (bukan perlu Penyokong/Pelulus)</li>
+                    <li><i class="bi bi-3-circle"></i> <span><strong>Anda semak &amp; betulkan</strong> sebelum simpan — tiada apa disimpan secara automatik tanpa semakan</span></li>
+                    <li><i class="bi bi-4-circle"></i> <span>Selepas simpan, dokumen terus bertanda <strong>Diluluskan</strong> (bukan perlu Penyokong/Pelulus)</span></li>
                 @endif
             </ul>
         </div>
