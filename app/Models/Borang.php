@@ -45,6 +45,21 @@ class Borang extends Model
         return $query->whereHas('dokumen');
     }
 
+    /**
+     * Kecualikan permohonan yang dihantar oleh $userId sendiri. Pemohon tidak boleh
+     * menyokong/meluluskan permohonannya, jadi ia bukan giliran tindakannya.
+     */
+    public function scopeBukanMilik($query, $userId)
+    {
+        return $query->where(fn ($q) => $q->whereNull('pemohon_id')->orWhere('pemohon_id', '!=', $userId));
+    }
+
+    /** Pengguna ini yang menghantar permohonan ini? */
+    public function dipohonOleh($userId): bool
+    {
+        return $this->pemohon_id !== null && (int) $this->pemohon_id === (int) $userId;
+    }
+
     public function dokumen()
     {
         return $this->belongsTo(Dokumen::class, 'dokumen_id', 'dokumen_id');

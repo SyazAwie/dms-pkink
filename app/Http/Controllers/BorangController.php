@@ -50,9 +50,9 @@ class BorangController extends Controller
         if ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
             // Admin nampak semua borang, tanpa penapis status
         } elseif ($user->hasRole('PENYOKONG')) {
-            $query->where('status_permohonan', 'Dalam Proses');
+            $query->where('status_permohonan', 'Dalam Proses')->bukanMilik($user->user_id);
         } elseif ($user->hasRole('PELULUS')) {
-            $query->where('status_permohonan', 'Disokong');
+            $query->where('status_permohonan', 'Disokong')->bukanMilik($user->user_id);
         } else {
             abort(403, 'Anda tidak mempunyai kebenaran untuk mengakses halaman ini.');
         }
@@ -104,6 +104,7 @@ class BorangController extends Controller
     {
         $this->pastikanPeranan('PENYOKONG');
         $borang = $this->borangAktif($dokumenId);
+        $this->pastikanBukanPemohon($borang);
         $this->pastikanStatus($borang, 'Dalam Proses');
 
         $request->validate(['ulasan_penyokong' => 'nullable|string|max:500']);
@@ -127,6 +128,7 @@ class BorangController extends Controller
     {
         $this->pastikanPeranan('PELULUS');
         $borang = $this->borangAktif($dokumenId);
+        $this->pastikanBukanPemohon($borang);
         $this->pastikanStatus($borang, 'Disokong');
 
         $request->validate(['ulasan_pelulus' => 'nullable|string|max:500']);
@@ -149,6 +151,7 @@ class BorangController extends Controller
     public function tolak(Request $request, $dokumenId)
     {
         $borang = $this->borangAktif($dokumenId);
+        $this->pastikanBukanPemohon($borang);
         $user = Auth::user();
 
         if ($borang->status_permohonan === 'Dalam Proses' && $user->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN')) {
@@ -186,6 +189,17 @@ class BorangController extends Controller
     {
         if (!Auth::user()->hasAnyRole(...$peranan, ...['SUPERADMIN', 'ADMIN'])) {
             abort(403, 'Anda tidak mempunyai kebenaran untuk tindakan ini.');
+        }
+    }
+
+    /**
+     * Pemohon tidak boleh menyokong, meluluskan atau menolak permohonannya sendiri,
+     * termasuk SUPERADMIN/ADMIN. Tindakan mesti dibuat oleh pegawai lain.
+     */
+    private function pastikanBukanPemohon(Borang $borang): void
+    {
+        if ($borang->dipohonOleh(Auth::id())) {
+            abort(403, 'Anda tidak boleh menyokong, meluluskan atau menolak permohonan anda sendiri.');
         }
     }
 

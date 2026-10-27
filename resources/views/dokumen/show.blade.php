@@ -126,8 +126,19 @@
                     @endif
                 @endcan
 
+                @php
+                    // Pemohon tidak boleh bertindak ke atas permohonan sendiri (termasuk Admin)
+                    $pemohonSendiri = $dokumen->borang?->dipohonOleh(Auth::id());
+                    $bolehSokong = $statusSemasa === 'Dalam Proses' && Auth::user()->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN');
+                    $bolehLulus = $statusSemasa === 'Disokong' && Auth::user()->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN');
+                @endphp
+
+                @if($pemohonSendiri && ($bolehSokong || $bolehLulus))
+                    <div class="dms-hint mt-3"><i class="bi bi-info-circle"></i> Anda pemohon permohonan ini, jadi {{ $bolehSokong ? 'sokongan' : 'kelulusan' }} perlu dibuat oleh pegawai lain.</div>
+                @endif
+
                 {{-- Penyokong: sokong / tolak --}}
-                @if($statusSemasa === 'Dalam Proses' && Auth::user()->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN'))
+                @if($bolehSokong && !$pemohonSendiri)
                     <form action="{{ route('kelulusan.sokong', $dokumen->dokumen_id) }}" method="POST" class="kel-form mt-3">
                         @csrf
                         <textarea name="ulasan_penyokong" class="dms-input" rows="2" placeholder="Ulasan (pilihan)"></textarea>
@@ -144,7 +155,7 @@
                 @endif
 
                 {{-- Pelulus: lulus / tolak --}}
-                @if($statusSemasa === 'Disokong' && Auth::user()->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN'))
+                @if($bolehLulus && !$pemohonSendiri)
                     <form action="{{ route('kelulusan.lulus', $dokumen->dokumen_id) }}" method="POST" class="kel-form mt-3">
                         @csrf
                         <textarea name="ulasan_pelulus" class="dms-input" rows="2" placeholder="Ulasan (pilihan)"></textarea>

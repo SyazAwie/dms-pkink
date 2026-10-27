@@ -558,9 +558,9 @@ class DokumenController extends Controller
      * (butang "Jalankan OCR" dalam halaman Butiran Dokumen). Guna kebenaran
      * sama seperti edit dokumen induk.
      *
-     * Mesej ralat SEBENAR (bukan generik) di-flash balik ke skrin supaya
-     * masalah pemasangan Tesseract/Poppler/PATH senang dikesan semasa
-     * pembangunan.
+     * Mesej ralat sebenar (laluan Tesseract/Poppler, dll.) hanya dipaparkan
+     * semasa pembangunan (APP_DEBUG=true); selain itu mesej umum, dan butiran
+     * penuh dalam log.
      */
     public function jalankanOcr($scanId)
     {
@@ -589,8 +589,17 @@ class DokumenController extends Controller
             Log::warning("OCR gagal untuk dokumen_scan_id {$scan->dokumen_scan_id}: " . $e->getMessage());
             $scan->update(['status_ocr' => 'Ralat']);
 
-            return back()->with('error', "OCR gagal untuk \"{$scan->nama_fail}\": " . $e->getMessage());
+            return back()->with('error', "OCR gagal untuk \"{$scan->nama_fail}\". Sila cuba lagi atau hubungi Pentadbir Sistem." . $this->butiranRalat($e));
         }
+    }
+
+    /**
+     * Butiran teknikal pengecualian untuk mesej di skrin: hanya semasa pembangunan
+     * (APP_DEBUG=true). Dalam produksi kosong; butiran penuh sentiasa ada dalam log.
+     */
+    protected function butiranRalat(\Throwable $e): string
+    {
+        return config('app.debug') ? ' (' . $e->getMessage() . ')' : '';
     }
 
 }
