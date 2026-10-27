@@ -129,7 +129,8 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#confirmDeleteModal"
                                     data-form-action="{{ route('jenis-dokumen.destroy', $item->jenis_dokumen_id) }}"
-                                    data-item-name="{{ $item->nama_dokumen }}">
+                                    data-item-name="{{ $item->nama_dokumen }}"
+                                    data-bil-dokumen="{{ $item->dokumen_count }}">
                                 <i class="bi bi-trash3"></i> <span>Padam</span>
                             </button>
                         </div>
@@ -169,8 +170,8 @@
                 <h5 class="mt-3 mb-2" id="confirmDeleteLabel" style="color: var(--dms-brand); font-weight: 800;">Padam Rekod?</h5>
                 <p class="text-muted mb-0" style="font-size: 13px;">
                     Anda pasti mahu memadam kategori <strong id="deleteItemName" style="color: var(--dms-text);"></strong>?
-                    Tindakan ini tidak boleh diundur.
                 </p>
+                <div id="padamAmaran" class="padam-nota padam-amaran mt-3" hidden></div>
             </div>
             <div class="modal-footer border-0 justify-content-center pb-4">
                 <button type="button" class="outline-button" data-bs-dismiss="modal">Batal</button>
@@ -262,6 +263,8 @@
     }
 
     .btn-delete-trigger { cursor: pointer; }
+    .padam-nota { padding: 10px 12px; border-radius: 10px; font-size: 12.5px; text-align: left; }
+    .padam-amaran { background: rgba(214, 158, 46, .12); color: #8a5a0a; }
 
     .dms-modal {
         border-radius: 16px;
@@ -317,6 +320,12 @@
                 const name = trigger.getAttribute('data-item-name');
                 document.getElementById('deleteForm').setAttribute('action', action);
                 document.getElementById('deleteItemName').textContent = name;
+
+                // #15: amaran bilangan dokumen yang menggunakan kategori ini
+                const dok = Number(trigger.dataset.bilDokumen || 0);
+                const amaran = document.getElementById('padamAmaran');
+                amaran.hidden = dok === 0;
+                amaran.textContent = dok ? `${dok} dokumen menggunakan kategori ini. Dokumen kekal dalam arkib dengan nama kategori ini, tetapi kategori tidak lagi boleh dipilih untuk muat naik baharu.` : '';
             });
         }
 

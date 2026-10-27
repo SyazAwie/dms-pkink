@@ -29,6 +29,13 @@
     </div>
 @endif
 
+@if(session('error'))
+    <div class="alert alert-dismissible fade show dms-alert dms-alert-ralat" role="alert">
+        <i class="bi bi-exclamation-octagon-fill me-2"></i> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+    </div>
+@endif
+
 <!-- Kad Ringkasan -->
 <div class="summary-grid tiga-kad mb-4">
     <div class="glass-panel summary-card">
@@ -115,7 +122,10 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#confirmDeleteModal"
                                     data-form-action="{{ route('bahagian.destroy', $item->bahagian_id) }}"
-                                    data-item-name="{{ $item->nama_bahagian }}">
+                                    data-item-name="{{ $item->nama_bahagian }}"
+                                    data-bil-staf="{{ $item->users_count }}"
+                                    data-bil-pendaftaran="{{ $item->pendaftaran_menunggu_count }}"
+                                    data-bil-dokumen="{{ $item->dokumen_count }}">
                                 <i class="bi bi-trash3"></i> <span>Padam</span>
                             </button>
                         </div>
@@ -155,15 +165,16 @@
                 <h5 class="mt-3 mb-2" id="confirmDeleteLabel" style="color: var(--dms-brand); font-weight: 800;">Padam Rekod?</h5>
                 <p class="text-muted mb-0" style="font-size: 13px;">
                     Anda pasti mahu memadam bahagian <strong id="deleteItemName" style="color: var(--dms-text);"></strong>?
-                    Tindakan ini tidak boleh diundur.
                 </p>
+                <div id="padamSekat" class="padam-nota padam-sekat mt-3" hidden></div>
+                <div id="padamAmaran" class="padam-nota padam-amaran mt-3" hidden></div>
             </div>
             <div class="modal-footer border-0 justify-content-center pb-4">
                 <button type="button" class="outline-button" data-bs-dismiss="modal">Batal</button>
                 <form id="deleteForm" method="POST" action="">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn text-white btn-confirm-delete">
+                    <button type="submit" class="btn text-white btn-confirm-delete" id="btnSahPadam">
                         <i class="bi bi-trash3 me-1"></i> Ya, Padam
                     </button>
                 </form>
@@ -232,6 +243,10 @@
     }
 
     .btn-delete-trigger { cursor: pointer; }
+    .dms-alert-ralat { background: rgba(220, 53, 69, .08); border-color: rgba(220, 53, 69, .3); color: var(--dms-danger); }
+    .padam-nota { padding: 10px 12px; border-radius: 10px; font-size: 12.5px; text-align: left; }
+    .padam-sekat { background: rgba(220, 53, 69, .08); color: var(--dms-danger); }
+    .padam-amaran { background: rgba(214, 158, 46, .12); color: #8a5a0a; }
 
     .dms-modal {
         border-radius: 16px;
@@ -287,6 +302,19 @@
                 const name = trigger.getAttribute('data-item-name');
                 document.getElementById('deleteForm').setAttribute('action', action);
                 document.getElementById('deleteItemName').textContent = name;
+
+                // #15: sekat jika masih ada kakitangan / pendaftaran menunggu; amaran bagi dokumen
+                const staf = Number(trigger.dataset.bilStaf || 0);
+                const daftar = Number(trigger.dataset.bilPendaftaran || 0);
+                const dok = Number(trigger.dataset.bilDokumen || 0);
+                const sekat = document.getElementById('padamSekat');
+                const amaran = document.getElementById('padamAmaran');
+                const sebab = [staf ? `${staf} kakitangan aktif` : '', daftar ? `${daftar} permohonan pendaftaran menunggu` : ''].filter(Boolean);
+                sekat.hidden = sebab.length === 0;
+                sekat.textContent = sebab.length ? `Tidak boleh dipadam: masih ada ${sebab.join(' dan ')}. Pindahkan kakitangan ke bahagian lain dahulu.` : '';
+                amaran.hidden = sebab.length > 0 || dok === 0;
+                amaran.textContent = dok ? `${dok} dokumen menggunakan bahagian ini. Dokumen kekal dalam arkib dengan nama bahagian ini.` : '';
+                document.getElementById('btnSahPadam').hidden = sebab.length > 0;
             });
         }
 

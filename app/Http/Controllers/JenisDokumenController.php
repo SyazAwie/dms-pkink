@@ -19,7 +19,7 @@ class JenisDokumenController extends Controller
     // 1. Fungsi paparkan senarai
     public function index()
     {
-        $senarai = JenisDokumen::withCount('fields')->get();
+        $senarai = JenisDokumen::withCount(['fields', 'dokumen'])->get();
         return view('jenis_dokumen.index', compact('senarai'));
     }
 
@@ -93,12 +93,14 @@ class JenisDokumenController extends Controller
                 'kategori' => $validated['kategori'] ?? null,
             ]);
 
-            // Padam (soft delete) medan yang dibuang di UI
+            // Padam (soft delete) medan yang dibuang di UI. Satu per satu melalui model
+            // supaya DokumenFieldObserver merekod setiap medan dalam log audit.
             $idDipadam = array_filter(array_map('trim', explode(',', (string) $request->input('medan_dipadam', ''))));
             if ($idDipadam) {
                 DokumenField::whereIn('dokumen_field_id', $idDipadam)
                     ->where('jenis_dokumen_id', $dokumen->jenis_dokumen_id)
-                    ->delete();
+                    ->get()
+                    ->each->delete();
             }
 
             $this->simpanMedan($dokumen, $request->input('medan', []));
@@ -127,11 +129,17 @@ class JenisDokumenController extends Controller
     // 6. Padam rekod
     public function destroy($id)
     {
-        $dokumen = JenisDokumen::findOrFail($id);
+        $dokumen = JenisDokumen::withCount('dokumen')->findOrFail($id);
         $dokumen->delete();
 
+        // Dokumen tidak menghalang (#15): ia kekal memaparkan nama kategori (withTrashed),
+        // tetapi kategori tidak lagi boleh dipilih untuk muat naik baharu
+        $nota = $dokumen->dokumen_count
+            ? " {$dokumen->dokumen_count} dokumen sedia ada kekal dalam arkib dengan nama kategori ini."
+            : '';
+
         return redirect()->route('jenis-dokumen.index')
-                         ->with('success', 'Kategori Dokumen telah dipadam.');
+                         ->with('success', 'Kategori Dokumen telah dipadam.' . $nota);
     }
 
     /**
