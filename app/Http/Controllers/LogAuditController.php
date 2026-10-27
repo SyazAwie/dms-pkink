@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\LogAudit;
 use App\Models\User;
+use App\Support\Csv;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -46,20 +48,30 @@ class LogAuditController extends Controller
 
         return response()->streamDownload(function () use ($query) {
             $keluar = fopen('php://output', 'w');
-            fwrite($keluar, "\xEF\xBB\xBF");
-            fputcsv($keluar, ['ID', 'Masa', 'Pengguna', 'Tindakan', 'Jadual', 'ID Rekod', 'Alamat IP', 'Data Lama', 'Data Baharu']);
+            Csv::bom($keluar);
+            Csv::baris($keluar, ['ID', 'Masa', 'Pengguna', 'Tindakan', 'Jadual', 'ID Rekod', 'Alamat IP', 'Data Lama', 'Data Baharu']);
             $query->chunk(500, function ($senarai) use ($keluar) {
                 foreach ($senarai as $log) {
-                    fputcsv($keluar, [
+                    Csv::baris($keluar, [
                         $log->log_audit_id, $log->created_at?->format('d/m/Y H:i:s'), $log->pengguna->nama_staff ?? 'Sistem / tetamu',
                         $log->tindakan, $log->nama_jadual, $log->rekod_id, $log->alamat_ip,
-                        $log->data_lama ? json_encode($log->data_lama, JSON_UNESCAPED_UNICODE) : '',
-                        $log->data_baharu ? json_encode($log->data_baharu, JSON_UNESCAPED_UNICODE) : '',
+                        self::json($log->data_lama),
+                        self::json($log->data_baharu),
                     ]);
                 }
             });
             fclose($keluar);
         }, 'log-audit-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Seperti paparan log: lajur sensitif tidak dieksport walaupun tersimpan dalam rekod lama */
+    private static function json(mixed $data): string
+    {
+        if (! $data) {
+            return '';
+        }
+
+        return json_encode(is_array($data) ? Arr::except($data, ['password', 'remember_token']) : $data, JSON_UNESCAPED_UNICODE);
     }
 
     private function queryDitapis(Request $request)

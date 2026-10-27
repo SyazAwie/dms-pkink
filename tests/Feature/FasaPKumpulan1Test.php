@@ -176,6 +176,27 @@ class FasaPKumpulan1Test extends TestCase
         $this->assertStringContainsString('Tindakan', $csv);
     }
 
+    public function test_eksport_dilindungi_daripada_suntikan_formula(): void
+    {
+        $this->dokumen('BPK/2026/0022', null, ['perkara' => '=HYPERLINK("http://jahat","klik")']);
+
+        $csv = $this->actingAs($this->staf)->get(route('dokumen.eksport'))->streamedContent();
+        $this->assertStringContainsString("'=HYPERLINK", $csv);
+        $this->assertStringNotContainsString(',"=HYPERLINK', $csv);
+    }
+
+    public function test_eksport_log_audit_menapis_kata_laluan(): void
+    {
+        LogAudit::create(['user_id' => $this->admin->user_id, 'tindakan' => 'Kemaskini', 'nama_jadual' => 'users', 'rekod_id' => 1,
+            'data_lama' => ['password' => 'hash-rahsia', 'nama_staff' => 'Lama'], 'data_baharu' => ['remember_token' => 'token-rahsia'],
+            'created_at' => now()]);
+
+        $csv = $this->actingAs($this->buatPengguna(['AUDIT']))->get(route('log-audit.eksport'))->streamedContent();
+        $this->assertStringContainsString('Lama', $csv);
+        $this->assertStringNotContainsString('hash-rahsia', $csv);
+        $this->assertStringNotContainsString('token-rahsia', $csv);
+    }
+
     // ---------- P14 Amaran padam beramai ----------
 
     public function test_amaran_sekali_bila_banyak_dokumen_dipadam(): void

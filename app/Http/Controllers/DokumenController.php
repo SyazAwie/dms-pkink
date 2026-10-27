@@ -11,6 +11,7 @@ use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Services\OcrService;
+use App\Support\Csv;
 use App\Support\JenisMedan;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -57,11 +58,11 @@ class DokumenController extends Controller
 
         return response()->streamDownload(function () use ($query) {
             $keluar = fopen('php://output', 'w');
-            fwrite($keluar, "\xEF\xBB\xBF");
-            fputcsv($keluar, ['No. Rujukan', 'Jenis Dokumen', 'Tarikh Dokumen', 'Perkara', 'Bahagian', 'Dimuat Naik Oleh', 'Status Kelulusan', 'Tarikh Didaftarkan']);
+            Csv::bom($keluar);
+            Csv::baris($keluar, ['No. Rujukan', 'Jenis Dokumen', 'Tarikh Dokumen', 'Perkara', 'Bahagian', 'Dimuat Naik Oleh', 'Status Kelulusan', 'Tarikh Didaftarkan']);
             $query->chunk(200, function ($senarai) use ($keluar) {
                 foreach ($senarai as $d) {
-                    fputcsv($keluar, [
+                    Csv::baris($keluar, [
                         $d->no_rujukan, $d->jenisDokumen->nama_dokumen ?? '', $d->tarikh_dokumen?->format('d/m/Y'), $d->perkara,
                         $d->bahagian->nama_bahagian ?? '', $d->pemuatNaik->nama_staff ?? '',
                         $d->borang->status_permohonan ?? 'Belum Dihantar', $d->created_at?->format('d/m/Y H:i'),
