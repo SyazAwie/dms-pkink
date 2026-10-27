@@ -2,7 +2,7 @@
 
 **Nama Penuh:** Sistem Pengurusan Dokumen Digital (Document Management System) Perbadanan Kemajuan Iktisad Negeri Kelantan
 **Jenis Projek:** Aplikasi Web Latihan Industri (Sains Komputer)
-**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 239 ujian automatik lulus.
+**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 257 ujian automatik lulus.
 
 ---
 
@@ -345,8 +345,9 @@ Pangkalan data mengandungi **17 jadual**: 13 jadual domain dalam 6 kumpulan, dan
 | dokumen_id | BIGINT (FK) | → dokumen |
 | pemohon_id | BIGINT (FK) | → users. Pemohon tidak boleh bertindak atas permohonan sendiri |
 | pegawai_penyokong_id, pegawai_pelulus_id | BIGINT (FK, nullable) | → users |
+| pegawai_penolak_id | BIGINT (FK, nullable) | → users; pegawai yang menolak (dikosongkan bila hantar semula) |
 | status_permohonan | VARCHAR(50) | Dalam Proses / Disokong / Diluluskan / Ditolak (tiada rekod = Belum Dihantar) |
-| tarikh_permohonan, tarikh_sokongan, tarikh_kelulusan | DATETIME | |
+| tarikh_permohonan, tarikh_sokongan, tarikh_kelulusan, tarikh_tolak | DATETIME | |
 | ulasan_penyokong, ulasan_pelulus | TEXT | Wajib bila menolak |
 
 ### 4.6 Kumpulan: Audit & Infra Laravel
@@ -356,7 +357,7 @@ Pangkalan data mengandungi **17 jadual**: 13 jadual domain dalam 6 kumpulan, dan
 | Lajur | Jenis | Catatan |
 |---|---|---|
 | log_audit_id | BIGINT (PK) | |
-| user_id | BIGINT (FK) | Pelaku tindakan |
+| user_id | BIGINT (FK, nullable) | Pelaku tindakan; `NULL` = sistem (arahan konsol/penjadual) atau tetamu |
 | tindakan | VARCHAR(100) | Cipta / Kemaskini / Padam (Soft Delete) / Hantar untuk Kelulusan / Lulus Pendaftaran / dll. |
 | nama_jadual | VARCHAR(100) | Jadual yang terlibat |
 | rekod_id | BIGINT | ID rekod |
@@ -409,7 +410,7 @@ Responsif: kad 4 lajur (≥1200px) / 2×2 (tablet & telefon); jadual menjadi sen
 
 ### 5.5 Pengurusan Kategori Dokumen (`jenis_dokumen`)
 
-CRUD penuh dengan soft delete (SUPERADMIN/ADMIN). Senarai memaparkan bilangan medan setiap kategori, dan kad **Tanpa Medan** menandakan kategori yang belum lengkap.
+CRUD penuh dengan soft delete (SUPERADMIN/ADMIN). Senarai memaparkan bilangan medan setiap kategori, dan kad **Tanpa Medan** menandakan kategori yang belum lengkap. Padam kategori yang masih ada dokumen memaparkan amaran bilangan dokumen: dokumen kekal dalam arkib, tetapi kategori tidak lagi boleh dipilih untuk muat naik.
 
 **Pembina medan EAV** (JavaScript, disahkan semula di pelayan) dengan **16 jenis data** (`App\Support\JenisMedan`):
 
@@ -475,7 +476,7 @@ Dua aliran yang berkongsi kod (`ImbasHantarController` mewarisi `ImbasArkibContr
 
 ### 5.9 Aliran Kelulusan (`borang`)
 
-Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokong** (PENYOKONG) → **Luluskan** (PELULUS), atau **Tolak** pada mana-mana peringkat (ulasan wajib). SUPERADMIN/ADMIN boleh menyokong dan meluluskan (disengajakan), tetapi **tiada sesiapa boleh menyokong, meluluskan atau menolak permohonan sendiri**; butang disembunyikan dengan nota "Anda pemohon permohonan ini". Hantar semula hanya dibenarkan selepas Ditolak. Tindakan atas status yang sudah berubah memberi halaman **409** dengan mesej BM, dan dokumen terpadam memberi 404. Senarai `/kelulusan` memaparkan giliran PENYOKONG/PELULUS (tanpa permohonan sendiri), manakala pentadbir melihat semua.
+Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokong** (PENYOKONG) → **Luluskan** (PELULUS), atau **Tolak** pada mana-mana peringkat (ulasan wajib). SUPERADMIN/ADMIN boleh menyokong dan meluluskan (disengajakan), tetapi **tiada sesiapa boleh menyokong, meluluskan atau menolak permohonan sendiri**; butang disembunyikan dengan nota "Anda pemohon permohonan ini". Pegawai yang menolak dan tarikhnya direkod (`pegawai_penolak_id`, `tarikh_tolak`) dan dipaparkan sebagai "Ditolak Oleh" kepada pemohon. Hantar semula hanya dibenarkan selepas Ditolak, dan mengosongkan rekod penolakan lama. Tindakan atas status yang sudah berubah memberi halaman **409** dengan mesej BM, dan dokumen terpadam memberi 404. Senarai `/kelulusan` memaparkan giliran PENYOKONG/PELULUS (tanpa permohonan sendiri), manakala pentadbir melihat semua.
 
 ### 5.10 OCR (Pengecaman Teks)
 
@@ -522,13 +523,13 @@ Ukur setiap perubahan OCR/AI dengan 7 dokumen ujian ini, sebelum dan selepas per
 
 CRUD penuh dengan soft delete (SUPERADMIN/ADMIN).
 
-- **Bahagian:** senarai memaparkan bilangan kakitangan setiap bahagian, dan kad **Tanpa Kakitangan**
+- **Bahagian:** senarai memaparkan bilangan kakitangan setiap bahagian, dan kad **Tanpa Kakitangan**. Bahagian yang masih ada kakitangan aktif atau pendaftaran menunggu **tidak boleh dipadam**; bahagian yang hanya dirujuk oleh dokumen boleh dipadam dengan amaran (dokumen kekal memaparkan nama bahagian)
 - **Kakitangan:** senarai memaparkan bahagian (bahagian terpadam ditanda "Dipadam") dan **peranan**, dengan kad **Menunggu Pengesahan** (pautan ke Pengesahan Pendaftaran). Bahagian mesti wujud dan aktif
 - **Peranan:** hanya SUPERADMIN boleh menetapkan peranan; kakitangan yang didaftar oleh ADMIN diberi STAFF. ADMIN tidak boleh mengurus akaun SUPERADMIN, SUPERADMIN terakhir dilindungi, dan pengguna tidak boleh memadam akaun sendiri. Kata laluan yang ditetapkan pentadbir menjadi kata laluan sementara
 
 ### 5.13 Log Audit
 
-Cipta/Kemaskini/Padam pada `bahagian`, `jenis_dokumen`, `users` dan `dokumen` direkod oleh Observer. Perubahan yang tidak dilihat oleh observer (nilai EAV, fail imbasan, langkah kelulusan `borang`, tetapan peranan, pendaftaran staf, tukar kata laluan) direkod terus dalam controller dengan `LogAudit::create()`. Halaman Log Audit (SUPERADMIN & AUDIT sahaja) ada penapis pengguna/jadual/tindakan/ID rekod/julat tarikh dan paginasi, dan setiap baris boleh dibuka untuk melihat JSON sebelum/selepas. `password` dan `remember_token` **sentiasa** ditapis.
+Cipta/Kemaskini/Padam pada `bahagian`, `jenis_dokumen`, `users`, `dokumen` dan **`dokumen_field`** (setiap medan borang dalam pembina, hanya lajur yang berubah) direkod oleh Observer. Tindakan tanpa pengguna log masuk direkod dengan `user_id` kosong dan dipaparkan sebagai "Sistem / tetamu". Perubahan yang tidak dilihat oleh observer (nilai EAV, fail imbasan, langkah kelulusan `borang`, tetapan peranan, pendaftaran staf, tukar kata laluan) direkod terus dalam controller dengan `LogAudit::create()`. Halaman Log Audit (SUPERADMIN & AUDIT sahaja) ada penapis pengguna/jadual/tindakan/ID rekod/julat tarikh dan paginasi, dan setiap baris boleh dibuka untuk melihat JSON sebelum/selepas. `password` dan `remember_token` **sentiasa** ditapis.
 
 ### 5.14 Bahasa & Antara Muka
 
@@ -637,7 +638,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 `Bahagian`, `Borang`, `Dokumen`, `DokumenData`, `DokumenField`, `DokumenOcr`, `DokumenScan`, `JenisDokumen`, `LogAudit`, `PendaftaranStaf`, `Role`, `User`
 
 ### Observer (`app/Observers/`)
-`BahagianObserver`, `DokumenObserver`, `JenisDokumenObserver`, `UserObserver` (didaftar dalam `AppServiceProvider`)
+`BahagianObserver`, `DokumenFieldObserver`, `DokumenObserver`, `JenisDokumenObserver`, `UserObserver` (didaftar dalam `AppServiceProvider`)
 
 ### Policy, Middleware & Notifikasi
 | Fail | Peranan |
@@ -705,7 +706,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `routes/web.php`, `routes/console.php` | Laluan & jadual |
 
 ### Ujian (`tests/`)
-`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (38 kelas ujian, 239 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
+`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (42 kelas ujian, 257 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
 
 ---
 
@@ -795,6 +796,10 @@ Keputusan terakhir ditulis ke `{folder}/terakhir.json` (berjaya/gagal, saiz, bil
 | Mesej validasi & tarikh dalam BI | `APP_LOCALE=en`, tiada `lang/` | Locale `ms` + `lang/ms/*` |
 | Paginasi memaparkan anak panah SVG gergasi | Templat lalai Tailwind tanpa CSS Tailwind | `Paginator::useBootstrapFive()` |
 | Butang loceng dengan titik merah palsu | Hiasan CSS tanpa fungsi | Loceng memaparkan bilangan sebenar giliran |
+| Tindakan tanpa log masuk dikreditkan kepada user_id 1 | Observer guna `Auth::id() ?? 1` | `Auth::id()` (kosong = Sistem) |
+| Perubahan medan borang tidak dilog | Tiada observer; padam medan guna query pukal | `DokumenFieldObserver` + padam setiap model |
+| Siapa yang menolak tidak direkod dalam `borang` | Tiada lajur | `pegawai_penolak_id`, `tarikh_tolak` |
+| Bahagian dengan kakitangan boleh dipadam tanpa amaran | Tiada semakan rujukan | Disekat; amaran bilangan dokumen |
 
 ---
 
@@ -816,11 +821,10 @@ Tanda ✓ tulisan tangan, medan kosong yang diisi teks lain oleh AI, tulisan sam
 ### Kerja Kecil Belum Dibuat
 - KERANI sepatutnya boleh "lihat sahaja" Kategori Dokumen & Bahagian, tetapi kini disekat sepenuhnya
 - Tiada skrin "Tong Sampah" untuk memulihkan rekod yang di-soft delete
-- Bahagian/Kategori boleh dipadam walaupun masih dirujuk, tanpa amaran
 - Penapis julat nombor/tarikh berstruktur ke atas nilai EAV belum dibina
 - `dokumen_scan` tiada saiz fail, jenis MIME atau hash (checksum)
 - `dokumen_ocr.status_semakan` sentiasa "Belum Disemak" (tiada UI semakan OCR)
-- Perubahan definisi medan (`dokumen_field`), OCR manual dan tetapan semula kata laluan melalui emel belum dilog khusus dalam `log_audit`
+- OCR manual dan tetapan semula kata laluan melalui emel belum dilog khusus dalam `log_audit`
 
 ---
 
