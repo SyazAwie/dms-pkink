@@ -26,7 +26,7 @@
     <div>
         <h2>{{ $ucapan }}, {{ $namaRingkas }}</h2>
         <div class="pp-peranan">
-            @foreach($u->roles as $r)
+            @foreach($u->roles->whereIn('kod_roles', $u->kodPeranan()) as $r){{-- peranan aktif sahaja --}}
                 <span class="pp-cip">{{ $r->nama_roles }}</span>
             @endforeach
             @if($u->bahagian)

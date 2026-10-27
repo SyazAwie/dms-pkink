@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class User extends Authenticatable
 {
@@ -55,13 +56,41 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
     }
 
+    /** Kunci sesi bagi peranan aktif (tukar peranan dari menu nama di topbar). */
+    public const SESI_PERANAN_AKTIF = 'peranan_aktif';
+
+    /** Semua kod peranan yang dimiliki pengguna, tanpa mengira peranan aktif. */
+    public function semuaKodPeranan(): array
+    {
+        return $this->roles->pluck('kod_roles')->all();
+    }
+
     /**
-     * Senarai kod peranan pengguna (cth: ['ADMIN', 'STAFF']).
-     * Guna relasi yang dimuat sekali sahaja setiap request.
+     * Peranan aktif pengguna yang sedang log masuk (null = "Semua peranan").
+     * Hanya bagi pengguna sesi semasa; pengguna lain yang dimuat (cth. dalam senarai
+     * kakitangan atau penerima notifikasi) sentiasa dinilai dengan semua perananya.
+     */
+    public function perananAktif(): ?string
+    {
+        if (! Auth::hasUser() || Auth::id() !== $this->user_id || ! app()->bound('session')) {
+            return null;
+        }
+
+        $kod = session(self::SESI_PERANAN_AKTIF);
+
+        return is_string($kod) && in_array($kod, $this->semuaKodPeranan(), true) ? $kod : null;
+    }
+
+    /**
+     * Senarai kod peranan yang BERKUAT KUASA (cth: ['ADMIN', 'STAFF'], atau ['STAFF'] bila
+     * pengguna menukar peranan aktif kepada Staf). Semua semakan kebenaran (middleware
+     * peranan:, DokumenPolicy, Dokumen::scopeBolehDilihat, menu) melalui kaedah ini.
      */
     public function kodPeranan(): array
     {
-        return $this->roles->pluck('kod_roles')->all();
+        $aktif = $this->perananAktif();
+
+        return $aktif ? [$aktif] : $this->semuaKodPeranan();
     }
 
     // Semak satu peranan berdasarkan kod_roles (cth: 'SUPERADMIN')
