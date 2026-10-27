@@ -111,7 +111,14 @@
                     @endphp
                     <tr>
                         <td class="text-nowrap">{{ $log->created_at?->format('d/m/Y H:i:s') }}</td>
-                        <td>{{ $log->pengguna->nama_staff ?? '-' }}</td>
+                        <td>
+                            @if($log->pengguna)
+                                {{ $log->pengguna->nama_staff }}
+                            @else
+                                {{-- Tiada pengguna log masuk: arahan konsol/penjadual atau tetamu (cth. pendaftaran awam) --}}
+                                <span class="text-muted fst-italic">Sistem / tetamu</span>
+                            @endif
+                        </td>
                         <td><span class="badge aud-badge {{ $kelas }}">{{ $log->tindakan }}</span></td>
                         <td><code>{{ $log->nama_jadual }}</code></td>
                         <td>{{ $log->rekod_id ?? '-' }}</td>

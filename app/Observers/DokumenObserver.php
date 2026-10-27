@@ -43,7 +43,7 @@ class DokumenObserver
     private function rekodLog($tindakan, $model, $dataLama, $dataBaharu)
     {
         LogAudit::create([
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(), // null = sistem (arahan konsol/penjadual) atau tetamu
             'tindakan' => $tindakan,
             'nama_jadual' => $model->getTable(),
             'rekod_id' => $model->getKey(),
