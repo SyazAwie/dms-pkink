@@ -713,7 +713,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 1. Pasang PHP 8.3+ (sambungan `gd`, `pdo_mysql`), Composer dan MySQL/MariaDB 10.4+ (disyorkan: Laravel Herd + MySQL XAMPP di Windows)
 2. Clone projek dan jalankan `composer install`
 3. Salin `.env.example` ke `.env`, kemudian:
-   - tetapkan `DB_CONNECTION=mysql`, `DB_DATABASE=dms_pkink_db`, `DB_USERNAME`, `DB_PASSWORD` (`.env.example` masih `sqlite`)
+   - semak `DB_DATABASE=dms_pkink_db`, `DB_USERNAME` dan `DB_PASSWORD` (`.env.example` sudah ditetapkan untuk MySQL)
    - semak `APP_LOCALE=ms`, `APP_TIMEZONE=Asia/Kuala_Lumpur`
    - tetapan emel `MAIL_*` (SMTP) untuk lupa kata laluan dan emel pendaftaran
 4. Jana kunci aplikasi: `php artisan key:generate`
