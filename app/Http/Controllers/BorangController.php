@@ -85,10 +85,12 @@ class BorangController extends Controller
                 'pemohon_id' => Auth::id(),
                 'pegawai_penyokong_id' => null,
                 'pegawai_pelulus_id' => null,
+                'pegawai_penolak_id' => null,
                 'status_permohonan' => 'Dalam Proses',
                 'tarikh_permohonan' => now(),
                 'tarikh_sokongan' => null,
                 'tarikh_kelulusan' => null,
+                'tarikh_tolak' => null,
                 'ulasan_penyokong' => null,
                 'ulasan_pelulus' => null,
             ]
@@ -168,6 +170,8 @@ class BorangController extends Controller
             $borang->update([
                 'status_permohonan' => 'Ditolak',
                 $lajurUlasan => $request->input($lajurUlasan),
+                'pegawai_penolak_id' => Auth::id(),
+                'tarikh_tolak' => now(),
             ]);
 
             $this->log($borang->dokumen, $borang, 'Tolak Permohonan');

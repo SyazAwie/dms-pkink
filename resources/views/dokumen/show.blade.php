@@ -104,6 +104,12 @@
                         @if($dokumen->borang->pelulus)
                             <li><span>Diluluskan Oleh</span><strong>{{ $dokumen->borang->pelulus->nama_staff }}</strong></li>
                         @endif
+                        @if($statusSemasa === 'Ditolak' && $dokumen->borang->penolak)
+                            <li><span>Ditolak Oleh</span><strong>{{ $dokumen->borang->penolak->nama_staff }}</strong></li>
+                            @if($dokumen->borang->tarikh_tolak)
+                                <li><span>Tarikh Ditolak</span><strong>{{ $dokumen->borang->tarikh_tolak->translatedFormat('d M Y, h:i A') }}</strong></li>
+                            @endif
+                        @endif
                     </ul>
                     @if($dokumen->borang->ulasan_penyokong)
                         <div class="kel-ulasan"><i class="bi bi-chat-left-text"></i> <strong>Penyokong:</strong> {{ $dokumen->borang->ulasan_penyokong }}</div>

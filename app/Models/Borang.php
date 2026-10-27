@@ -22,10 +22,12 @@ class Borang extends Model
         'pemohon_id',
         'pegawai_penyokong_id',
         'pegawai_pelulus_id',
+        'pegawai_penolak_id',
         'status_permohonan',
         'tarikh_permohonan',
         'tarikh_sokongan',
         'tarikh_kelulusan',
+        'tarikh_tolak',
         'ulasan_penyokong',
         'ulasan_pelulus',
     ];
@@ -34,6 +36,7 @@ class Borang extends Model
         'tarikh_permohonan' => 'datetime',
         'tarikh_sokongan' => 'datetime',
         'tarikh_kelulusan' => 'datetime',
+        'tarikh_tolak' => 'datetime',
     ];
 
     /**
@@ -78,5 +81,11 @@ class Borang extends Model
     public function pelulus()
     {
         return $this->belongsTo(User::class, 'pegawai_pelulus_id', 'user_id');
+    }
+
+    /** Pegawai yang menolak permohonan (peringkat sokongan atau kelulusan). */
+    public function penolak()
+    {
+        return $this->belongsTo(User::class, 'pegawai_penolak_id', 'user_id')->withTrashed();
     }
 }

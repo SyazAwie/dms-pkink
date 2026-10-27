@@ -86,6 +86,32 @@ class KelulusanPemohonTest extends TestCase
         $this->assertSame($penyokong->user_id, (int) Borang::sole()->pegawai_penyokong_id);
     }
 
+    public function test_tolak_rekod_pegawai_penolak_dan_hantar_semula_mengosongkannya(): void
+    {
+        $staf = $this->buatPengguna(['STAFF']);
+        $penyokong = $this->buatPengguna(['PENYOKONG'], ['nama_staff' => 'Pegawai Penyokong Ujian']);
+        $d = $this->permohonan($staf, 'Dalam Proses');
+
+        $this->actingAs($penyokong)->post(route('kelulusan.tolak', $d->dokumen_id), ['ulasan_penyokong' => 'Lampiran tidak lengkap'])
+            ->assertRedirect();
+
+        $borang = Borang::sole();
+        $this->assertSame('Ditolak', $borang->status_permohonan);
+        $this->assertSame($penyokong->user_id, (int) $borang->pegawai_penolak_id);
+        $this->assertNotNull($borang->tarikh_tolak);
+
+        // Pemohon nampak siapa yang menolak
+        $this->actingAs($staf)->get(route('dokumen.show', $d->dokumen_id))->assertOk()
+            ->assertSeeInOrder(['Ditolak Oleh', 'Pegawai Penyokong Ujian', 'Tarikh Ditolak']);
+
+        // Hantar semula: rekod penolakan lama dikosongkan
+        $this->actingAs($staf)->post(route('kelulusan.hantar', $d->dokumen_id))->assertRedirect();
+        $borang->refresh();
+        $this->assertSame('Dalam Proses', $borang->status_permohonan);
+        $this->assertNull($borang->pegawai_penolak_id);
+        $this->assertNull($borang->tarikh_tolak);
+    }
+
     public function test_halaman_dokumen_sembunyi_butang_bagi_pemohon(): void
     {
         $admin = $this->buatPengguna(['ADMIN']);

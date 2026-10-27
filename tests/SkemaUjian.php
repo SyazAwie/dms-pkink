@@ -112,10 +112,12 @@ trait SkemaUjian
             $t->unsignedBigInteger('pemohon_id')->nullable();
             $t->unsignedBigInteger('pegawai_penyokong_id')->nullable();
             $t->unsignedBigInteger('pegawai_pelulus_id')->nullable();
+            $t->unsignedBigInteger('pegawai_penolak_id')->nullable();
             $t->string('status_permohonan')->default('Dalam Proses');
             $t->timestamp('tarikh_permohonan')->nullable();
             $t->timestamp('tarikh_sokongan')->nullable();
             $t->timestamp('tarikh_kelulusan')->nullable();
+            $t->timestamp('tarikh_tolak')->nullable();
             $t->text('ulasan_penyokong')->nullable();
             $t->text('ulasan_pelulus')->nullable();
             $t->timestamps();
