@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -195,7 +196,8 @@ class ImbasArkibController extends DokumenController
                 $hasil['masa']['ai'] = round(microtime(true) - $mula, 1);
             }
         } catch (\Throwable $e) {
-            $hasil['mesej_amaran'] = 'OCR/AI gagal diproses automatik: ' . $e->getMessage() . ' — sila isi semua medan secara manual.';
+            Log::warning('Imbas & Arkib: OCR/AI gagal: ' . $e->getMessage());
+            $hasil['mesej_amaran'] = 'OCR/AI gagal diproses automatik' . $this->butiranRalat($e) . ' — sila isi semua medan secara manual.';
         }
 
         return $hasil;
