@@ -678,6 +678,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | Arahan | Fail |
 |---|---|
 | `php artisan imbas-arkib:bersih [--jam=24] [--cuba]` | `app/Console/Commands/BersihImbasArkib.php` (dijadualkan harian) |
+| `php artisan sandaran:jalan [--simpan=14]` | `app/Console/Commands/SandaranJalan.php` (dijadualkan 12:30 setiap hari) |
 | `php artisan ai:panaskan` | `routes/console.php` |
 
 ### Views (`resources/views/`)
@@ -727,7 +728,11 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 8. Pasang Ollama, kemudian daftarkan model SEA-LION sebagai `sea-lion-local` dan tarik GLM-OCR: `ollama pull glm-ocr:q8_0`. Tetapan `OCR_*`, `OCR_VLM_*` dan `OLLAMA_*` sudah ada dalam `.env.example`
 9. Jalankan `php artisan config:clear`
 10. Jalankan `php artisan serve` (atau buka melalui Herd)
-11. (Pilihan) Jadualkan `php artisan schedule:run` setiap minit (Task Scheduler / cron) untuk pembersihan harian `imbas-arkib:bersih`
+11. Tetapkan sandaran dalam `.env` (`SANDARAN_MYSQLDUMP_BIN`, `SANDARAN_SALINAN`; lihat 10.2), kemudian jadualkan penjadual Laravel setiap minit melalui Windows Task Scheduler (jalankan sekali dalam PowerShell, tukar laluan ikut komputer):
+    ```
+    schtasks /Create /TN "DMS PKINK Penjadual" /SC MINUTE /MO 1 /F /TR 'conhost.exe --headless C:\Users\NAMA\.config\herd\bin\php83\php.exe C:\laluan\projek\artisan schedule:run'
+    ```
+    `conhost --headless` mengelakkan tetingkap konsol muncul setiap minit (laluan tanpa ruang kosong). Ini menjalankan `imbas-arkib:bersih` (harian) dan `sandaran:jalan` (12:30 setiap hari)
 12. Sebelum demo: `php artisan ai:panaskan`
 
 **Produksi:** tetapkan `APP_ENV=production`, `APP_DEBUG=false`, dan padam akaun ujian (Bahagian 13).
@@ -740,6 +745,31 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `php artisan test --filter=NamaTest` | Satu ujian |
 | `vendor/bin/pint --dirty` | Format fail yang berubah |
 | `php artisan config:clear` | Selepas mengubah `.env`/config |
+| `php artisan sandaran:jalan` | Sandaran serta-merta (sebelum perubahan besar) |
+
+### 10.2 Sandaran & Pemulihan
+
+**Sandaran** (`php artisan sandaran:jalan`, dijadualkan 12:30 setiap hari) menghasilkan `sandaran_YYYYMMDD_HHMMSS.zip` yang mengandungi:
+- `pangkalan_data/dms_pkink_db.sql`: mysqldump penuh (17 jadual, `--single-transaction`)
+- `fail/...`: semua fail dalam `storage/app/private` (fail imbasan), kecuali `ocr_sementara`
+
+| Tetapan `.env` | Lalai | Maksud |
+|---|---|---|
+| `SANDARAN_MYSQLDUMP_BIN` | `mysqldump` | Laluan penuh, cth. `C:/xampp/mysql/bin/mysqldump.exe` |
+| `SANDARAN_FOLDER` | `storage/app/sandaran` | Folder sandaran utama |
+| `SANDARAN_SALINAN` | (tiada) | Salinan kedua di luar projek, cth. folder OneDrive |
+| `SANDARAN_SIMPAN_HARI` | 14 | Sandaran lebih lama dipadam di kedua-dua folder |
+
+Keputusan terakhir ditulis ke `{folder}/terakhir.json` (berjaya/gagal, saiz, bilangan fail) dan ke log Laravel. Kata laluan DB dihantar melalui `MYSQL_PWD`, bukan baris arahan.
+
+**Pemulihan** (diuji 27 Oktober 2026: semua 17 jadual dan bilangan baris sepadan, lajur janaan dikira semula):
+1. Ekstrak zip sandaran ke folder sementara
+2. Pangkalan data: dalam HeidiSQL cipta pangkalan data kosong (`utf8mb4_unicode_ci`), kemudian jalankan `pangkalan_data/dms_pkink_db.sql`; atau dalam PowerShell:
+   ```
+   & "C:\xampp\mysql\bin\mysql.exe" -u root -p dms_pkink_db -e "source C:/sementara/pangkalan_data/dms_pkink_db.sql"
+   ```
+3. Fail imbasan: salin kandungan folder `fail/` ke `storage/app/private/`
+4. `php artisan config:clear`, kemudian log masuk dan buka beberapa dokumen untuk memastikan fail imbasan boleh dipaparkan
 
 ---
 
