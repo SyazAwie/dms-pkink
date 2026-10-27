@@ -199,6 +199,9 @@
                                 <i class="bi bi-file-earmark-text"></i>
                                 <span class="fail-nama">{{ $scan->nama_fail }}</span>
                             </a>
+                            @if($scan->saizMudahDibaca())
+                                <span class="fail-saiz" title="SHA-256: {{ $scan->hash_sha256 }}">{{ $scan->saizMudahDibaca() }}</span>
+                            @endif
                             <span class="badge fail-status {{ $kelasOcr }}">{{ $scan->status_ocr }}</span>
                             @if($adaTeks)
                                 <button type="button" class="btn-teks-ocr" data-bs-toggle="collapse" data-bs-target="#ocr-{{ $scan->dokumen_scan_id }}" title="Papar teks OCR">
@@ -347,6 +350,7 @@
     }
     .btn-jalan-ocr:hover { background: rgba(23, 105, 210, .08); }
     .ocr-teks-wrap { margin-top: 8px; padding: 12px; border: 1px dashed var(--dms-line); border-radius: 10px; background: rgba(23,105,210,.02); }
+    .fail-saiz { flex: 0 0 auto; color: var(--dms-muted); font-size: 11px; white-space: nowrap; }
     .ocr-dibetulkan { background: rgba(23, 105, 210, .1); color: var(--dms-primary); }
     .ocr-teks-input { width: 100%; font-size: 12px; line-height: 1.5; }
     .ocr-teks { margin: 0; max-height: 260px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-word; color: var(--dms-text); font-family: inherit; }

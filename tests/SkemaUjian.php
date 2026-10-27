@@ -136,6 +136,9 @@ trait SkemaUjian
             $t->unsignedBigInteger('dokumen_id');
             $t->string('nama_fail');
             $t->string('lokasi_fail');
+            $t->unsignedBigInteger('saiz_fail')->nullable();
+            $t->string('jenis_mime', 100)->nullable();
+            $t->char('hash_sha256', 64)->nullable();
             $t->timestamp('tarikh_scan')->nullable();
             $t->string('status_ocr', 30)->default('Pending');
             $t->timestamps();
