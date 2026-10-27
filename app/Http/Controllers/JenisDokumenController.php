@@ -19,7 +19,7 @@ class JenisDokumenController extends Controller
     // 1. Fungsi paparkan senarai
     public function index()
     {
-        $senarai = JenisDokumen::withCount('fields')->get();
+        $senarai = JenisDokumen::withCount(['fields', 'dokumen'])->get();
         return view('jenis_dokumen.index', compact('senarai'));
     }
 
@@ -129,11 +129,17 @@ class JenisDokumenController extends Controller
     // 6. Padam rekod
     public function destroy($id)
     {
-        $dokumen = JenisDokumen::findOrFail($id);
+        $dokumen = JenisDokumen::withCount('dokumen')->findOrFail($id);
         $dokumen->delete();
 
+        // Dokumen tidak menghalang (#15): ia kekal memaparkan nama kategori (withTrashed),
+        // tetapi kategori tidak lagi boleh dipilih untuk muat naik baharu
+        $nota = $dokumen->dokumen_count
+            ? " {$dokumen->dokumen_count} dokumen sedia ada kekal dalam arkib dengan nama kategori ini."
+            : '';
+
         return redirect()->route('jenis-dokumen.index')
-                         ->with('success', 'Kategori Dokumen telah dipadam.');
+                         ->with('success', 'Kategori Dokumen telah dipadam.' . $nota);
     }
 
     /**

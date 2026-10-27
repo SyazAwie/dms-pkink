@@ -10,7 +10,7 @@ class BahagianController extends Controller
 {
     public function index()
     {
-        $senarai = Bahagian::withCount('users')->get();
+        $senarai = Bahagian::withCount(['users', 'dokumen', 'pendaftaranMenunggu'])->get();
         return view('bahagian.index', compact('senarai'));
     }
 
@@ -50,8 +50,27 @@ class BahagianController extends Controller
 
     public function destroy($id)
     {
-        $bahagian = Bahagian::findOrFail($id);
+        $bahagian = Bahagian::withCount(['users', 'dokumen', 'pendaftaranMenunggu'])->findOrFail($id);
+
+        // Kakitangan aktif mesti berada dalam bahagian aktif (#15): sekat sehingga dipindahkan.
+        // Dokumen tidak menghalang; ia kekal memaparkan nama bahagian (withTrashed).
+        if ($bahagian->users_count || $bahagian->pendaftaran_menunggu_count) {
+            $sebab = array_filter([
+                $bahagian->users_count ? "{$bahagian->users_count} kakitangan aktif" : null,
+                $bahagian->pendaftaran_menunggu_count ? "{$bahagian->pendaftaran_menunggu_count} permohonan pendaftaran yang menunggu" : null,
+            ]);
+
+            return redirect()->route('bahagian.index')->with('error',
+                "Bahagian \"{$bahagian->nama_bahagian}\" tidak boleh dipadam kerana masih ada " . implode(' dan ', $sebab)
+                . '. Pindahkan kakitangan ke bahagian lain atau proses permohonan tersebut dahulu.');
+        }
+
         $bahagian->delete();
-        return redirect()->route('bahagian.index')->with('success', 'Bahagian telah dipadam.');
+
+        $nota = $bahagian->dokumen_count
+            ? " {$bahagian->dokumen_count} dokumen sedia ada kekal dalam arkib dengan nama bahagian ini."
+            : '';
+
+        return redirect()->route('bahagian.index')->with('success', 'Bahagian telah dipadam.' . $nota);
     }
 }
