@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\DokumenScan;
+use App\Support\Notifikasi;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -53,6 +54,8 @@ class FailIntegriti extends Command
             $this->table(['Status', 'ID', 'Dokumen', 'Fail'], array_map(fn ($m) => array_values($m), $masalah));
             $this->error("{$bil['hilang']} fail hilang, {$bil['berubah']} fail berubah. Pulihkan daripada sandaran (README 10.2).");
             Log::warning('Integriti fail imbasan: ' . json_encode($bil), ['masalah' => $masalah]);
+            Notifikasi::amaranSistem('Fail imbasan bermasalah',
+                "{$bil['hilang']} fail hilang dan {$bil['berubah']} fail berubah dalam semakan integriti. Pulihkan daripada sandaran.");
 
             return self::FAILURE;
         }

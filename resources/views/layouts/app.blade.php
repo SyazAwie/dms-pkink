@@ -179,6 +179,36 @@
         .loceng-menu .dropdown-item { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; }
         .loceng-bil { min-width: 24px; padding: 2px 7px; border-radius: 10px; background: rgba(107, 122, 144, .14); color: var(--dms-muted); font-size: 11px; font-weight: 800; text-align: center; }
         .loceng-bil.ada { background: var(--dms-danger); color: #fff; }
+        /* Senarai notifikasi dalam loceng (P-C) */
+        .loceng-menu { width: min(360px, calc(100vw - 24px)); padding: 0; overflow: hidden; }
+        .loceng-kepala { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--dms-line); }
+        .loceng-kepala strong { color: var(--dms-brand); font-size: 14px; }
+        .loceng-pautan { padding: 0; border: 0; color: var(--dms-primary); background: none; font-size: 12px; font-weight: 700; }
+        .loceng-senarai { max-height: min(380px, 60vh); overflow-y: auto; }
+        .loceng-item { display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--dms-line); color: var(--dms-text); }
+        .loceng-item:hover { background: rgba(23, 105, 210, .05); }
+        .loceng-item.belum-baca { background: rgba(23, 105, 210, .06); }
+        .loceng-item.belum-baca strong::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--dms-primary); vertical-align: middle; }
+        .loceng-teks { min-width: 0; }
+        .loceng-teks strong { display: block; font-size: 12.5px; }
+        .loceng-teks span { display: -webkit-box; overflow: hidden; color: var(--dms-muted); font-size: 12px; line-height: 1.4; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .loceng-teks small { color: var(--dms-muted); font-size: 11px; }
+        .loceng-ikon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; font-size: 15px; }
+        .warna-biru { color: var(--dms-primary); background: rgba(23, 105, 210, .1); }
+        .warna-hijau { color: var(--dms-mint); background: rgba(37, 169, 121, .12); }
+        .warna-kuning { color: #b45309; background: rgba(245, 158, 11, .14); }
+        .warna-merah { color: var(--dms-danger); background: rgba(220, 53, 69, .1); }
+        .loceng-kosong { padding: 22px 14px; color: var(--dms-muted); font-size: 12.5px; text-align: center; }
+        .loceng-giliran { padding: 6px; border-bottom: 1px solid var(--dms-line); background: rgba(231, 239, 248, .4); }
+        .loceng-kaki { display: block; padding: 10px 14px; color: var(--dms-primary); font-size: 12.5px; font-weight: 700; text-align: center; }
+        .loceng-kaki:hover { background: rgba(23, 105, 210, .05); }
+        /* Popup notifikasi baharu dalam halaman */
+        .notif-toast-bekas { position: fixed; right: 16px; bottom: 16px; z-index: 1090; display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); }
+        .notif-toast { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: start; padding: 12px; border: 1px solid var(--dms-line); border-radius: 12px; color: var(--dms-text); background: #fff; box-shadow: 0 14px 34px rgba(15, 23, 42, .18); animation: notifMasuk .25s ease; }
+        .notif-toast strong { display: block; font-size: 13px; }
+        .notif-toast span { color: var(--dms-muted); font-size: 12px; }
+        .notif-toast button { border: 0; color: var(--dms-muted); background: none; }
+        @keyframes notifMasuk { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
         .notification-badge { position: absolute; top: -6px; right: -6px; display: inline-grid; min-width: 19px; height: 19px; padding: 0 5px; place-items: center; border: 2px solid #fff; border-radius: 10px; background: var(--dms-danger); color: #fff; font-size: 10px; font-weight: 800; line-height: 1; }
         .top-user { min-width: 0; max-width: 200px; text-align: right; }
         .top-user strong, .top-user small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -361,9 +391,12 @@
                 ? \App\Models\PendaftaranStaf::where('status', \App\Models\PendaftaranStaf::MENUNGGU)->count()
                 : 0;
             $bilGiliran = $bilKelulusan + $bilPendaftaran;
-            $labelLoceng = $bilGiliran > 0
-                ? "Pemberitahuan: {$bilGiliran} perkara menunggu tindakan anda"
-                : 'Pemberitahuan: tiada perkara menunggu tindakan anda';
+
+            // Notifikasi dalam sistem (P-C), ditapis ikut peranan aktif (App\Support\Notifikasi)
+            $bilBelumBaca = \App\Support\Notifikasi::kelihatan($penggunaSemasa, true)->count();
+            $notifTerkini = \App\Support\Notifikasi::kelihatan($penggunaSemasa, false, 30)->take(6);
+            $labelLoceng = "Notifikasi: {$bilBelumBaca} belum dibaca"
+                . ($bilGiliran > 0 ? ", {$bilGiliran} perkara menunggu tindakan anda" : '');
         @endphp
         <button type="button" class="sidebar-backdrop" id="sidebarBackdrop" aria-label="Tutup menu navigasi"></button>
 
@@ -512,35 +545,54 @@
                 </div>
 
                 <div class="topbar-actions">
-                    @if($bolehKelulusan)
-                    <div class="dropdown">
-                        <button type="button" class="icon-button notification" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ $labelLoceng }}" title="{{ $labelLoceng }}">
+                    {{-- Loceng notifikasi (semua peranan): notifikasi terkini + giliran tindakan; dikemas kini setiap 30 s --}}
+                    <div class="dropdown" id="loceng" data-ringkasan="{{ route('notifikasi.ringkasan') }}">
+                        <button type="button" class="icon-button notification" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="{{ $labelLoceng }}" title="{{ $labelLoceng }}">
                             <i class="bi bi-bell" aria-hidden="true"></i>
-                            @if($bilGiliran > 0)
-                                <span class="notification-badge" aria-hidden="true">{{ $bilGiliran > 99 ? '99+' : $bilGiliran }}</span>
-                            @endif
+                            <span class="notification-badge" id="locengBadge" aria-hidden="true" @if(!$bilBelumBaca) hidden @endif>{{ $bilBelumBaca > 99 ? '99+' : $bilBelumBaca }}</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end loceng-menu">
-                            <li class="dropdown-header">Menunggu tindakan anda</li>
-                            <li>
-                                <a class="dropdown-item" href="{{ route('kelulusan.index') }}">
-                                    <i class="bi bi-patch-check" aria-hidden="true"></i>
-                                    <span>Kelulusan dokumen</span>
-                                    <span class="loceng-bil {{ $bilKelulusan > 0 ? 'ada' : '' }}">{{ $bilKelulusan }}</span>
-                                </a>
-                            </li>
-                            @if($bolehPendaftaran)
-                            <li>
-                                <a class="dropdown-item" href="{{ route('pendaftaran.index') }}">
-                                    <i class="bi bi-person-check" aria-hidden="true"></i>
-                                    <span>Pendaftaran staf</span>
-                                    <span class="loceng-bil {{ $bilPendaftaran > 0 ? 'ada' : '' }}">{{ $bilPendaftaran }}</span>
-                                </a>
-                            </li>
+                        <div class="dropdown-menu dropdown-menu-end loceng-menu">
+                            <div class="loceng-kepala">
+                                <strong>Notifikasi</strong>
+                                <form method="POST" action="{{ route('notifikasi.baca-semua') }}" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="loceng-pautan" id="locengBacaSemua" @if(!$bilBelumBaca) hidden @endif>Tandakan semua dibaca</button>
+                                </form>
+                            </div>
+                            <div class="loceng-senarai" id="locengSenarai">
+                                @forelse($notifTerkini as $n)
+                                    <a href="{{ route('notifikasi.buka', $n->id) }}" class="loceng-item {{ $n->read_at ? '' : 'belum-baca' }}">
+                                        <span class="loceng-ikon warna-{{ $n->data['warna'] ?? 'biru' }}"><i class="bi {{ $n->data['ikon'] ?? 'bi-bell' }}" aria-hidden="true"></i></span>
+                                        <span class="loceng-teks">
+                                            <strong>{{ $n->data['tajuk'] ?? 'Notifikasi' }}</strong>
+                                            <span>{{ $n->data['mesej'] ?? '' }}</span>
+                                            <small>{{ $n->created_at?->diffForHumans() }}</small>
+                                        </span>
+                                    </a>
+                                @empty
+                                    <div class="loceng-kosong"><i class="bi bi-bell-slash" aria-hidden="true"></i> Tiada notifikasi.</div>
+                                @endforelse
+                            </div>
+                            @if($bolehKelulusan)
+                                <div class="loceng-giliran">
+                                    <div class="dropdown-header">Menunggu tindakan anda</div>
+                                    <a class="dropdown-item" href="{{ route('kelulusan.index') }}">
+                                        <i class="bi bi-patch-check" aria-hidden="true"></i>
+                                        <span>Kelulusan dokumen</span>
+                                        <span class="loceng-bil {{ $bilKelulusan > 0 ? 'ada' : '' }}">{{ $bilKelulusan }}</span>
+                                    </a>
+                                    @if($bolehPendaftaran)
+                                        <a class="dropdown-item" href="{{ route('pendaftaran.index') }}">
+                                            <i class="bi bi-person-check" aria-hidden="true"></i>
+                                            <span>Pendaftaran staf</span>
+                                            <span class="loceng-bil {{ $bilPendaftaran > 0 ? 'ada' : '' }}">{{ $bilPendaftaran }}</span>
+                                        </a>
+                                    @endif
+                                </div>
                             @endif
-                        </ul>
+                            <a href="{{ route('notifikasi.index') }}" class="loceng-kaki">Lihat semua notifikasi <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                        </div>
                     </div>
-                    @endif
                     {{-- Menu pengguna: tukar peranan aktif (berbilang peranan) + profil --}}
                     <div class="dropdown">
                         <button type="button" class="pengguna-butang" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu pengguna: {{ Auth::user()->nama_staff }}, {{ $labelPeranan }}">
@@ -658,6 +710,79 @@
             window.addEventListener('resize', () => {
                 if (window.innerWidth >= 992) setMenu(false);
             });
+        })();
+
+        // Notifikasi (P-C): semak setiap 30 s; popup dalam halaman bila notifikasi baharu masuk.
+        // Notifikasi yang sudah dilihat diingat dalam sessionStorage supaya popup tidak berulang.
+        (() => {
+            const loceng = document.getElementById('loceng');
+            if (!loceng) return;
+            const badge = document.getElementById('locengBadge');
+            const senarai = document.getElementById('locengSenarai');
+            const bacaSemua = document.getElementById('locengBacaSemua');
+            const KUNCI = 'dmsNotifDilihat';
+            let dilihat = null;
+            try { dilihat = sessionStorage.getItem(KUNCI) !== null ? new Set(JSON.parse(sessionStorage.getItem(KUNCI))) : null; } catch (e) { dilihat = null; }
+            const kaliPertama = dilihat === null; // halaman pertama sesi: jangan popup notifikasi lama
+            dilihat = dilihat || new Set();
+            const simpan = () => { try { sessionStorage.setItem(KUNCI, JSON.stringify([...dilihat].slice(-200))); } catch (e) { /* storan disekat */ } };
+
+            const bekas = document.createElement('div');
+            bekas.className = 'notif-toast-bekas';
+            bekas.setAttribute('aria-live', 'polite');
+            document.body.append(bekas);
+
+            const elemen = (tag, kelas, teks) => { const e = document.createElement(tag); if (kelas) e.className = kelas; if (teks !== undefined) e.textContent = teks; return e; };
+            const ikon = (n) => { const s = elemen('span', `loceng-ikon warna-${n.warna}`); const i = elemen('i', `bi ${n.ikon}`); i.setAttribute('aria-hidden', 'true'); s.append(i); return s; };
+
+            const popup = (n) => {
+                const a = elemen('a', 'notif-toast');
+                a.href = n.url;
+                const teks = elemen('span');
+                teks.append(elemen('strong', '', n.tajuk), elemen('span', '', n.mesej));
+                const tutup = elemen('button', '', '×');
+                tutup.type = 'button';
+                tutup.setAttribute('aria-label', 'Tutup notifikasi');
+                tutup.addEventListener('click', (e) => { e.preventDefault(); a.remove(); });
+                a.append(ikon(n), teks, tutup);
+                bekas.append(a);
+                setTimeout(() => a.remove(), 8000);
+                window.dispatchEvent(new CustomEvent('dms:notifikasi-baharu', { detail: n }));
+            };
+
+            const lukis = (data) => {
+                badge.hidden = !data.belum_dibaca;
+                badge.textContent = data.belum_dibaca > 99 ? '99+' : data.belum_dibaca;
+                bacaSemua.hidden = !data.belum_dibaca;
+                senarai.replaceChildren(...(data.terkini.length ? data.terkini.map((n) => {
+                    const a = elemen('a', `loceng-item ${n.dibaca ? '' : 'belum-baca'}`);
+                    a.href = n.url;
+                    const teks = elemen('span', 'loceng-teks');
+                    teks.append(elemen('strong', '', n.tajuk), elemen('span', '', n.mesej), elemen('small', '', n.masa));
+                    a.append(ikon(n), teks);
+                    return a;
+                }) : [Object.assign(elemen('div', 'loceng-kosong', ' Tiada notifikasi.'))]));
+            };
+
+            let pertama = true;
+            const semak = async () => {
+                try {
+                    const r = await fetch(loceng.dataset.ringkasan, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+                    if (!r.ok) return;
+                    const data = await r.json();
+                    lukis(data);
+                    data.terkini.filter((n) => !n.dibaca && !dilihat.has(n.id)).forEach((n) => {
+                        dilihat.add(n.id);
+                        if (!(pertama && kaliPertama)) popup(n);
+                    });
+                    simpan();
+                    pertama = false;
+                } catch (e) { /* rangkaian terputus: cuba lagi kemudian */ }
+            };
+
+            semak();
+            setInterval(() => { if (!document.hidden) semak(); }, 30000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) semak(); });
         })();
 
         // Kamera semasa muat naik: kamera langsung (getUserMedia: kamera belakang telefon / webcam

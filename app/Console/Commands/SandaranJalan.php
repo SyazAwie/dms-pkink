@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\Notifikasi;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -63,6 +64,7 @@ class SandaranJalan extends Command
             Log::error('Sandaran gagal: ' . $e->getMessage());
             $this->tulisStatus($folder, ['berjaya' => false, 'masa' => now()->toDateTimeString(), 'ralat' => $e->getMessage()]);
             $this->error('Sandaran gagal: ' . $e->getMessage());
+            Notifikasi::amaranSistem('Sandaran gagal', 'Sandaran pangkalan data & fail imbasan gagal: ' . $e->getMessage());
 
             return self::FAILURE;
         } finally {

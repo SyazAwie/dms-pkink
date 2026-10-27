@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 // Panggil semua Model
+use App\Models\Borang;
 use App\Models\JenisDokumen;
 use App\Models\Bahagian;
 use App\Models\User;
@@ -16,6 +17,7 @@ use App\Models\Dokumen;
 use App\Models\DokumenField;
 
 // Panggil semua Observer
+use App\Observers\BorangNotifikasiObserver;
 use App\Observers\JenisDokumenObserver;
 use App\Observers\BahagianObserver;
 use App\Observers\UserObserver;
@@ -43,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
         User::observe(UserObserver::class);
         Dokumen::observe(DokumenObserver::class);
         DokumenField::observe(DokumenFieldObserver::class);
+
+        // Notifikasi aliran kelulusan (selepas commit), bukan log audit
+        Borang::observe(BorangNotifikasiObserver::class);
 
         // Kebenaran dokumen ikut peranan (lihat, muat naik, edit, padam)
         Gate::policy(Dokumen::class, DokumenPolicy::class);
