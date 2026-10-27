@@ -1,21 +1,23 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\JenisDokumenController;
 use App\Http\Controllers\BahagianController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\PasswordResetController;
-use App\Http\Controllers\DokumenController;
-use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
 use App\Http\Controllers\IsiBorangController;
+use App\Http\Controllers\JenisDokumenController;
+use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\NotifikasiController;
-use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PendaftaranStafController;
+use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\StatusSistemController;
+use App\Http\Controllers\TongSampahController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -83,9 +85,19 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
         Route::get('/pendaftaran', [PendaftaranStafController::class, 'index'])->name('pendaftaran.index');
         Route::post('/pendaftaran/{id}/lulus', [PendaftaranStafController::class, 'lulus'])->name('pendaftaran.lulus');
         Route::post('/pendaftaran/{id}/tolak', [PendaftaranStafController::class, 'tolak'])->name('pendaftaran.tolak');
+
+        // Tong Sampah: rekod yang di-soft delete + pemulihan (tiada padam kekal)
+        Route::get('/tong-sampah', [TongSampahController::class, 'index'])->name('tong-sampah.index');
+        Route::post('/tong-sampah/{jenis}/{id}/pulih', [TongSampahController::class, 'pulih'])
+            ->whereIn('jenis', ['dokumen', 'kategori', 'bahagian', 'kakitangan'])->whereNumber('id')->name('tong-sampah.pulih');
+
+        // Status Sistem: semakan OCR/AI, sandaran, penjadual, storan
+        Route::get('/status-sistem', [StatusSistemController::class, 'index'])->name('status-sistem.index');
     });
 
     // ---- Dokumen: kebenaran dikawal oleh DokumenPolicy dalam controller (ikut peranan & skop) ----
+    // Eksport CSV (P9): sebelum resource supaya tidak ditafsir sebagai dokumen/{id}
+    Route::get('/dokumen/eksport', [DokumenController::class, 'eksport'])->name('dokumen.eksport');
     Route::resource('dokumen', DokumenController::class);
     Route::get('/dokumen/scan/{id}/papar', [DokumenController::class, 'paparScan'])->name('dokumen.scan.papar');
     Route::post('/dokumen/scan/{id}/ocr', [DokumenController::class, 'jalankanOcr'])->name('dokumen.scan.ocr');
@@ -141,5 +153,8 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/log-audit', [LogAuditController::class, 'index'])
         ->middleware('peranan:SUPERADMIN,AUDIT')
         ->name('log-audit.index');
+    Route::get('/log-audit/eksport', [LogAuditController::class, 'eksport'])
+        ->middleware('peranan:SUPERADMIN,AUDIT')
+        ->name('log-audit.eksport');
 
 });

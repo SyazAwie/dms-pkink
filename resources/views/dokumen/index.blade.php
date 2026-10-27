@@ -54,10 +54,16 @@
             </div>
         @endif
     </div>
-    <button type="button" class="outline-button btn-toggle-cari" data-bs-toggle="collapse" data-bs-target="#panelPenapis" aria-controls="panelPenapis">
-        <i class="bi bi-funnel"></i> <span>Carian &amp; Penapis</span>
-        @if($bilPenapis)<span class="badge cari-badge">{{ $bilPenapis }}</span>@endif
-    </button>
+    <div class="d-flex gap-2">
+        {{-- Eksport CSV ikut carian/penapis semasa (P9) --}}
+        <a href="{{ route('dokumen.eksport', request()->query()) }}" class="outline-button text-decoration-none" title="Eksport senarai (CSV, boleh dibuka dalam Excel)">
+            <i class="bi bi-download"></i> <span>Eksport CSV</span>
+        </a>
+        <button type="button" class="outline-button btn-toggle-cari" data-bs-toggle="collapse" data-bs-target="#panelPenapis" aria-controls="panelPenapis">
+            <i class="bi bi-funnel"></i> <span>Carian &amp; Penapis</span>
+            @if($bilPenapis)<span class="badge cari-badge">{{ $bilPenapis }}</span>@endif
+        </button>
+    </div>
 </div>
 
 <!-- ============ Carian & Penapis ============ -->

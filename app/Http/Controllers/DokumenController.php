@@ -6,17 +6,20 @@ use App\Models\Bahagian;
 use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\DokumenData;
-use App\Models\DokumenScan;
 use App\Models\DokumenOcr;
-use App\Services\OcrService;
-use Illuminate\Support\Facades\Log;
+use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
+use App\Services\OcrService;
+use App\Support\Csv;
 use App\Support\JenisMedan;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -27,6 +30,52 @@ class DokumenController extends Controller
     {
         Gate::authorize('viewAny', Dokumen::class);
 
+        $senarai = $this->queryDitapis($request)->paginate(15)->withQueryString();
+
+        $jenisDokumenSenarai = JenisDokumen::orderBy('nama_dokumen')->get();
+        $bahagianSenarai = Bahagian::orderBy('nama_bahagian')->get();
+        $adaPenapis = $request->hasAny(['q', 'jenis', 'bahagian', 'dari', 'hingga'])
+            && collect($request->only(['q', 'jenis', 'bahagian', 'dari', 'hingga']))->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty();
+
+        return view('dokumen.index', compact('senarai', 'jenisDokumenSenarai', 'bahagianSenarai', 'adaPenapis'));
+    }
+
+    /**
+     * Eksport CSV senarai dokumen (P9) ikut carian/penapis semasa dan skop peranan.
+     * UTF-8 dengan BOM supaya terus dibuka betul dalam Excel. Tindakan dilog.
+     */
+    public function eksport(Request $request)
+    {
+        Gate::authorize('viewAny', Dokumen::class);
+        $query = $this->queryDitapis($request);
+        $bilangan = (clone $query)->count();
+
+        LogAudit::create([
+            'user_id' => Auth::id(), 'tindakan' => 'Eksport CSV', 'nama_jadual' => 'dokumen', 'rekod_id' => null,
+            'data_lama' => null, 'data_baharu' => ['bilangan' => $bilangan, 'penapis' => array_filter($request->query())],
+            'alamat_ip' => $request->ip(), 'peranti_pengguna' => $request->userAgent(), 'created_at' => now(),
+        ]);
+
+        return response()->streamDownload(function () use ($query) {
+            $keluar = fopen('php://output', 'w');
+            Csv::bom($keluar);
+            Csv::baris($keluar, ['No. Rujukan', 'Jenis Dokumen', 'Tarikh Dokumen', 'Perkara', 'Bahagian', 'Dimuat Naik Oleh', 'Status Kelulusan', 'Tarikh Didaftarkan']);
+            $query->chunk(200, function ($senarai) use ($keluar) {
+                foreach ($senarai as $d) {
+                    Csv::baris($keluar, [
+                        $d->no_rujukan, $d->jenisDokumen->nama_dokumen ?? '', $d->tarikh_dokumen?->format('d/m/Y'), $d->perkara,
+                        $d->bahagian->nama_bahagian ?? '', $d->pemuatNaik->nama_staff ?? '',
+                        $d->borang->status_permohonan ?? 'Belum Dihantar', $d->created_at?->format('d/m/Y H:i'),
+                    ]);
+                }
+            });
+            fclose($keluar);
+        }, 'senarai-dokumen-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Query senarai dokumen ikut skop peranan + carian + penapis + susunan (senarai & eksport). */
+    private function queryDitapis(Request $request)
+    {
         $request->validate([
             'q' => 'nullable|string|max:100',
             'jenis' => 'nullable|integer',
@@ -39,16 +88,18 @@ class DokumenController extends Controller
         // bolehDilihat: STAFF = milik sendiri, PENGURUS = bahagian sendiri, lain = semua
         $query = Dokumen::bolehDilihat(Auth::user())->with(['jenisDokumen', 'bahagian', 'pemuatNaik', 'borang']);
 
-        // Carian kata kunci: no. rujukan, perkara, nama jenis, NILAI MEDAN EAV, nama fail imbasan
+        // Carian kata kunci: no. rujukan, perkara, nama jenis, NILAI MEDAN EAV, nama fail imbasan,
+        // dan TEKS OCR fail imbasan (P7: kandungan dokumen imbasan boleh dicari)
         $kata = trim((string) $request->input('q'));
         if ($kata !== '') {
-            $like = '%' . addcslashes($kata, '%_\\') . '%';
+            $like = '%'.addcslashes($kata, '%_\\').'%';
             $query->where(function ($q) use ($like) {
                 $q->where('no_rujukan', 'like', $like)
-                  ->orWhere('perkara', 'like', $like)
-                  ->orWhereHas('jenisDokumen', fn ($j) => $j->where('nama_dokumen', 'like', $like))
-                  ->orWhereHas('data', fn ($d) => $d->where('nilai_data', 'like', $like))
-                  ->orWhereHas('scans', fn ($f) => $f->where('nama_fail', 'like', $like));
+                    ->orWhere('perkara', 'like', $like)
+                    ->orWhereHas('jenisDokumen', fn ($j) => $j->where('nama_dokumen', 'like', $like))
+                    ->orWhereHas('data', fn ($d) => $d->where('nilai_data', 'like', $like))
+                    ->orWhereHas('scans', fn ($f) => $f->where('nama_fail', 'like', $like))
+                    ->orWhereHas('scans.ocr', fn ($o) => $o->where('teks_dibaca', 'like', $like));
             });
         }
 
@@ -79,14 +130,7 @@ class DokumenController extends Controller
                 $query->orderByDesc('dokumen_id');
         }
 
-        $senarai = $query->paginate(15)->withQueryString();
-
-        $jenisDokumenSenarai = JenisDokumen::orderBy('nama_dokumen')->get();
-        $bahagianSenarai = Bahagian::orderBy('nama_bahagian')->get();
-        $adaPenapis = $request->hasAny(['q', 'jenis', 'bahagian', 'dari', 'hingga'])
-            && collect($request->only(['q', 'jenis', 'bahagian', 'dari', 'hingga']))->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty();
-
-        return view('dokumen.index', compact('senarai', 'jenisDokumenSenarai', 'bahagianSenarai', 'adaPenapis'));
+        return $query;
     }
 
     // Borang muat naik dokumen baharu (?jenis=ID: kategori dipilih dahulu, cth. dari halaman Isi Borang)
@@ -209,7 +253,7 @@ class DokumenController extends Controller
                 // yatim dalam storan (termasuk percubaan yang akan diulang kerana 1062).
                 Storage::disk('local')->delete($laluanDitulis);
 
-                if (!$e instanceof \Illuminate\Database\QueryException) {
+                if (! $e instanceof QueryException) {
                     throw $e;
                 }
                 $percubaan++;
@@ -223,11 +267,11 @@ class DokumenController extends Controller
 
         if ($hantar) {
             return redirect()->route('dokumen.show', $dokumen->dokumen_id)
-                             ->with('success', "Dokumen {$dokumen->no_rujukan} berjaya disimpan dan dihantar untuk kelulusan.");
+                ->with('success', "Dokumen {$dokumen->no_rujukan} berjaya disimpan dan dihantar untuk kelulusan.");
         }
 
         return redirect()->route('dokumen.index')
-                         ->with('success', "Dokumen berjaya dimuat naik! No. Rujukan: {$dokumen->no_rujukan}");
+            ->with('success', "Dokumen berjaya dimuat naik! No. Rujukan: {$dokumen->no_rujukan}");
     }
 
     // Papar butiran satu dokumen (nilai EAV + fail imbasan)
@@ -257,8 +301,9 @@ class DokumenController extends Controller
         $baris = [];
         $seksyenMenunggu = null;
         foreach ($medanAktif as $medan) {
-            if (!JenisMedan::adaNilai($medan)) {
+            if (! JenisMedan::adaNilai($medan)) {
                 $seksyenMenunggu = $medan;
+
                 continue;
             }
             $data = $nilaiIkutMedan->get($medan->dokumen_field_id);
@@ -274,7 +319,7 @@ class DokumenController extends Controller
 
         $idAktif = $medanAktif->pluck('dokumen_field_id')->all();
         foreach ($dokumen->data as $data) {
-            if (!in_array($data->dokumen_field_id, $idAktif)) {
+            if (! in_array($data->dokumen_field_id, $idAktif)) {
                 $baris[] = ['medan' => $data->field, 'nilai' => $data->nilai_data];
             }
         }
@@ -426,7 +471,7 @@ class DokumenController extends Controller
         }
 
         return redirect()->route('dokumen.show', $dokumen->dokumen_id)
-                         ->with('success', "Dokumen {$dokumen->no_rujukan} berjaya dikemas kini.");
+            ->with('success', "Dokumen {$dokumen->no_rujukan} berjaya dikemas kini.");
     }
 
     // Padam (soft delete). Fail fizikal dikekalkan untuk arkib & jejak audit.
@@ -439,7 +484,7 @@ class DokumenController extends Controller
         $dokumen->delete();
 
         return redirect()->route('dokumen.index')
-                         ->with('success', "Dokumen {$noRujukan} telah dipadam.");
+            ->with('success', "Dokumen {$noRujukan} telah dipadam.");
     }
 
     /**
@@ -447,7 +492,7 @@ class DokumenController extends Controller
      * 'throw' => false, jadi store() memulangkan false bila gagal; tukar kepada
      * pengecualian supaya transaksi dibatalkan dan tiada rekod tanpa fail.
      */
-    private function simpanFailScan(\Illuminate\Http\UploadedFile $fail, string $namaFolder): string
+    private function simpanFailScan(UploadedFile $fail, string $namaFolder): string
     {
         $laluan = $fail->store("dokumen_scan/{$namaFolder}", 'local');
         if ($laluan === false) {
@@ -462,9 +507,9 @@ class DokumenController extends Controller
      * dan Imbas & Arkib). Peraturan setiap jenis data ada dalam JenisMedan.
      * Medan yang tersembunyi oleh syarat "tunjuk jika" tidak divalidasi.
      *
-     * @param string $medanPejabat medan seksyen pejabat (JenisMedan::idMedanPejabat):
-     *   'wajib' ikut definisi (Imbas & Arkib), 'pilihan' tidak wajib (Muat Naik/Kemaskini),
-     *   'abai' tidak divalidasi langsung (Imbas & Hantar)
+     * @param  string  $medanPejabat  medan seksyen pejabat (JenisMedan::idMedanPejabat):
+     *                                'wajib' ikut definisi (Imbas & Arkib), 'pilihan' tidak wajib (Muat Naik/Kemaskini),
+     *                                'abai' tidak divalidasi langsung (Imbas & Hantar)
      */
     protected function peraturanMedan(JenisDokumen $jenisDokumen, ?Request $request = null, string $medanPejabat = 'wajib'): array
     {
@@ -472,7 +517,7 @@ class DokumenController extends Controller
         $idPejabat = $medanPejabat === 'wajib' ? [] : JenisMedan::idMedanPejabat($jenisDokumen->fields);
         $peraturanMedan = [];
         foreach ($jenisDokumen->fields as $field) {
-            if ($request && !JenisMedan::kelihatan($field, $jenisDokumen->fields, $medanData)) {
+            if ($request && ! JenisMedan::kelihatan($field, $jenisDokumen->fields, $medanData)) {
                 continue;
             }
             if (in_array($field->dokumen_field_id, $idPejabat, true)) {
@@ -492,11 +537,11 @@ class DokumenController extends Controller
      * supaya apa sahaja yang dihantar dari pelayar diabaikan (tidak boleh dipalsukan).
      * Pulangkan mesej validasi bagi medan wajib yang profilnya tiada maklumat itu.
      *
-     * @param array $nilaiAutoIsi [dokumen_field_id => nilai] daripada JenisMedan::nilaiAutoIsi()
+     * @param  array  $nilaiAutoIsi  [dokumen_field_id => nilai] daripada JenisMedan::nilaiAutoIsi()
      */
     protected function gantiNilaiAutoIsi(Request $request, JenisDokumen $jenisDokumen, array $nilaiAutoIsi): array
     {
-        if (!$nilaiAutoIsi) {
+        if (! $nilaiAutoIsi) {
             return [];
         }
 
@@ -527,15 +572,16 @@ class DokumenController extends Controller
         $awalan = "{$jenisDokumen->kod_dokumen}/{$tahun}/";
 
         $terakhir = Dokumen::withTrashed()
-            ->where('no_rujukan', 'like', addcslashes($awalan, '%_\\') . '%')
+            ->where('no_rujukan', 'like', addcslashes($awalan, '%_\\').'%')
             ->lockForUpdate()
             ->orderByDesc('no_rujukan')
             ->value('no_rujukan');
 
         $turutan = $terakhir ? ((int) substr($terakhir, strlen($awalan))) + 1 : 1;
 
-        return $awalan . str_pad($turutan, 4, '0', STR_PAD_LEFT);
+        return $awalan.str_pad($turutan, 4, '0', STR_PAD_LEFT);
     }
+
     /**
      * Papar/muat turun satu fail imbasan. Disk 'local' (peribadi) + semakan
      * DokumenPolicy::view di sini ialah satu-satunya cara fail ini boleh dicapai —
@@ -546,7 +592,7 @@ class DokumenController extends Controller
         $scan = DokumenScan::with('dokumen')->findOrFail($id);
         Gate::authorize('view', $scan->dokumen);
 
-        if (!Storage::disk('local')->exists($scan->lokasi_fail)) {
+        if (! Storage::disk('local')->exists($scan->lokasi_fail)) {
             abort(404, 'Fail tidak dijumpai dalam storan.');
         }
 
@@ -587,11 +633,11 @@ class DokumenController extends Controller
 
             return back()->with('success', "OCR selesai untuk \"{$scan->nama_fail}\".");
         } catch (\Throwable $e) {
-            Log::warning("OCR gagal untuk dokumen_scan_id {$scan->dokumen_scan_id}: " . $e->getMessage());
+            Log::warning("OCR gagal untuk dokumen_scan_id {$scan->dokumen_scan_id}: ".$e->getMessage());
             $scan->update(['status_ocr' => 'Ralat']);
             $this->logOcrManual($scan, ['status_ocr' => 'Ralat']);
 
-            return back()->with('error', "OCR gagal untuk \"{$scan->nama_fail}\". Sila cuba lagi atau hubungi Pentadbir Sistem." . $this->butiranRalat($e));
+            return back()->with('error', "OCR gagal untuk \"{$scan->nama_fail}\". Sila cuba lagi atau hubungi Pentadbir Sistem.".$this->butiranRalat($e));
         }
     }
 
@@ -675,7 +721,6 @@ class DokumenController extends Controller
      */
     protected function butiranRalat(\Throwable $e): string
     {
-        return config('app.debug') ? ' (' . $e->getMessage() . ')' : '';
+        return config('app.debug') ? ' ('.$e->getMessage().')' : '';
     }
-
 }

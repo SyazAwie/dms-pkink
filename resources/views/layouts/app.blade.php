@@ -498,6 +498,20 @@
                             @endif
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('tong-sampah.index') }}" class="nav-link {{ request()->routeIs('tong-sampah.*') ? 'active' : '' }}">
+                            <i class="bi bi-trash3" aria-hidden="true"></i>
+                            <span>Tong Sampah</span>
+                            @if(request()->routeIs('tong-sampah.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('status-sistem.index') }}" class="nav-link {{ request()->routeIs('status-sistem.*') ? 'active' : '' }}">
+                            <i class="bi bi-activity" aria-hidden="true"></i>
+                            <span>Status Sistem</span>
+                            @if(request()->routeIs('status-sistem.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
                     @endif
                     @if(Auth::user()->hasAnyRole('SUPERADMIN', 'AUDIT'))
                     <li>

@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Support\TeksEmel;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
@@ -36,8 +38,25 @@ class NotifikasiDms extends Notification
             && $notifiable->pushSubscriptions()->exists()) {
             $saluran[] = WebPushChannel::class;
         }
+        // Emel (P2): hanya bila NOTIFIKASI_EMEL=true dan penerima ada alamat emel
+        if (config('services.notifikasi.emel') && ! empty($notifiable->email)) {
+            $saluran[] = 'mail';
+        }
 
         return $saluran;
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        // Teks pengguna (nama, ulasan) di-escape supaya tidak menjadi pautan Markdown (lihat TeksEmel)
+        return (new MailMessage)
+            ->subject("DMS PKINK: {$this->tajuk}")
+            ->greeting('Salam sejahtera, '.TeksEmel::selamat($notifiable->nama_staff ?? '').',')
+            ->line('**'.TeksEmel::selamat($this->tajuk).'**')
+            ->line(TeksEmel::selamat($this->mesej))
+            ->action('Buka dalam Sistem', $this->url)
+            ->line('Emel ini dijana secara automatik oleh Sistem Arkib Digital PKINK. Sila jangan balas emel ini.')
+            ->salutation('Sekian, terima kasih.');
     }
 
     public function toArray(object $notifiable): array

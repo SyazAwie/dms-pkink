@@ -2,33 +2,26 @@
 
 namespace App\Providers;
 
+use App\Models\Bahagian;
+use App\Models\Borang;
+use App\Models\Dokumen;
+use App\Models\DokumenField;
+use App\Models\JenisDokumen;
+use App\Models\User;
+use App\Observers\BahagianObserver;
+use App\Observers\BorangNotifikasiObserver;
+use App\Observers\DokumenFieldObserver;
+use App\Observers\DokumenObserver;
+use App\Observers\JenisDokumenObserver;
+use App\Observers\UserObserver;
+use App\Policies\DokumenPolicy;
+use App\Support\TeksEmel;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-
-// Panggil semua Model
-use App\Models\Borang;
-use App\Models\JenisDokumen;
-use App\Models\Bahagian;
-use App\Models\User;
-use App\Models\Dokumen;
-use App\Models\DokumenField;
-
-// Panggil semua Observer
-use App\Observers\BorangNotifikasiObserver;
-use App\Observers\JenisDokumenObserver;
-use App\Observers\BahagianObserver;
-use App\Observers\UserObserver;
-use App\Observers\DokumenObserver;
-use App\Observers\DokumenFieldObserver;
-
-// Polisi kebenaran
-use App\Policies\DokumenPolicy;
-
-// Escape Markdown bagi teks pengguna dalam emel
-use App\Support\TeksEmel;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -39,6 +32,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // `php artisan serve` hanya menurunkan pembolehubah persekitaran dalam senarai putih
+        // kepada proses `php -S`. Tanpa OPENSSL_CONF, Web Push gagal di Windows (kunci EC)
+        // untuk notifikasi yang dicetuskan dari pelayar.
+        if ($this->app->runningInConsole()) {
+            ServeCommand::$passthroughVariables[] = 'OPENSSL_CONF';
+        }
+
         // Daftarkan 'CCTV' secara paksa supaya sistem tidak terlepas pandang
         JenisDokumen::observe(JenisDokumenObserver::class);
         Bahagian::observe(BahagianObserver::class);
@@ -64,11 +64,11 @@ class AppServiceProvider extends ServiceProvider
                 'email' => $notifiable->getEmailForPasswordReset(),
             ], false));
 
-            $minit = config('auth.passwords.' . config('auth.defaults.passwords') . '.expire', 60);
+            $minit = config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
 
             return (new MailMessage)
                 ->subject('Tetapan Semula Kata Laluan - Sistem Arkib Digital PKINK')
-                ->greeting('Salam Sejahtera, ' . TeksEmel::selamat($notifiable->nama_staff))
+                ->greeting('Salam Sejahtera, '.TeksEmel::selamat($notifiable->nama_staff))
                 ->line('Kami menerima permintaan untuk menetapkan semula kata laluan akaun anda dalam Sistem Arkib Digital PKINK.')
                 ->action('Tetapkan Semula Kata Laluan', $url)
                 ->line("Pautan ini sah selama {$minit} minit sahaja.")

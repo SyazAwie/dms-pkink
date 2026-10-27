@@ -446,13 +446,17 @@ CRUD penuh dengan soft delete (SUPERADMIN/ADMIN). Senarai memaparkan bilangan me
 
 **Muat Naik / Isi Digital:** pilih Jenis Dokumen, dan medan yang relevan dirender oleh pelayan (endpoint `jenis-dokumen.medan`, termasuk nilai lama & ralat selepas validasi gagal). Fail imbasan (PDF/JPG/PNG, maks 10MB setiap fail, boleh berbilang) adalah **pilihan**, kerana borang boleh diisi secara digital sepenuhnya. Dua butang: **Simpan** (tanpa hantar) dan **Simpan & Hantar** (terus mencipta permohonan Dalam Proses). No. Rujukan dijana `{KOD}/{TAHUN}/{TURUTAN}` daripada nombor tertinggi sedia ada (termasuk rekod terpadam) dengan `lockForUpdate`, dan dicuba semula sehingga 3 kali jika bertembung, supaya nombor tidak pernah digunakan semula. Hanya medan milik kategori yang dipilih disimpan. Muat naik biasa **tidak** menjalankan OCR, supaya borang tidak tersekat.
 
-**Senarai:** carian kata kunci merentas No. Rujukan, Perkara, nama Jenis Dokumen, **nilai medan EAV** dan nama fail imbasan. Penapis ikut Jenis Dokumen, Bahagian dan julat Tarikh, dengan 4 pilihan susunan dan paginasi. Lajur Status memaparkan **status kelulusan** (Belum Dihantar / Dalam Proses / Disokong / Diluluskan / Ditolak).
+**Senarai:** carian kata kunci merentas No. Rujukan, Perkara, nama Jenis Dokumen, **nilai medan EAV**, nama fail imbasan dan **teks OCR** fail imbasan (kandungan dokumen imbasan boleh dicari). Penapis ikut Jenis Dokumen, Bahagian dan julat Tarikh, dengan 4 pilihan susunan dan paginasi. Lajur Status memaparkan **status kelulusan** (Belum Dihantar / Dalam Proses / Disokong / Diluluskan / Ditolak). Butang **Eksport CSV** memuat turun senarai ikut carian/penapis semasa dan skop peranan (UTF-8 dengan BOM, terus dibuka dalam Excel); setiap eksport dilog.
 
 **Butiran:** nilai medan ikut susunan kategori dengan tajuk seksyen, senarai fail imbasan (dibuka melalui laluan terlindung, Bahagian 7), butang **Jalankan OCR** dan teks OCR bagi setiap fail, serta panel Status Kelulusan dengan tindakan ikut peranan.
 
 **Kemaskini:** ubah tarikh/perkara/nilai medan, buang atau tambah fail. Dokumen yang ada fail mesti kekal sekurang-kurangnya satu fail; dokumen digital boleh tanpa fail. Medan auto-isi kekal nilai pemohon asal. Fail yang sempat ditulis dipadam jika transaksi gagal.
 
 **Padam:** soft delete. Rekod, nilai medan dan fail fizikal **dikekalkan** untuk arkib, dan No. Rujukan tidak digunakan semula.
+
+**Tong Sampah** (`/tong-sampah`, SUPERADMIN/ADMIN): senarai dokumen, kategori, bahagian dan kakitangan yang dipadam (tab dengan bilangan), siapa memadam dan bila (daripada log audit), serta butang **Pulihkan**. Memulihkan kategori turut memulihkan medan yang dipadam bersamanya. ADMIN tidak boleh memulihkan akaun Super Admin. Jika kod/emel/No. KP sudah digunakan oleh rekod aktif lain, pemulihan ditolak dengan mesej. Tiada padam kekal (sistem arkib). Pemulihan dilog sebagai "Pulihkan".
+
+**Amaran padam beramai:** bila seorang pengguna memadam 5 rekod (dokumen/kategori/bahagian/kakitangan) dalam 10 minit, SUPERADMIN/ADMIN menerima notifikasi amaran sekali (`LogAudit::AMARAN_PADAM_*`).
 
 ### 5.7 Isi Borang (Pintu Masuk Pemohon)
 
@@ -485,7 +489,9 @@ Dua aliran yang berkongsi kod (`ImbasHantarController` mewarisi `ImbasArkibContr
 
 ### 5.9 Aliran Kelulusan (`borang`)
 
-Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokong** (PENYOKONG) → **Luluskan** (PELULUS), atau **Tolak** pada mana-mana peringkat (ulasan wajib). SUPERADMIN/ADMIN boleh menyokong dan meluluskan (disengajakan), tetapi **tiada sesiapa boleh menyokong, meluluskan atau menolak permohonan sendiri**; butang disembunyikan dengan nota "Anda pemohon permohonan ini". Pegawai yang menolak dan tarikhnya direkod (`pegawai_penolak_id`, `tarikh_tolak`) dan dipaparkan sebagai "Ditolak Oleh" kepada pemohon. Hantar semula hanya dibenarkan selepas Ditolak, dan mengosongkan rekod penolakan lama. Tindakan atas status yang sudah berubah memberi halaman **409** dengan mesej BM, dan dokumen terpadam memberi 404. Senarai `/kelulusan` memaparkan giliran PENYOKONG/PELULUS (tanpa permohonan sendiri), manakala pentadbir melihat semua.
+Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokong** (PENYOKONG) → **Luluskan** (PELULUS), atau **Tolak** pada mana-mana peringkat (ulasan wajib). SUPERADMIN/ADMIN boleh menyokong dan meluluskan (disengajakan), tetapi **tiada sesiapa boleh menyokong, meluluskan atau menolak permohonan sendiri**; butang disembunyikan dengan nota "Anda pemohon permohonan ini". Pegawai yang menolak dan tarikhnya direkod (`pegawai_penolak_id`, `tarikh_tolak`) dan dipaparkan sebagai "Ditolak Oleh" kepada pemohon. Hantar semula hanya dibenarkan selepas Ditolak, dan mengosongkan rekod penolakan lama. Tindakan atas status yang sudah berubah memberi halaman **409** dengan mesej BM, dan dokumen terpadam memberi 404. Senarai `/kelulusan` memaparkan giliran PENYOKONG/PELULUS (tanpa permohonan sendiri), manakala pentadbir melihat semua dengan tab penapis status (bilangan setiap status). Semua peranan boleh mencari ikut No. Rujukan atau nama pemohon.
+
+**Notifikasi emel** (`NOTIFIKASI_EMEL`, **mati secara lalai**): bila dihidupkan, setiap notifikasi loceng (5.4) turut dihantar melalui emel kepada penerima yang ada alamat emel, dengan pautan "Buka dalam Sistem". Dimatikan semasa pembangunan kerana akaun ujian menggunakan domain `@pkink.com`; hidupkan semasa serahan.
 
 ### 5.10 OCR (Pengecaman Teks)
 
@@ -540,7 +546,9 @@ CRUD penuh dengan soft delete (SUPERADMIN/ADMIN).
 
 ### 5.13 Log Audit
 
-Cipta/Kemaskini/Padam pada `bahagian`, `jenis_dokumen`, `users`, `dokumen` dan **`dokumen_field`** (setiap medan borang dalam pembina) direkod oleh Observer; kemaskini hanya merekod lajur yang berubah. Tindakan tanpa pengguna log masuk direkod dengan `user_id` kosong dan dipaparkan sebagai "Sistem / tetamu". Perubahan yang tidak dilihat oleh observer (nilai EAV, fail imbasan, langkah kelulusan `borang`, tetapan peranan, pendaftaran staf, tukar kata laluan, tetapan semula kata laluan melalui emel, OCR manual, semakan/pembetulan teks OCR) direkod terus dalam controller dengan `LogAudit::create()`. Halaman Log Audit (SUPERADMIN & AUDIT sahaja) ada penapis pengguna/jadual/tindakan/ID rekod/julat tarikh dan paginasi, dan setiap baris boleh dibuka untuk melihat JSON sebelum/selepas. `password` dan `remember_token` **sentiasa** ditapis.
+Cipta/Kemaskini/Padam pada `bahagian`, `jenis_dokumen`, `users`, `dokumen` dan **`dokumen_field`** (setiap medan borang dalam pembina) direkod oleh Observer; kemaskini hanya merekod lajur yang berubah. Tindakan tanpa pengguna log masuk direkod dengan `user_id` kosong dan dipaparkan sebagai "Sistem / tetamu". Perubahan yang tidak dilihat oleh observer (nilai EAV, fail imbasan, langkah kelulusan `borang`, tetapan peranan, pendaftaran staf, tukar kata laluan, tetapan semula kata laluan melalui emel, OCR manual, semakan/pembetulan teks OCR) direkod terus dalam controller dengan `LogAudit::create()`. Halaman Log Audit (SUPERADMIN & AUDIT sahaja) ada penapis pengguna/jadual/tindakan/ID rekod/julat tarikh dan paginasi, dan setiap baris boleh dibuka untuk melihat JSON sebelum/selepas. `password` dan `remember_token` **sentiasa** ditapis. Butang **Eksport CSV** memuat turun log ikut penapis semasa (eksport itu sendiri dilog).
+
+**Status Sistem** (`/status-sistem`, SUPERADMIN/ADMIN): semakan langsung setiap kali dibuka, dengan status Baik/Amaran/Ralat dan nota tindakan: pangkalan data, mod debug, Tesseract (versi + pek bahasa `OCR_BAHASA`), Poppler, Ollama + model AI dan GLM-OCR (dimuat dalam memori atau belum), Web Push (kunci VAPID + OpenSSL), notifikasi emel, penjadual (degupan `penjadual:degupan` setiap minit), sandaran terakhir (`terakhir.json`), integriti fail (`integriti.json`) dan ruang cakera. Sesuai disemak sebelum demo.
 
 ### 5.14 Bahasa & Antara Muka
 
@@ -691,6 +699,8 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `BorangController` | Aliran kelulusan |
 | `LogAuditController` | Log Audit |
 | `NotifikasiController` | Loceng, halaman Notifikasi, langganan peranti |
+| `TongSampahController` | Tong Sampah: senarai & pulih rekod terpadam |
+| `StatusSistemController` | Status Sistem (OCR/AI, notifikasi, sandaran, penjadual, storan) |
 
 ### Arahan Konsol
 | Arahan | Fail |
@@ -745,7 +755,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
    OCR_PDFTOPPM_BIN="C:/poppler/Library/bin/pdftoppm.exe"
    ```
 8. Pasang Ollama, kemudian daftarkan model SEA-LION sebagai `sea-lion-local` dan tarik GLM-OCR: `ollama pull glm-ocr:q8_0`. Tetapan `OCR_*`, `OCR_VLM_*` dan `OLLAMA_*` sudah ada dalam `.env.example`
-9. Notifikasi peranti: `php artisan webpush:vapid` (menulis `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` ke `.env`) dan tetapkan `VAPID_SUBJECT`. Di **Windows**, PHP perlukan pemboleh ubah persekitaran `OPENSSL_CONF` untuk mencipta kunci EC (penjanaan kunci dan penyulitan setiap mesej); tanpanya ralat "Unable to create the key". Tetapkan sekali (`setx OPENSSL_CONF "C:\Users\NAMA\.config\herd\bin\php83\extras\ssl\openssl.cnf"`), kemudian mulakan semula pelayan dalam terminal baharu
+9. Notifikasi peranti: `php artisan webpush:vapid` (menulis `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` ke `.env`) dan tetapkan `VAPID_SUBJECT`. Di **Windows**, PHP perlukan pemboleh ubah persekitaran `OPENSSL_CONF` untuk mencipta kunci EC (penjanaan kunci dan penyulitan setiap mesej); tanpanya ralat "Unable to create the key". Tetapkan sekali (`setx OPENSSL_CONF "C:\Users\NAMA\.config\herd\bin\php83\extras\ssl\openssl.cnf"`), kemudian mulakan semula pelayan dalam terminal baharu. `php artisan serve` hanya menurunkan pemboleh ubah persekitaran dalam senarai putih kepada proses pelayan; `AppServiceProvider` menambah `OPENSSL_CONF` ke senarai itu. Semak hasilnya di halaman **Status Sistem**
 10. Jalankan `php artisan config:clear`
 11. Jalankan `php artisan serve` (atau buka melalui Herd)
 12. Tetapkan sandaran dalam `.env` (`SANDARAN_MYSQLDUMP_BIN`, `SANDARAN_SALINAN`; lihat 10.2), kemudian jadualkan penjadual Laravel setiap minit melalui Windows Task Scheduler (jalankan sekali dalam PowerShell, tukar laluan ikut komputer):
@@ -828,7 +838,7 @@ Keputusan terakhir ditulis ke `{folder}/terakhir.json` (berjaya/gagal, saiz, bil
 Dibina ringkas kerana sistem baru digunakan oleh Bahagian Digital untuk mengarkib dokumen sedia lulus:
 - Satu dokumen = satu rekod `borang`; hantar semula **menimpa** rekod lama, tiada sejarah penghantaran
 - Penyokong & Pelulus tidak diskop ikut bahagian, dan tiada hierarki kelulusan
-- Tiada notifikasi emel bila status berubah; loceng hanya memaparkan bilangan giliran
+- Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); hidupkan semasa serahan
 - Kebenaran disemak dalam controller, bukan melalui `BorangPolicy`
 
 ### OCR: Segerak (Synchronous)
@@ -838,7 +848,6 @@ OCR diproses dalam permintaan HTTP yang sama (tiada queue). Sesuai untuk volum r
 Tanda ✓ tulisan tangan, medan kosong yang diisi teks lain oleh AI, tulisan sambung dan Jawi (lihat 5.11). Cadangan: templat zon setiap medan, set ujian berlabel 30–50 dokumen + arahan penilaian, dan rekod pembetulan staf untuk penambahbaikan AI.
 
 ### Kerja Kecil Belum Dibuat
-- Tiada skrin "Tong Sampah" untuk memulihkan rekod yang di-soft delete
 - Penapis julat nombor/tarikh berstruktur ke atas nilai EAV belum dibina
 
 ---

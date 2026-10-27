@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 /**
  * ============================================================================
@@ -27,8 +28,8 @@ use Illuminate\Support\Facades\Gate;
  *   2. Penyokong & Pelulus TIDAK diskop ikut bahagian — mana-mana pengguna
  *      berperanan PENYOKONG/PELULUS boleh bertindak ke atas borang
  *      mana-mana bahagian. Tiada carta organisasi/hierarki kelulusan.
- *   3. Tiada notifikasi (e-mel/loceng dalam sistem) apabila status berubah.
- *      Pemohon perlu semak sendiri status di halaman Butiran Dokumen.
+ *   3. Notifikasi loceng + peranti dihantar oleh BorangNotifikasiObserver;
+ *      emel hanya bila NOTIFIKASI_EMEL=true (mati secara lalai).
  *   4. Kebenaran disemak terus dalam controller (hasAnyRole), bukan
  *      Policy/Gate berasingan seperti DokumenPolicy — cukup untuk skop
  *      kecil sekarang, tapi patut dipindah ke BorangPolicy jika modul ini
@@ -38,6 +39,9 @@ use Illuminate\Support\Facades\Gate;
  */
 class BorangController extends Controller
 {
+    /** Status permohonan yang sah (tab penapis halaman Kelulusan). */
+    public const STATUS = ['Dalam Proses', 'Disokong', 'Diluluskan', 'Ditolak'];
+
     /**
      * Senarai borang yang perlu tindakan (Penyokong/Pelulus) atau semua (Admin).
      */
@@ -47,8 +51,14 @@ class BorangController extends Controller
         // Borang bagi dokumen yang telah dipadam tidak dipaparkan
         $query = Borang::dokumenAktif()->with(['dokumen.jenisDokumen', 'pemohon', 'penyokong', 'pelulus']);
 
+        $request->validate([
+            'status' => ['nullable', Rule::in(self::STATUS)],
+            'q' => 'nullable|string|max:100',
+        ]);
+
         if ($user->hasAnyRole('SUPERADMIN', 'ADMIN')) {
-            // Admin nampak semua borang, tanpa penapis status
+            // Admin nampak semua borang; boleh tapis ikut status (P10)
+            $query->when($request->filled('status'), fn ($q) => $q->where('status_permohonan', $request->status));
         } elseif ($user->hasRole('PENYOKONG')) {
             $query->where('status_permohonan', 'Dalam Proses')->bukanMilik($user->user_id);
         } elseif ($user->hasRole('PELULUS')) {
@@ -57,9 +67,21 @@ class BorangController extends Controller
             abort(403, 'Anda tidak mempunyai kebenaran untuk mengakses halaman ini.');
         }
 
-        $senarai = $query->orderByDesc('borang_id')->paginate(15);
+        // Carian No. Rujukan atau nama pemohon (P10)
+        if ($request->filled('q')) {
+            $kata = '%'.$request->q.'%';
+            $query->where(fn ($q) => $q->whereHas('dokumen', fn ($d) => $d->where('no_rujukan', 'like', $kata))
+                ->orWhereHas('pemohon', fn ($p) => $p->where('nama_staff', 'like', $kata)));
+        }
 
-        return view('kelulusan.index', compact('senarai'));
+        $senarai = $query->orderByDesc('borang_id')->paginate(15)->withQueryString();
+
+        // Bilangan setiap status untuk tab pentadbir
+        $bilStatus = $user->hasAnyRole('SUPERADMIN', 'ADMIN')
+            ? Borang::dokumenAktif()->selectRaw('status_permohonan, COUNT(*) as jumlah')->groupBy('status_permohonan')->pluck('jumlah', 'status_permohonan')
+            : collect();
+
+        return view('kelulusan.index', compact('senarai', 'bilStatus'));
     }
 
     /**
@@ -191,7 +213,7 @@ class BorangController extends Controller
 
     private function pastikanPeranan(string ...$peranan): void
     {
-        if (!Auth::user()->hasAnyRole(...$peranan, ...['SUPERADMIN', 'ADMIN'])) {
+        if (! Auth::user()->hasAnyRole(...$peranan, ...['SUPERADMIN', 'ADMIN'])) {
             abort(403, 'Anda tidak mempunyai kebenaran untuk tindakan ini.');
         }
     }
