@@ -10,7 +10,7 @@ class BahagianController extends Controller
 {
     public function index()
     {
-        $senarai = Bahagian::all();
+        $senarai = Bahagian::withCount('users')->get();
         return view('bahagian.index', compact('senarai'));
     }
 

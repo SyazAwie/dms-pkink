@@ -48,7 +48,7 @@
                     @endphp
                     <tr>
                         <td><span class="badge kod-badge">{{ $borang->dokumen->no_rujukan ?? '-' }}</span></td>
-                        <td>{{ $borang->dokumen->jenisDokumen->nama_dokumen ?? '-' }}</td>
+                        <td class="boleh-balut">{{ $borang->dokumen->jenisDokumen->nama_dokumen ?? '-' }}</td>
                         <td>{{ $borang->pemohon->nama_staff ?? '-' }}</td>
                         <td>{{ $borang->tarikh_permohonan?->format('d/m/Y') }}</td>
                         <td><span class="badge kel-badge {{ $kelas }}">{{ $borang->status_permohonan }}</span></td>

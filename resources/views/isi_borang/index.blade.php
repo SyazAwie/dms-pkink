@@ -30,18 +30,25 @@
                         <h4>{{ $jenis->nama_dokumen }}</h4>
                     </div>
                     <div class="kad-borang-meta">
-                        <span><i class="bi bi-ui-checks"></i> {{ $bilMedan }} medan</span>
+                        @if($bilMedan)
+                            <span><i class="bi bi-ui-checks"></i> {{ $bilMedan }} medan</span>
+                        @else
+                            {{-- Tiada medan untuk diisi: hanya muat naik fail, jadi Imbas & Hantar tidak bermakna --}}
+                            <span><i class="bi bi-paperclip"></i> Tiada medan, muat naik fail sahaja</span>
+                        @endif
                         @if($bilAutoIsi)
                             <span><i class="bi bi-person-check"></i> {{ $bilAutoIsi }} diisi daripada profil</span>
                         @endif
                     </div>
                     <div class="kad-borang-tindakan">
                         <a href="{{ route('dokumen.create', ['jenis' => $jenis->jenis_dokumen_id]) }}" class="btn text-white save-btn">
-                            <i class="bi bi-pencil-square me-1"></i> Isi Digital
+                            <i class="bi {{ $bilMedan ? 'bi-pencil-square' : 'bi-upload' }} me-1"></i> {{ $bilMedan ? 'Isi Digital' : 'Muat Naik' }}
                         </a>
-                        <a href="{{ route('imbas-hantar.create', ['jenis' => $jenis->jenis_dokumen_id]) }}" class="outline-button text-decoration-none">
-                            <i class="bi bi-send-check"></i> <span>Imbas &amp; Hantar</span>
-                        </a>
+                        @if($bilMedan)
+                            <a href="{{ route('imbas-hantar.create', ['jenis' => $jenis->jenis_dokumen_id]) }}" class="outline-button kekal-label text-decoration-none">
+                                <i class="bi bi-send-check"></i> <span>Imbas &amp; Hantar</span>
+                            </a>
+                        @endif
                     </div>
                 </article>
             @endforeach

@@ -30,7 +30,7 @@
 @endif
 
 <!-- Kad Ringkasan -->
-<div class="summary-grid mb-4">
+<div class="summary-grid tiga-kad mb-4">
     <div class="glass-panel summary-card">
         <div class="summary-head">
             <div>
@@ -53,16 +53,16 @@
         <div class="summary-detail">Bahagian yang diwakili</div>
     </div>
 
-    <div class="glass-panel summary-card">
+    <a href="{{ route('pendaftaran.index') }}" class="glass-panel summary-card text-decoration-none" style="color: inherit;">
         <div class="summary-head">
             <div>
-                <div class="summary-label">STATUS SISTEM</div>
-                <div class="summary-value" style="font-size: 17px; color: var(--dms-mint);">Aktif</div>
+                <div class="summary-label">MENUNGGU PENGESAHAN</div>
+                <div class="summary-value" @if($bilMenunggu) style="color: #b7791f;" @endif>{{ $bilMenunggu }}</div>
             </div>
-            <div class="summary-icon" style="color: var(--dms-mint); background: rgba(37,169,121,.12);"><i class="bi bi-shield-check"></i></div>
+            <div class="summary-icon" style="color: #b7791f; background: rgba(214,158,46,.14);"><i class="bi bi-person-plus"></i></div>
         </div>
-        <div class="summary-detail">Sistem Arkib Digital PKINK</div>
-    </div>
+        <div class="summary-detail">Permohonan akaun baharu &rarr; semak</div>
+    </a>
 </div>
 
 <!-- Panel Jadual -->
@@ -86,6 +86,7 @@
                     <th class="py-3 sortable">NO. K/P <i class="bi bi-arrow-down-up sort-icon"></i></th>
                     <th class="py-3 sortable">NAMA KAKITANGAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
                     <th class="py-3 sortable">BAHAGIAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="py-3">PERANAN</th>
                     <th class="pe-4 py-3 text-end">TINDAKAN</th>
                 </tr>
             </thead>
@@ -115,6 +116,15 @@
                             <span class="text-muted">Tiada Bahagian</span>
                         @endif
                     </td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            @forelse($item->roles as $peranan)
+                                <span class="badge peranan-badge">{{ $peranan->nama_roles }}</span>
+                            @empty
+                                <span class="text-muted" style="font-size: 13px;">Tiada peranan</span>
+                            @endforelse
+                        </div>
+                    </td>
                     <td class="pe-4 text-end">
                         <div class="d-flex justify-content-end gap-2">
                             <a href="{{ route('users.edit', $item->user_id) }}"
@@ -137,7 +147,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="text-center py-5">
+                    <td colspan="6" class="text-center py-5">
                         <div class="text-muted mb-2"><i class="bi bi-person-x" style="font-size: 32px; opacity: 0.5;"></i></div>
                         <div style="font-size: 14px; font-weight: 700; color: var(--dms-brand);">Tiada rekod kakitangan ditemui.</div>
                         <div style="font-size: 12px; color: var(--dms-muted); margin-top: 4px;">Sila klik butang 'Tambah Kakitangan' untuk memulakan.</div>
@@ -253,6 +263,14 @@
         border-radius: 6px;
         font-size: 10px;
         margin-left: 4px;
+    }
+    .peranan-badge {
+        background: rgba(23, 105, 210, .08);
+        color: var(--dms-primary);
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
     }
     .kategori-badge {
         background: rgba(37, 169, 121, .1);
@@ -373,7 +391,7 @@
                 rows.sort((a, b) => {
                     const aText = a.children[cellIndex]?.textContent.trim().toLowerCase() || '';
                     const bText = b.children[cellIndex]?.textContent.trim().toLowerCase() || '';
-                    return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+                    return asc ? aText.localeCompare(bText, 'ms', { numeric: true }) : bText.localeCompare(aText, 'ms', { numeric: true });
                 });
 
                 rows.forEach(row => tbody.appendChild(row));

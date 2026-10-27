@@ -19,7 +19,7 @@ class JenisDokumenController extends Controller
     // 1. Fungsi paparkan senarai
     public function index()
     {
-        $senarai = JenisDokumen::all();
+        $senarai = JenisDokumen::withCount('fields')->get();
         return view('jenis_dokumen.index', compact('senarai'));
     }
 

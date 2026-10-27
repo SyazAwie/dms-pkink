@@ -205,6 +205,7 @@
         .date-chip i { color: var(--dms-primary); }
 
         .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+        .summary-grid.tiga-kad { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .summary-card { padding: 20px; transition: transform .2s ease, box-shadow .2s ease; }
         .summary-card:hover { transform: translateY(-3px); box-shadow: var(--dms-shadow); }
         .summary-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 14px; }
@@ -217,9 +218,24 @@
         .section-card { padding: 22px; }
         .section-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding-bottom: 15px; border-bottom: 1px solid var(--dms-line); }
         .section-header h3 { overflow: hidden; margin: 0; color: var(--dms-brand); font-size: 15px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
-        .section-header p { margin: 5px 0 0; color: var(--dms-muted); font-size: 10px; }
-        .outline-button { display: inline-flex; min-height: 35px; align-items: center; justify-content: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--dms-line); border-radius: 8px; color: var(--dms-text); background: rgba(255, 255, 255, .72); font-size: 10px; font-weight: 700; }
+        .section-header p { margin: 5px 0 0; color: var(--dms-muted); font-size: 11px; }
+        /* Ruang antara garisan tajuk panel dan kandungan pertama di bawahnya */
+        .section-header + .px-4, .section-header + .meta-list { padding-top: 16px; }
+        .outline-button { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; padding: 7px 14px; border: 1px solid var(--dms-line); border-radius: 9px; color: var(--dms-text); background: rgba(255, 255, 255, .72); font-size: 12px; font-weight: 700; cursor: pointer; }
         .outline-button:hover { border-color: rgba(23, 105, 210, .35); color: var(--dms-primary); background: #fff; }
+        /* Medan fail BM (lihat skrip di hujung halaman) */
+        .pilih-fail { position: relative; display: flex; min-width: 0; align-items: center; gap: 12px; cursor: pointer; }
+        .pilih-fail-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .pilih-fail-butang { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--dms-line); border-radius: 7px; color: var(--dms-brand); background: #fff; font-size: 12px; font-weight: 700; }
+        .pilih-fail:hover .pilih-fail-butang { border-color: rgba(23, 105, 210, .35); color: var(--dms-primary); }
+        .pilih-fail:focus-within { border-color: var(--dms-primary); box-shadow: 0 0 0 3px rgba(23, 105, 210, .15); }
+        .pilih-fail-nama { overflow: hidden; min-width: 0; color: var(--dms-muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+        .pilih-fail.ada-fail .pilih-fail-nama { color: var(--dms-text); font-weight: 600; }
+        /* Paginasi (templat Bootstrap 5) ikut warna sistem */
+        .pagination { --bs-pagination-font-size: 13px; --bs-pagination-color: var(--dms-primary); --bs-pagination-active-bg: var(--dms-primary); --bs-pagination-active-border-color: var(--dms-primary); --bs-pagination-border-color: var(--dms-line); margin-bottom: 0; }
+        nav[role="navigation"] p.small { margin-bottom: 0; color: var(--dms-muted); font-size: 12px; }
+        /* Butang utama: saiz fon & tinggi seragam di semua halaman (gaya warna dalam setiap view) */
+        .save-btn { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 4px; font-size: 13px; }
 
         .document-list { margin: 0; padding: 0; list-style: none; }
         .document-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--dms-line); }
@@ -256,23 +272,36 @@
             .content-wrap { padding-inline: 20px; }
         }
 
+        @media (max-width: 767.98px) {
+            /* Jadual senarai: tatal mendatar dengan lebar minimum, bukan baris yang sangat tinggi */
+            .table-responsive > .dms-table { min-width: 720px; }
+            .table-responsive > .dms-table :is(th, td):not([colspan]) { white-space: nowrap; }
+            .table-responsive > .dms-table td.boleh-balut { min-width: 210px; white-space: normal; }
+        }
+
         @media (max-width: 575.98px) {
             .sidebar { width: min(86vw, 300px); }
             .topbar { min-height: 72px; grid-template-columns: minmax(0, 1fr) auto; padding: 10px 14px; }
             .topbar-left { min-width: 0; }
             .top-user { display: none; }
-            .notification { display: none; }
             .page-title { font-size: 17px; }
             .content-wrap { padding: 22px 14px 32px; }
             .content-panel { min-height: calc(100vh - 126px); }
             .page-intro { grid-template-columns: 1fr; }
             .page-intro h2 { font-size: 21px; }
             .date-chip { display: none; }
-            .summary-grid { grid-template-columns: 1fr; }
+            .summary-grid, .summary-grid.tiga-kad { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .summary-grid.tiga-kad > :nth-child(3):last-child { grid-column: 1 / -1; }
+            .summary-card { padding: 14px; }
+            .summary-value { font-size: 24px; }
+            .summary-icon { width: 36px; height: 36px; font-size: 16px; }
             .section-card { padding: 17px; }
             .section-header { align-items: start; }
-            .outline-button { width: 36px; padding: 0; }
-            .outline-button span { display: none; }
+            .section-header h3 { white-space: normal; }
+            /* Butang sekunder yang ada ikon jadi ikon sahaja (kecuali .kekal-label);
+               butang teks sahaja seperti "Batal"/"Tolak" kekal dengan labelnya */
+            .outline-button:has(> .bi):not(.kekal-label) { width: 38px; padding: 0; }
+            .outline-button:has(> .bi):not(.kekal-label) span:not(.badge) { display: none; }
             .document-time { display: none; }
         }
 
@@ -528,6 +557,33 @@
                 if (window.innerWidth >= 992) setMenu(false);
             });
         })();
+
+        // Medan fail dalam BM: teks asal pelayar ("Choose Files / No file chosen") ikut bahasa
+        // pelayar. Input sebenar kekal (lutsinar, menutupi kotak) supaya klik, seret-lepas,
+        // papan kekunci dan validasi "required" masih berfungsi.
+        document.querySelectorAll('.content-panel input[type="file"]').forEach((input) => {
+            const kotak = document.createElement('div');
+            kotak.className = 'pilih-fail ' + input.className;
+            input.className = 'pilih-fail-input';
+            input.parentNode.insertBefore(kotak, input);
+
+            const butang = document.createElement('span');
+            butang.className = 'pilih-fail-butang';
+            butang.innerHTML = '<i class="bi bi-paperclip" aria-hidden="true"></i> Pilih Fail';
+            const nama = document.createElement('span');
+            nama.className = 'pilih-fail-nama';
+            kotak.append(input, butang, nama);
+
+            const kemaskini = () => {
+                const fail = Array.from(input.files);
+                nama.textContent = fail.length === 0 ? 'Tiada fail dipilih'
+                    : fail.length === 1 ? fail[0].name
+                    : `${fail.length} fail dipilih: ${fail.map((f) => f.name).join(', ')}`;
+                kotak.classList.toggle('ada-fail', fail.length > 0);
+            };
+            input.addEventListener('change', kemaskini);
+            kemaskini();
+        });
     </script>
 
     @stack('scripts')

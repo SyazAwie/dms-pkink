@@ -30,7 +30,7 @@
 @endif
 
 <!-- Kad Ringkasan -->
-<div class="summary-grid mb-4">
+<div class="summary-grid tiga-kad mb-4">
     <div class="glass-panel summary-card">
         <div class="summary-head">
             <div>
@@ -55,15 +55,16 @@
         <div class="summary-detail">Rekod terbaharu dikemas kini</div>
     </div>
 
+    @php $tanpaStaf = $senarai->where('users_count', 0)->count(); @endphp
     <div class="glass-panel summary-card">
         <div class="summary-head">
             <div>
-                <div class="summary-label">STATUS SISTEM</div>
-                <div class="summary-value" style="font-size: 17px; color: var(--dms-mint);">Aktif</div>
+                <div class="summary-label">TANPA KAKITANGAN</div>
+                <div class="summary-value">{{ $tanpaStaf }}</div>
             </div>
-            <div class="summary-icon" style="color: var(--dms-mint); background: rgba(37,169,121,.12);"><i class="bi bi-shield-check"></i></div>
+            <div class="summary-icon" style="color: #b7791f; background: rgba(214,158,46,.14);"><i class="bi bi-person-dash"></i></div>
         </div>
-        <div class="summary-detail">Sistem Arkib Digital PKINK</div>
+        <div class="summary-detail">Bahagian belum ada kakitangan berdaftar</div>
     </div>
 </div>
 
@@ -87,6 +88,7 @@
                     <th class="ps-4 py-3">BIL</th>
                     <th class="py-3 sortable">KOD BAHAGIAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
                     <th class="py-3 sortable">NAMA BAHAGIAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="py-3 sortable">KAKITANGAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
                     <th class="pe-4 py-3 text-end">TINDAKAN</th>
                 </tr>
             </thead>
@@ -98,6 +100,7 @@
                         <span class="badge kod-badge">{{ $item->kod_bahagian }}</span>
                     </td>
                     <td class="fw-bold" style="font-size: 14px; color: var(--dms-brand);">{{ $item->nama_bahagian }}</td>
+                    <td style="font-size: 13px;">{{ $item->users_count ?: '-' }}</td>
                     <td class="pe-4 text-end">
                         <div class="d-flex justify-content-end gap-2">
                             <a href="{{ route('bahagian.edit', $item->bahagian_id) }}"
@@ -120,7 +123,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="4" class="text-center py-5">
+                    <td colspan="5" class="text-center py-5">
                         <div class="text-muted mb-2"><i class="bi bi-building-x" style="font-size: 32px; opacity: 0.5;"></i></div>
                         <div style="font-size: 14px; font-weight: 700; color: var(--dms-brand);">Tiada rekod bahagian ditemui.</div>
                         <div style="font-size: 12px; color: var(--dms-muted); margin-top: 4px;">Sila klik butang 'Tambah Bahagian' untuk memulakan.</div>
@@ -325,7 +328,7 @@
                 rows.sort((a, b) => {
                     const aText = a.children[cellIndex]?.textContent.trim().toLowerCase() || '';
                     const bText = b.children[cellIndex]?.textContent.trim().toLowerCase() || '';
-                    return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+                    return asc ? aText.localeCompare(bText, 'ms', { numeric: true }) : bText.localeCompare(aText, 'ms', { numeric: true });
                 });
 
                 rows.forEach(row => tbody.appendChild(row));

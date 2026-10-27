@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -42,6 +43,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Kebenaran dokumen ikut peranan (lihat, muat naik, edit, padam)
         Gate::policy(Dokumen::class, DokumenPolicy::class);
+
+        // Paginasi guna templat Bootstrap 5 (lalai Laravel ialah Tailwind, yang tidak
+        // dimuatkan di sini: anak panah SVG dipaparkan bersaiz gergasi)
+        Paginator::useBootstrapFive();
 
         // Kandungan emel tetapan semula kata laluan dalam Bahasa Melayu
         // (menggantikan templat lalai Laravel yang berbahasa Inggeris)
