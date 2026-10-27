@@ -150,7 +150,8 @@ class DashboardController extends Controller
             'dimuatNaikBulanIni' => $bulanIni(Dokumen::where('created_by', $user->user_id), 'created_at')->count(),
             'diarkibBulanIni' => $bulanIni(Borang::dokumenAktif()->where('pemohon_id', $user->user_id)
                 ->where('status_permohonan', 'Diluluskan')->whereNull('pegawai_penyokong_id')->whereNull('pegawai_pelulus_id'), 'tarikh_kelulusan')->count(),
-            'belumOcr' => DokumenScan::where('status_ocr', 'Pending')->whereHas('dokumen', fn ($q) => $q->bolehDilihat($user))->count(),
+            'belumOcr' => DokumenScan::whereIn('status_ocr', self::STATUS_BELUM_OCR)->whereHas('dokumen', fn ($q) => $q->bolehDilihat($user))->count(),
+            'ralatOcr' => DokumenScan::where('status_ocr', 'Ralat')->whereHas('dokumen', fn ($q) => $q->bolehDilihat($user))->count(),
             'jumlahDokumen' => (clone $skop)->count(),
             'dokumenTerkini' => (clone $skop)->with(['jenisDokumen', 'pemuatNaik'])->latest('dokumen_id')->limit(5)->get(),
         ];
@@ -158,6 +159,9 @@ class DashboardController extends Controller
 
     /** Hari menunggu yang dianggap tertunggak (giliran kelulusan & perhatian pentadbir). */
     public const HARI_TERTUNGGAK = 3;
+
+    /** Fail imbasan yang masih perlu tindakan OCR: belum dijalankan atau gagal (#27). */
+    public const STATUS_BELUM_OCR = ['Pending', 'Ralat'];
 
     /**
      * PENYOKONG / PELULUS: giliran permohonan pada peringkat $status, paling lama dahulu
@@ -210,7 +214,7 @@ class DashboardController extends Controller
             ->orWhere(fn ($d) => $d->where('status_permohonan', 'Disokong')->where('tarikh_sokongan', '<', now()->subDays(self::HARI_TERTUNGGAK)))
         )->count();
         $pendaftaran = PendaftaranStaf::where('status', PendaftaranStaf::MENUNGGU)->count();
-        $belumOcr = DokumenScan::where('status_ocr', 'Pending')->whereHas('dokumen')->count();
+        $belumOcr = DokumenScan::whereIn('status_ocr', self::STATUS_BELUM_OCR)->whereHas('dokumen')->count();
 
         $status = Borang::dokumenAktif()->selectRaw('status_permohonan, COUNT(*) as jumlah')
             ->groupBy('status_permohonan')->pluck('jumlah', 'status_permohonan');
@@ -220,7 +224,7 @@ class DashboardController extends Controller
             'perhatian' => array_values(array_filter([
                 ['bil' => $pendaftaran, 'teks' => 'pendaftaran staf baharu menunggu pengesahan', 'url' => route('pendaftaran.index'), 'butang' => 'Sahkan', 'tahap' => 'merah'],
                 ['bil' => $tertunggak, 'teks' => 'permohonan tertunggak lebih ' . self::HARI_TERTUNGGAK . ' hari', 'url' => route('kelulusan.index'), 'butang' => 'Semak', 'tahap' => 'merah'],
-                ['bil' => $belumOcr, 'teks' => 'fail imbasan belum di-OCR', 'url' => route('dokumen.index'), 'butang' => 'Lihat', 'tahap' => 'kuning'],
+                ['bil' => $belumOcr, 'teks' => 'fail imbasan belum di-OCR atau gagal OCR', 'url' => route('dokumen.index'), 'butang' => 'Lihat', 'tahap' => 'kuning'],
             ], fn ($p) => $p['bil'] > 0)),
             'jumlahDokumen' => Dokumen::count(),
             'dokumenBulanIni' => Dokumen::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),

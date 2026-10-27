@@ -97,12 +97,15 @@ class DashboardTest extends TestCase
             'status_permohonan' => 'Diluluskan', 'tarikh_permohonan' => now(), 'tarikh_kelulusan' => now()]);
         $this->dokumen($staf, 'Dalam Proses');
         \App\Models\DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'a.pdf', 'lokasi_fail' => 'x/a.pdf', 'status_ocr' => 'Pending']);
+        // Fail yang gagal OCR juga perlu tindakan (#27)
+        \App\Models\DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'b.pdf', 'lokasi_fail' => 'x/b.pdf', 'status_ocr' => 'Ralat']);
+        \App\Models\DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'c.pdf', 'lokasi_fail' => 'x/c.pdf', 'status_ocr' => 'Selesai']);
 
         $this->actingAs($kerani)->get(route('dashboard'))->assertOk()
             ->assertSee('Arkib Dokumen')
             // Tindakan pantas: Imbas & Arkib dahulu sebagai butang utama
             ->assertSeeInOrder(['pp-pantas', 'href="' . route('imbas-arkib.create') . '" class="utama"', route('isi-borang.index')], false)
-            ->assertSeeInOrder(['1', 'Dimuat Naik Bulan Ini', '1', 'Diarkib Bulan Ini', '1', 'Fail Belum Di-OCR', '2', 'Jumlah Dokumen'])
+            ->assertSeeInOrder(['1', 'Dimuat Naik Bulan Ini', '1', 'Diarkib Bulan Ini', '2', 'Fail Belum Di-OCR', 'Termasuk 1 ralat', '2', 'Jumlah Dokumen'])
             ->assertSee('Dokumen Terkini')
             ->assertDontSee('Permohonan Saya');
     }
