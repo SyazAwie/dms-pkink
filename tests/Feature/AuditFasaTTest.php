@@ -87,6 +87,33 @@ class AuditFasaTTest extends TestCase
         $this->assertSame($bil, LogAudit::where('nama_jadual', 'dokumen_field')->count());
     }
 
+    public function test_kemaskini_hanya_rekod_lajur_yang_berubah(): void
+    {
+        $this->actingAs($this->buatPengguna(['SUPERADMIN']));
+        $logKemaskini = fn (string $jadual) => LogAudit::where('nama_jadual', $jadual)->where('tindakan', 'Kemaskini')->sole();
+
+        $bahagian = Bahagian::create(['kod_bahagian' => 'KEW', 'nama_bahagian' => 'Bahagian Kewangan']);
+        $bahagian->update(['nama_bahagian' => 'Bahagian Kewangan & Akaun']);
+        $log = $logKemaskini('bahagian');
+        $this->assertSame(['nama_bahagian' => 'Bahagian Kewangan'], $log->data_lama);
+        $this->assertSame(['nama_bahagian' => 'Bahagian Kewangan & Akaun'], $log->data_baharu);
+
+        $jenis = \App\Models\JenisDokumen::create(['kod_dokumen' => 'MEMO', 'nama_dokumen' => 'Memo']);
+        $jenis->update(['nama_dokumen' => 'Memo Dalaman']);
+        $this->assertSame(['nama_dokumen' => 'Memo'], $logKemaskini('jenis_dokumen')->data_lama);
+
+        // Pengguna: lajur sensitif kekal ditapis
+        $staf = $this->buatPengguna(['STAFF'], ['nama_staff' => 'Nama Lama']);
+        $staf->update(['nama_staff' => 'Nama Baharu', 'password' => 'Baharu123']);
+        $log = $logKemaskini('users');
+        $this->assertSame(['nama_staff' => 'Nama Lama'], $log->data_lama);
+        $this->assertSame(['nama_staff' => 'Nama Baharu'], $log->data_baharu);
+
+        // Simpan tanpa perubahan bermakna: tiada log baharu
+        $bahagian->touch();
+        $this->assertSame(1, LogAudit::where('nama_jadual', 'bahagian')->where('tindakan', 'Kemaskini')->count());
+    }
+
     public function test_log_audit_papar_sistem_bagi_log_tanpa_pengguna(): void
     {
         $audit = $this->buatPengguna(['AUDIT']);
