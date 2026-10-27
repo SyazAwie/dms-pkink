@@ -185,6 +185,20 @@
         .top-user strong { font-size: 12px; }
         .top-user small { margin-top: 2px; color: var(--dms-muted); font-size: 10px; }
         .logout-form { margin: 0; }
+        /* Menu pengguna (tukar peranan) */
+        .pengguna-butang { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 4px 6px; border: 0; border-radius: 12px; color: inherit; background: transparent; cursor: pointer; }
+        .pengguna-butang:hover, .pengguna-butang[aria-expanded="true"] { background: rgba(23, 105, 210, .08); }
+        .pengguna-butang:focus-visible { outline: 3px solid rgba(23, 105, 210, .2); }
+        .avatar-kecil { width: 36px; height: 36px; font-size: 13px; }
+        .avatar-aktif { color: #fff; background: linear-gradient(135deg, var(--dms-brand), var(--dms-primary)); }
+        .pengguna-menu { min-width: 250px; padding: 6px; border: 1px solid var(--dms-line); border-radius: 12px; box-shadow: 0 12px 30px rgba(15, 23, 42, .12); }
+        .pengguna-menu-kepala { padding: 8px 10px 4px; }
+        .pengguna-menu-kepala strong, .pengguna-menu-kepala small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pengguna-menu-kepala strong { color: var(--dms-brand); font-size: 13px; }
+        .pengguna-menu-kepala small { color: var(--dms-muted); font-size: 11px; }
+        .pengguna-menu .dropdown-header { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+        .pengguna-menu .dropdown-item { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+        .pengguna-menu .dropdown-item.active { color: var(--dms-primary); background: rgba(23, 105, 210, .1); }
 
         .content-wrap { width: 100%; max-width: 1500px; margin: 0 auto; padding: 28px 32px 40px; }
         .content-panel { min-height: calc(100vh - 148px); }
@@ -457,8 +471,15 @@
                     </div>
                     <div class="user-copy">
                         <div class="user-name">{{ Auth::user()->nama_staff }}</div>
-                        @php $perananPengguna = Auth::user()->roles->pluck('nama_roles'); @endphp
-                        <div class="user-role">{{ $perananPengguna->first() ?? 'Tiada peranan' }}{{ $perananPengguna->count() > 1 ? ' +' . ($perananPengguna->count() - 1) : '' }}</div>
+                        @php
+                            // Peranan dimiliki & peranan aktif (tukar dari menu nama di topbar)
+                            $senaraiPeranan = Auth::user()->roles->sortBy('nama_roles');
+                            $kodAktif = Auth::user()->perananAktif();
+                            $labelPeranan = $kodAktif
+                                ? $senaraiPeranan->firstWhere('kod_roles', $kodAktif)?->nama_roles
+                                : ($senaraiPeranan->count() > 1 ? 'Semua peranan (' . $senaraiPeranan->count() . ')' : ($senaraiPeranan->first()?->nama_roles ?? 'Tiada peranan'));
+                        @endphp
+                        <div class="user-role">{{ $labelPeranan }}</div>
                     </div>
                 </a>
             </div>
@@ -506,10 +527,50 @@
                         </ul>
                     </div>
                     @endif
-                    <a href="{{ route('profil.index') }}" class="top-user pautan-profil" title="Profil Saya">
-                        <strong>{{ Auth::user()->nama_staff }}</strong>
-                        <small>{{ $perananPengguna->first() ?? 'Tiada peranan' }}{{ $perananPengguna->count() > 1 ? ' +' . ($perananPengguna->count() - 1) : '' }}</small>
-                    </a>
+                    {{-- Menu pengguna: tukar peranan aktif (berbilang peranan) + profil --}}
+                    <div class="dropdown">
+                        <button type="button" class="pengguna-butang" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu pengguna: {{ Auth::user()->nama_staff }}, {{ $labelPeranan }}">
+                            <span class="top-user">
+                                <strong>{{ Auth::user()->nama_staff }}</strong>
+                                <small>@if($kodAktif)<i class="bi bi-person-badge" aria-hidden="true"></i> @endif{{ $labelPeranan }}</small>
+                            </span>
+                            <span class="avatar avatar-kecil {{ $kodAktif ? 'avatar-aktif' : '' }}" aria-hidden="true">{{ strtoupper(substr(Auth::user()->nama_staff, 0, 1)) }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end pengguna-menu">
+                            <li class="pengguna-menu-kepala">
+                                <strong>{{ Auth::user()->nama_staff }}</strong>
+                                <small>{{ Auth::user()->email }}</small>
+                            </li>
+                            @if($senaraiPeranan->count() > 1)
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-header">Tukar peranan</li>
+                                <li>
+                                    <button type="submit" form="formTukarPeranan" name="peranan" value="" class="dropdown-item {{ $kodAktif ? '' : 'active' }}" @if(!$kodAktif) aria-current="true" @endif>
+                                        <i class="bi bi-layers" aria-hidden="true"></i>
+                                        <span>Semua peranan</span>
+                                        @if(!$kodAktif)<i class="bi bi-check2" aria-hidden="true"></i>@endif
+                                    </button>
+                                </li>
+                                @foreach($senaraiPeranan as $peranan)
+                                    <li>
+                                        <button type="submit" form="formTukarPeranan" name="peranan" value="{{ $peranan->kod_roles }}" class="dropdown-item {{ $kodAktif === $peranan->kod_roles ? 'active' : '' }}" @if($kodAktif === $peranan->kod_roles) aria-current="true" @endif>
+                                            <i class="bi bi-person-badge" aria-hidden="true"></i>
+                                            <span>{{ $peranan->nama_roles }}</span>
+                                            @if($kodAktif === $peranan->kod_roles)<i class="bi bi-check2" aria-hidden="true"></i>@endif
+                                        </button>
+                                    </li>
+                                @endforeach
+                            @endif
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('profil.index') }}">
+                                    <i class="bi bi-person-circle" aria-hidden="true"></i>
+                                    <span>Profil Saya</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <form method="POST" action="{{ route('peranan.tukar') }}" id="formTukarPeranan" class="d-none">@csrf</form>
+                    </div>
                     <form method="POST" action="{{ route('logout') }}" class="logout-form">
                         @csrf
                         <button type="submit" class="icon-button" aria-label="Log keluar" title="Log keluar">

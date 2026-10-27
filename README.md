@@ -2,7 +2,7 @@
 
 **Nama Penuh:** Sistem Pengurusan Dokumen Digital (Document Management System) Perbadanan Kemajuan Iktisad Negeri Kelantan
 **Jenis Projek:** Aplikasi Web Latihan Industri (Sains Komputer)
-**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 273 ujian automatik lulus.
+**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 278 ujian automatik lulus.
 
 ---
 
@@ -566,6 +566,8 @@ Sistem ada **8 peranan**; seorang pengguna boleh memegang beberapa peranan. Kawa
 
 "Pentadbiran" = Kategori Dokumen, Pengurusan Bahagian, Pengurusan Kakitangan dan Pengesahan Pendaftaran.
 
+**Tukar peranan:** pengguna berbilang peranan boleh klik nama/avatar di topbar dan memilih satu peranan (atau "Semua peranan", lalai) tanpa log masuk semula. Peranan aktif disimpan dalam sesi dan ditapis dalam `User::kodPeranan()`, jadi ketiga-tiga lapisan RBAC, menu dan papan pemuka ikut serentak. Peraturan pemohon tidak boleh meluluskan permohonan sendiri kekal.
+
 Menu sidebar dan butang tindakan **disembunyikan** mengikut peranan pengguna. Akses terus melalui URL tanpa kebenaran memaparkan halaman **403 Akses Ditolak** dalam BM.
 
 ---
@@ -713,7 +715,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `routes/web.php`, `routes/console.php` | Laluan & jadual |
 
 ### Ujian (`tests/`)
-`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (45 kelas ujian, 273 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
+`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (46 kelas ujian, 278 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
 
 ---
 
@@ -845,6 +847,7 @@ Log masuk guna **No. KP**. Kata laluan seragam: `123456789`
 | AUDIT | 990101010106 | Zulkifli bin Omar | audit.ujian@pkink.com |
 | PENYOKONG | 990101010107 | Nor Hidayah binti Kamal | penyokong.ujian@pkink.com |
 | PELULUS | 990101010108 | Hazwan bin Abdullah | pelulus.ujian@pkink.com |
+| **ADMIN + STAFF** (berbilang peranan, untuk demo tukar peranan) | 990101010109 | Demo Pelbagai Peranan | demo.pelbagai@pkink.com |
 
 **Nota:** Akaun ujian ini **mesti dipadam** (soft delete melalui Pengurusan Kakitangan) sebelum sistem digunakan dalam persekitaran sebenar/produksi.
 

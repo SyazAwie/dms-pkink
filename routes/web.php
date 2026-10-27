@@ -48,6 +48,8 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/profil', [ProfilController::class, 'index'])->name('profil.index');
     Route::put('/profil', [ProfilController::class, 'kemaskiniMaklumat'])->name('profil.kemaskini');
     Route::put('/profil/kata-laluan', [ProfilController::class, 'kemaskiniKataLaluan'])->name('profil.kata-laluan');
+    // Tukar peranan aktif bagi pengguna berbilang peranan (menu nama di topbar)
+    Route::post('/peranan/tukar', [ProfilController::class, 'tukarPeranan'])->name('peranan.tukar');
 
     // ---- Endpoint HTML: input medan EAV bagi satu Jenis Dokumen (borang muat naik dokumen) ----
     Route::get('/jenis-dokumen/{id}/medan', [JenisDokumenController::class, 'medanBorang'])

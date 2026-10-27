@@ -97,6 +97,34 @@ class ProfilController extends Controller
         return redirect()->route('profil.index')->with('success', 'Kata laluan berjaya ditukar.');
     }
 
+    /**
+     * Tukar peranan aktif (menu nama di topbar) tanpa log masuk semula. Kosong = "Semua
+     * peranan". Hanya peranan yang dimiliki boleh dipilih; disimpan dalam sesi dan ditapis
+     * oleh User::kodPeranan(). Dibawa ke papan pemuka kerana halaman semasa mungkin tidak
+     * dibenarkan bagi peranan baharu.
+     */
+    public function tukarPeranan(Request $request)
+    {
+        $user = Auth::user();
+        $request->validate([
+            'peranan' => ['nullable', 'string', Rule::in($user->semuaKodPeranan())],
+        ], [
+            'peranan.in' => 'Anda tidak mempunyai peranan tersebut.',
+        ]);
+
+        $kod = $request->input('peranan');
+        if ($kod) {
+            $request->session()->put(\App\Models\User::SESI_PERANAN_AKTIF, $kod);
+            $nama = $user->roles->firstWhere('kod_roles', $kod)?->nama_roles ?? $kod;
+            $mesej = "Kini menggunakan peranan {$nama}.";
+        } else {
+            $request->session()->forget(\App\Models\User::SESI_PERANAN_AKTIF);
+            $mesej = 'Kini menggunakan semua peranan anda.';
+        }
+
+        return redirect()->route('dashboard')->with('success', $mesej);
+    }
+
     // Skrin wajib tukar kata laluan (selepas log masuk dengan kata laluan sementara)
     public function paparWajibTukar()
     {
