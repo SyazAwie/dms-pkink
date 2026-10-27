@@ -128,7 +128,7 @@
 
                 @if(Auth::user()->hasRole('SUPERADMIN'))
                 <div class="mb-2">
-                    <label class="dms-label">Peranan (Role) Sistem <span class="text-danger">*</span></label>
+                    <label class="dms-label">Peranan Sistem <span class="text-danger">*</span></label>
                     <div class="role-chip-group">
                         @foreach($senarai_role as $role)
                         <label class="role-chip" for="role_{{ $role->roles_id }}">
@@ -145,8 +145,8 @@
                 </div>
                 @else
                 <div class="mb-2">
-                    <label class="dms-label">Peranan (Role) Sistem</label>
-                    <div class="role-note"><i class="bi bi-info-circle"></i> Kakitangan baharu akan diberi peranan lalai <strong>STAFF</strong> (Kakitangan Biasa). Hanya Super Admin boleh menetapkan peranan lain.</div>
+                    <label class="dms-label">Peranan Sistem</label>
+                    <div class="role-note"><i class="bi bi-info-circle"></i> <span>Kakitangan baharu akan diberi peranan lalai <strong>STAFF</strong> (Kakitangan Biasa). Hanya Super Admin boleh menetapkan peranan lain.</span></div>
                 </div>
                 @endif
 
@@ -225,7 +225,7 @@
     }
     .dms-input:focus { border-color: var(--dms-primary); box-shadow: 0 0 0 3px rgba(23,105,210,.12); }
     .dms-input.is-invalid { border-color: var(--dms-danger); }
-    .dms-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%236b7a90' d='M8 11 3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; }
+    .dms-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%236b7a90' d='M8 11 3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 12px; padding-right: 34px; }
     .dms-hint { font-size: 11px; color: var(--dms-muted); margin-top: 6px; }
     .dms-error { font-size: 11.5px; color: var(--dms-danger); font-weight: 600; margin-top: 6px; }
     .dms-divider { border-top: 1px solid var(--dms-line); opacity: 1; margin: 8px 0; }

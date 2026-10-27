@@ -199,9 +199,11 @@
             </tbody>
         </table>
     </div>
+    @if($senarai->hasPages())
     <div class="px-4 pb-4 pt-2">
         {{ $senarai->links() }}
     </div>
+    @endif
 </div>
 
 @endsection
