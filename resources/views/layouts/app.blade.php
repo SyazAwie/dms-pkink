@@ -245,6 +245,20 @@
         .pilih-fail:focus-within { border-color: var(--dms-primary); box-shadow: 0 0 0 3px rgba(23, 105, 210, .15); }
         .pilih-fail-nama { overflow: hidden; min-width: 0; color: var(--dms-muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
         .pilih-fail.ada-fail .pilih-fail-nama { color: var(--dms-text); font-weight: 600; }
+        .pilih-fail-baris { display: flex; align-items: stretch; gap: 8px; }
+        .pilih-fail-baris .pilih-fail { flex: 1 1 auto; }
+        .butang-kamera { flex: 0 0 auto; }
+        /* Modal kamera */
+        .kamera-kandungan { border: 0; border-radius: 14px; }
+        .kamera-kandungan .modal-title { color: var(--dms-brand); font-size: 16px; font-weight: 800; }
+        .kamera-paparan { position: relative; display: grid; min-height: 240px; place-items: center; overflow: hidden; border-radius: 12px; background: #0f1b2a; }
+        .kamera-paparan video { display: block; width: 100%; max-height: 62vh; object-fit: contain; }
+        .kamera-mesej { padding: 24px; color: #e8eef6; font-size: 13px; text-align: center; }
+        .kamera-gambar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .kamera-item { position: relative; width: 72px; height: 72px; overflow: hidden; border: 1px solid var(--dms-line); border-radius: 8px; }
+        .kamera-item img { width: 100%; height: 100%; object-fit: cover; }
+        .kamera-buang { position: absolute; top: 2px; right: 2px; display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 0; border-radius: 50%; color: #fff; background: rgba(0, 0, 0, .6); }
+        .kamera-butang { flex-wrap: wrap; gap: 8px; }
         /* Paginasi (templat Bootstrap 5) ikut warna sistem */
         .pagination { --bs-pagination-font-size: 13px; --bs-pagination-color: var(--dms-primary); --bs-pagination-active-bg: var(--dms-primary); --bs-pagination-active-border-color: var(--dms-primary); --bs-pagination-border-color: var(--dms-line); margin-bottom: 0; }
         nav[role="navigation"] p.small { margin-bottom: 0; color: var(--dms-muted); font-size: 12px; }
@@ -588,6 +602,33 @@
         </div>
     </div>
 
+    {{-- Modal kamera (butang "Kamera" pada medan fail; lihat window.dmsKamera) --}}
+    <div class="modal fade" id="modalKamera" tabindex="-1" aria-labelledby="modalKameraTajuk" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
+            <div class="modal-content kamera-kandungan">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalKameraTajuk"><i class="bi bi-camera me-2" aria-hidden="true"></i>Ambil Gambar</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="kamera-paparan">
+                        <video id="kameraVideo" autoplay playsinline muted></video>
+                        <div id="kameraMesej" class="kamera-mesej" role="status" hidden></div>
+                    </div>
+                    <div id="kameraGambar" class="kamera-gambar" aria-live="polite"></div>
+                    <div class="dms-hint mt-2">Letakkan dokumen di permukaan rata, pastikan cukup cahaya dan seluruh halaman kelihatan.</div>
+                </div>
+                <div class="modal-footer kamera-butang">
+                    <button type="button" class="outline-button kekal-label" id="kameraTukar" hidden><i class="bi bi-arrow-repeat" aria-hidden="true"></i> <span>Tukar Kamera</span></button>
+                    <button type="button" class="outline-button kekal-label" id="kameraApl"><i class="bi bi-phone" aria-hidden="true"></i> <span>Aplikasi Kamera</span></button>
+                    <button type="button" class="outline-button kekal-label" id="kameraAmbil"><i class="bi bi-camera-fill" aria-hidden="true"></i> <span>Ambil</span></button>
+                    <button type="button" class="btn text-white save-btn" id="kameraSiap" disabled><i class="bi bi-check2" aria-hidden="true"></i> <span>Guna Gambar</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <input type="file" id="kameraFallback" accept="image/*" capture="environment" hidden>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
     <script>
@@ -619,6 +660,105 @@
             });
         })();
 
+        // Kamera semasa muat naik: kamera langsung (getUserMedia: kamera belakang telefon / webcam
+        // laptop, perlukan HTTPS atau localhost) atau aplikasi kamera peranti (input capture).
+        // Gambar menjadi fail JPG dalam medan fail asal; medan berbilang menambah, medan tunggal menggantikan.
+        window.dmsKamera = (() => {
+            const modalEl = document.getElementById('modalKamera');
+            if (!modalEl || !window.bootstrap) return null;
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const video = document.getElementById('kameraVideo');
+            const mesej = document.getElementById('kameraMesej');
+            const senaraiGambar = document.getElementById('kameraGambar');
+            const btnAmbil = document.getElementById('kameraAmbil');
+            const btnSiap = document.getElementById('kameraSiap');
+            const btnTukar = document.getElementById('kameraTukar');
+            const btnApl = document.getElementById('kameraApl');
+            const inputApl = document.getElementById('kameraFallback');
+            let sasaran = null, aliran = null, gambar = [], senaraiKamera = [], indeksKamera = -1;
+
+            const tambahFail = (input, fail) => {
+                const dt = new DataTransfer();
+                if (input.multiple) Array.from(input.files).forEach((f) => dt.items.add(f));
+                (input.multiple ? fail : fail.slice(-1)).forEach((f) => dt.items.add(f));
+                input.files = dt.files;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+            const henti = () => { aliran?.getTracks().forEach((t) => t.stop()); aliran = null; video.srcObject = null; };
+            const tunjukMesej = (teks) => { mesej.textContent = teks; mesej.hidden = !teks; video.hidden = !!teks; btnAmbil.disabled = !!teks; };
+            const lukisGambar = () => {
+                senaraiGambar.innerHTML = '';
+                gambar.forEach((f, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'kamera-item';
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(f);
+                    img.alt = `Gambar ${i + 1}`;
+                    const buang = document.createElement('button');
+                    buang.type = 'button';
+                    buang.className = 'kamera-buang';
+                    buang.innerHTML = '<i class="bi bi-x" aria-hidden="true"></i>';
+                    buang.setAttribute('aria-label', `Buang gambar ${i + 1}`);
+                    buang.addEventListener('click', () => { gambar.splice(i, 1); lukisGambar(); });
+                    item.append(img, buang);
+                    senaraiGambar.append(item);
+                });
+                btnSiap.disabled = gambar.length === 0;
+                btnSiap.querySelector('span').textContent = gambar.length > 1 ? `Guna ${gambar.length} Gambar` : 'Guna Gambar';
+            };
+            const mula = async () => {
+                henti();
+                tunjukMesej('');
+                if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
+                    tunjukMesej('Kamera langsung memerlukan sambungan HTTPS. Tekan "Aplikasi Kamera" untuk mengambil gambar dengan kamera peranti.');
+                    return;
+                }
+                try {
+                    const pilihan = senaraiKamera[indeksKamera]
+                        ? { deviceId: { exact: senaraiKamera[indeksKamera].deviceId } }
+                        : { facingMode: { ideal: 'environment' } };
+                    aliran = await navigator.mediaDevices.getUserMedia({ video: { ...pilihan, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+                    video.srcObject = aliran;
+                    senaraiKamera = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+                    btnTukar.hidden = senaraiKamera.length < 2;
+                } catch (e) {
+                    tunjukMesej(e.name === 'NotAllowedError'
+                        ? 'Akses kamera ditolak. Benarkan kamera untuk laman ini dalam tetapan pelayar, atau tekan "Aplikasi Kamera".'
+                        : 'Kamera tidak dapat dibuka pada peranti ini. Tekan "Aplikasi Kamera" atau guna Pilih Fail.');
+                }
+            };
+            const namaGambar = () => {
+                const t = new Date(), d = (n) => String(n).padStart(2, '0');
+                return `Gambar_${t.getFullYear()}${d(t.getMonth() + 1)}${d(t.getDate())}_${d(t.getHours())}${d(t.getMinutes())}${d(t.getSeconds())}_${gambar.length + 1}.jpg`;
+            };
+            const selesai = () => { if (gambar.length) tambahFail(sasaran, gambar.slice()); modal.hide(); };
+
+            btnAmbil.addEventListener('click', () => {
+                if (!video.videoWidth) return;
+                const kanvas = document.createElement('canvas');
+                kanvas.width = video.videoWidth;
+                kanvas.height = video.videoHeight;
+                kanvas.getContext('2d').drawImage(video, 0, 0);
+                kanvas.toBlob((blob) => {
+                    gambar.push(new File([blob], namaGambar(), { type: 'image/jpeg', lastModified: Date.now() }));
+                    lukisGambar();
+                    if (!sasaran.multiple) selesai(); // medan satu fail (Imbas): terus guna gambar
+                }, 'image/jpeg', 0.9);
+            });
+            btnSiap.addEventListener('click', selesai);
+            btnTukar.addEventListener('click', () => { indeksKamera = (indeksKamera + 1) % senaraiKamera.length; mula(); });
+            btnApl.addEventListener('click', () => { inputApl.multiple = !!sasaran?.multiple; inputApl.value = ''; inputApl.click(); });
+            inputApl.addEventListener('change', () => {
+                if (inputApl.files.length) { tambahFail(sasaran, Array.from(inputApl.files)); modal.hide(); }
+            });
+            modalEl.addEventListener('hidden.bs.modal', () => { henti(); gambar = []; lukisGambar(); });
+
+            return {
+                buka(input) { sasaran = input; gambar = []; lukisGambar(); modal.show(); mula(); },
+                tambahFail,
+            };
+        })();
+
         // Medan fail dalam BM: teks asal pelayar ("Choose Files / No file chosen") ikut bahasa
         // pelayar. Input sebenar kekal (lutsinar, menutupi kotak) supaya klik, seret-lepas,
         // papan kekunci dan validasi "required" masih berfungsi.
@@ -634,6 +774,20 @@
             const nama = document.createElement('span');
             nama.className = 'pilih-fail-nama';
             kotak.append(input, butang, nama);
+
+            // Medan yang menerima imej: butang "Kamera" di sebelah kotak (modal kamera di bawah)
+            if (window.dmsKamera && /image|jpe?g|png/i.test(input.accept || '')) {
+                const baris = document.createElement('div');
+                baris.className = 'pilih-fail-baris';
+                kotak.parentNode.insertBefore(baris, kotak);
+                const kamera = document.createElement('button');
+                kamera.type = 'button';
+                kamera.className = 'outline-button kekal-label butang-kamera';
+                kamera.innerHTML = '<i class="bi bi-camera" aria-hidden="true"></i> <span>Kamera</span>';
+                kamera.setAttribute('aria-label', 'Ambil gambar dengan kamera');
+                kamera.addEventListener('click', () => window.dmsKamera.buka(input));
+                baris.append(kotak, kamera);
+            }
 
             const kemaskini = () => {
                 const fail = Array.from(input.files);
