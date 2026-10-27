@@ -13,12 +13,14 @@ use App\Models\JenisDokumen;
 use App\Models\Bahagian;
 use App\Models\User;
 use App\Models\Dokumen;
+use App\Models\DokumenField;
 
 // Panggil semua Observer
 use App\Observers\JenisDokumenObserver;
 use App\Observers\BahagianObserver;
 use App\Observers\UserObserver;
 use App\Observers\DokumenObserver;
+use App\Observers\DokumenFieldObserver;
 
 // Polisi kebenaran
 use App\Policies\DokumenPolicy;
@@ -40,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
         Bahagian::observe(BahagianObserver::class);
         User::observe(UserObserver::class);
         Dokumen::observe(DokumenObserver::class);
+        DokumenField::observe(DokumenFieldObserver::class);
 
         // Kebenaran dokumen ikut peranan (lihat, muat naik, edit, padam)
         Gate::policy(Dokumen::class, DokumenPolicy::class);

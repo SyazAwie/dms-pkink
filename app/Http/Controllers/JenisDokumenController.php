@@ -93,12 +93,14 @@ class JenisDokumenController extends Controller
                 'kategori' => $validated['kategori'] ?? null,
             ]);
 
-            // Padam (soft delete) medan yang dibuang di UI
+            // Padam (soft delete) medan yang dibuang di UI. Satu per satu melalui model
+            // supaya DokumenFieldObserver merekod setiap medan dalam log audit.
             $idDipadam = array_filter(array_map('trim', explode(',', (string) $request->input('medan_dipadam', ''))));
             if ($idDipadam) {
                 DokumenField::whereIn('dokumen_field_id', $idDipadam)
                     ->where('jenis_dokumen_id', $dokumen->jenis_dokumen_id)
-                    ->delete();
+                    ->get()
+                    ->each->delete();
             }
 
             $this->simpanMedan($dokumen, $request->input('medan', []));

@@ -42,6 +42,51 @@ class AuditFasaTTest extends TestCase
         $this->assertSame($admin->user_id, LogAudit::where('nama_jadual', 'bahagian')->where('rekod_id', $bahagian->bahagian_id)->sole()->user_id);
     }
 
+    public function test_perubahan_medan_borang_dilog_satu_baris_setiap_medan(): void
+    {
+        $admin = $this->buatPengguna(['ADMIN']);
+        $this->actingAs($admin)->post(route('jenis-dokumen.store'), [
+            'kod_dokumen' => 'MOHON', 'nama_dokumen' => 'Borang Permohonan',
+            'medan' => [
+                ['nama_field' => 'Nama Pemohon', 'kod_field' => 'nama_pemohon', 'jenis_data' => 'teks', 'is_required' => '1'],
+                ['nama_field' => 'Catatan', 'kod_field' => 'catatan', 'jenis_data' => 'textarea'],
+            ],
+        ])->assertRedirect(route('jenis-dokumen.index'));
+
+        $logMedan = fn (string $tindakan) => LogAudit::where('nama_jadual', 'dokumen_field')->where('tindakan', $tindakan);
+        $this->assertSame(2, $logMedan('Cipta')->count());
+        $this->assertSame($admin->user_id, $logMedan('Cipta')->first()->user_id);
+
+        $jenis = \App\Models\JenisDokumen::sole();
+        $nama = $jenis->fields()->where('kod_field', 'nama_pemohon')->sole();
+        $catatan = $jenis->fields()->where('kod_field', 'catatan')->sole();
+
+        // Tukar label satu medan, padam medan kedua
+        $this->actingAs($admin)->put(route('jenis-dokumen.update', $jenis->jenis_dokumen_id), [
+            'kod_dokumen' => 'MOHON', 'nama_dokumen' => 'Borang Permohonan',
+            'medan' => [['id' => $nama->dokumen_field_id, 'nama_field' => 'Nama Penuh Pemohon', 'kod_field' => 'nama_pemohon',
+                'jenis_data' => 'teks', 'is_required' => '1']],
+            'medan_dipadam' => (string) $catatan->dokumen_field_id,
+        ])->assertRedirect(route('jenis-dokumen.index'));
+
+        $kemaskini = $logMedan('Kemaskini')->sole();
+        $this->assertSame($nama->dokumen_field_id, $kemaskini->rekod_id);
+        $this->assertSame(['nama_field' => 'Nama Pemohon'], $kemaskini->data_lama);
+        $this->assertSame(['nama_field' => 'Nama Penuh Pemohon'], $kemaskini->data_baharu);
+
+        $padam = $logMedan('Padam (Soft Delete)')->sole();
+        $this->assertSame($catatan->dokumen_field_id, $padam->rekod_id);
+
+        // Simpan semula tanpa perubahan: tiada log baharu
+        $bil = LogAudit::where('nama_jadual', 'dokumen_field')->count();
+        $this->actingAs($admin)->put(route('jenis-dokumen.update', $jenis->jenis_dokumen_id), [
+            'kod_dokumen' => 'MOHON', 'nama_dokumen' => 'Borang Permohonan',
+            'medan' => [['id' => $nama->dokumen_field_id, 'nama_field' => 'Nama Penuh Pemohon', 'kod_field' => 'nama_pemohon',
+                'jenis_data' => 'teks', 'is_required' => '1']],
+        ]);
+        $this->assertSame($bil, LogAudit::where('nama_jadual', 'dokumen_field')->count());
+    }
+
     public function test_log_audit_papar_sistem_bagi_log_tanpa_pengguna(): void
     {
         $audit = $this->buatPengguna(['AUDIT']);
