@@ -149,12 +149,19 @@
                 @forelse($senarai as $dokumen)
                 <tr>
                     <td><span class="badge kod-badge">{{ $dokumen->no_rujukan }}</span></td>
-                    <td>{{ $dokumen->jenisDokumen->nama_dokumen ?? '-' }}</td>
-                    <td>{{ $dokumen->tarikh_dokumen?->translatedFormat('d M Y') }}</td>
-                    <td>{{ $dokumen->perkara ?: '-' }}</td>
+                    <td class="boleh-balut">{{ $dokumen->jenisDokumen->nama_dokumen ?? '-' }}</td>
+                    <td class="text-nowrap">{{ $dokumen->tarikh_dokumen?->translatedFormat('d M Y') }}</td>
+                    <td class="boleh-balut">{{ $dokumen->perkara ?: '-' }}</td>
                     <td>{{ $dokumen->bahagian->nama_bahagian ?? '-' }}</td>
                     <td>{{ $dokumen->pemuatNaik->nama_staff ?? '-' }}</td>
-                    <td><span class="badge status-badge">{{ $dokumen->status }}</span></td>
+                    @php
+                        $statusKel = $dokumen->borang?->status_permohonan;
+                        $kelasKel = match ($statusKel) {
+                            'Diluluskan' => 'kel-lulus', 'Disokong' => 'kel-sokong',
+                            'Ditolak' => 'kel-tolak', 'Dalam Proses' => 'kel-proses', default => 'kel-belum',
+                        };
+                    @endphp
+                    <td><span class="badge kel-badge {{ $kelasKel }}">{{ $statusKel ?? 'Belum Dihantar' }}</span></td>
                     <td class="text-end">
                         <div class="aksi-group">
                             <a href="{{ route('dokumen.show', $dokumen->dokumen_id) }}" class="aksi-btn" title="Lihat">
@@ -192,9 +199,11 @@
             </tbody>
         </table>
     </div>
+    @if($senarai->hasPages())
     <div class="px-4 pb-4 pt-2">
         {{ $senarai->links() }}
     </div>
+    @endif
 </div>
 
 @endsection
@@ -269,14 +278,12 @@
         border-radius: 6px;
         font-size: 11.5px;
     }
-    .status-badge {
-        background: rgba(37, 169, 121, .1);
-        color: var(--dms-mint);
-        font-weight: 700;
-        padding: 6px 10px;
-        border-radius: 6px;
-        font-size: 11px;
-    }
+    .kel-badge { font-weight: 700; padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; }
+    .kel-belum { background: rgba(107,122,144,.12); color: var(--dms-muted); }
+    .kel-proses { background: rgba(245,158,11,.14); color: #b45309; }
+    .kel-sokong { background: rgba(23,105,210,.1); color: var(--dms-primary); }
+    .kel-lulus { background: rgba(37,169,121,.12); color: var(--dms-mint); }
+    .kel-tolak { background: rgba(220,53,69,.1); color: var(--dms-danger); }
     .dms-hint { font-size: 12px; color: var(--dms-muted); }
 
     .aksi-group { display: inline-flex; gap: 6px; align-items: center; }

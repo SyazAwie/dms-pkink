@@ -30,7 +30,7 @@
 @endif
 
 <!-- Kad Ringkasan -->
-<div class="summary-grid mb-4">
+<div class="summary-grid tiga-kad mb-4">
     <div class="glass-panel summary-card">
         <div class="summary-head">
             <div>
@@ -55,15 +55,16 @@
         <div class="summary-detail">Rekod terbaharu dikemas kini</div>
     </div>
 
+    @php $tanpaMedan = $senarai->where('fields_count', 0)->count(); @endphp
     <div class="glass-panel summary-card">
         <div class="summary-head">
             <div>
-                <div class="summary-label">STATUS SISTEM</div>
-                <div class="summary-value" style="font-size: 17px; color: var(--dms-mint);">Aktif</div>
+                <div class="summary-label">TANPA MEDAN</div>
+                <div class="summary-value" @if($tanpaMedan) style="color: #b7791f;" @endif>{{ $tanpaMedan }}</div>
             </div>
-            <div class="summary-icon" style="color: var(--dms-mint); background: rgba(37,169,121,.12);"><i class="bi bi-shield-check"></i></div>
+            <div class="summary-icon" style="color: #b7791f; background: rgba(214,158,46,.14);"><i class="bi bi-ui-checks"></i></div>
         </div>
-        <div class="summary-detail">Sistem Arkib Digital PKINK</div>
+        <div class="summary-detail">{{ $tanpaMedan ? 'Kategori belum ada medan borang' : 'Semua kategori ada medan borang' }}</div>
     </div>
 </div>
 
@@ -87,7 +88,8 @@
                     <th class="ps-4 py-3" data-sort="text">BIL</th>
                     <th class="py-3 sortable" data-sort="text">KOD DOKUMEN <i class="bi bi-arrow-down-up sort-icon"></i></th>
                     <th class="py-3 sortable" data-sort="text">NAMA DOKUMEN <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="py-3 sortable" data-sort="text">KATEGORI <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="py-3 sortable" data-sort="text">KUMPULAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                    <th class="py-3 sortable" data-sort="text">MEDAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
                     <th class="pe-4 py-3 text-end">TINDAKAN</th>
                 </tr>
             </thead>
@@ -104,6 +106,13 @@
                             <span class="badge kategori-badge">{{ $item->kategori }}</span>
                         @else
                             <span class="text-muted">-</span>
+                        @endif
+                    </td>
+                    <td style="font-size: 13px;">
+                        @if($item->fields_count)
+                            {{ $item->fields_count }}
+                        @else
+                            <span class="badge tanpa-medan-badge" title="Tambah medan melalui butang Edit">Tiada medan</span>
                         @endif
                     </td>
                     <td class="pe-4 text-end">
@@ -128,7 +137,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="text-center py-5">
+                    <td colspan="6" class="text-center py-5">
                         <div class="text-muted mb-2"><i class="bi bi-folder-x" style="font-size: 32px; opacity: 0.5;"></i></div>
                         <div style="font-size: 14px; font-weight: 700; color: var(--dms-brand);">Tiada rekod kategori dokumen ditemui.</div>
                         <div style="font-size: 12px; color: var(--dms-muted); margin-top: 4px;">Sila klik butang 'Tambah Kategori' untuk memulakan.</div>
@@ -234,6 +243,14 @@
         padding: 7px 10px;
         border-radius: 6px;
         letter-spacing: .3px;
+    }
+    .tanpa-medan-badge {
+        background: rgba(214, 158, 46, .14);
+        color: #96610f;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
     }
     .kategori-badge {
         background: rgba(37, 169, 121, .1);
@@ -341,7 +358,7 @@
                 rows.sort((a, b) => {
                     const aText = a.children[cellIndex]?.textContent.trim().toLowerCase() || '';
                     const bText = b.children[cellIndex]?.textContent.trim().toLowerCase() || '';
-                    return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+                    return asc ? aText.localeCompare(bText, 'ms', { numeric: true }) : bText.localeCompare(aText, 'ms', { numeric: true });
                 });
 
                 rows.forEach(row => tbody.appendChild(row));

@@ -37,7 +37,7 @@ class DokumenController extends Controller
         ]);
 
         // bolehDilihat: STAFF = milik sendiri, PENGURUS = bahagian sendiri, lain = semua
-        $query = Dokumen::bolehDilihat(Auth::user())->with(['jenisDokumen', 'bahagian', 'pemuatNaik']);
+        $query = Dokumen::bolehDilihat(Auth::user())->with(['jenisDokumen', 'bahagian', 'pemuatNaik', 'borang']);
 
         // Carian kata kunci: no. rujukan, perkara, nama jenis, NILAI MEDAN EAV, nama fail imbasan
         $kata = trim((string) $request->input('q'));

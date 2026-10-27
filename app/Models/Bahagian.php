@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Observers\JenisDokumenObserver;
-use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -18,4 +16,9 @@ class Bahagian extends Model
         'kod_bahagian',
         'nama_bahagian'
     ];
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'bahagian_id', 'bahagian_id');
+    }
 }

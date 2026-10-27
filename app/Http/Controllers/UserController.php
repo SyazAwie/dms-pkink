@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bahagian;
 use App\Models\LogAudit;
+use App\Models\PendaftaranStaf;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\PeraturanNama;
@@ -20,7 +21,10 @@ class UserController extends Controller
     {
         // Tarik semua pengguna bersama bahagian dan peranan mereka
         $senarai = User::with(['bahagian', 'roles'])->get();
-        return view('users.index', compact('senarai'));
+        // Kad ringkasan: permohonan akaun baharu yang menunggu pengesahan
+        $bilMenunggu = PendaftaranStaf::where('status', PendaftaranStaf::MENUNGGU)->count();
+
+        return view('users.index', compact('senarai', 'bilMenunggu'));
     }
 
     public function create()

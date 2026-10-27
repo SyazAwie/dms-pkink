@@ -18,8 +18,9 @@
         @endif
     </div>
     <div>
-        <a href="{{ route('dokumen.index') }}" class="outline-button text-decoration-none">
-            <i class="bi bi-arrow-left"></i> <span>Kembali ke Senarai</span>
+        {{-- Imbas & Hantar dibuka dari halaman Isi Borang; Imbas & Arkib dari senarai dokumen --}}
+        <a href="{{ $hantar ? route('isi-borang.index') : route('dokumen.index') }}" class="outline-button text-decoration-none">
+            <i class="bi bi-arrow-left"></i> <span>{{ $hantar ? 'Kembali ke Isi Borang' : 'Kembali ke Senarai' }}</span>
         </a>
     </div>
 </div>

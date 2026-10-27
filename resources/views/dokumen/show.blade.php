@@ -73,7 +73,6 @@
                 <li><span>Perkara</span><strong>{{ $dokumen->perkara ?: '-' }}</strong></li>
                 <li><span>Bahagian</span><strong>{{ $dokumen->bahagian->nama_bahagian ?? '-' }}</strong></li>
                 <li><span>Dimuat Naik Oleh</span><strong>{{ $dokumen->pemuatNaik->nama_staff ?? '-' }}</strong></li>
-                <li><span>Status</span><strong>{{ $dokumen->status }}</strong></li>
                 <li><span>Tarikh Dimuat Naik</span><strong>{{ $dokumen->created_at?->translatedFormat('d M Y, h:i A') }}</strong></li>
             </ul>
         </div>
