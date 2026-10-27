@@ -8,7 +8,7 @@
         @include('dashboard.partials.kad-kpi', ['label' => 'Diarkib Bulan Ini', 'nilai' => $diarkibBulanIni, 'ikon' => 'bi-magic',
             'warna' => 'ungu', 'nota' => 'Melalui Imbas & Arkib', 'url' => route('imbas-arkib.create')])
         @include('dashboard.partials.kad-kpi', ['label' => 'Fail Belum Di-OCR', 'nilai' => $belumOcr, 'ikon' => 'bi-file-earmark-text',
-            'warna' => $belumOcr ? 'kuning' : 'kelabu', 'nota' => 'Jalankan OCR dari halaman dokumen'])
+            'warna' => $belumOcr ? 'kuning' : 'kelabu', 'nota' => $ralatOcr ? "Termasuk {$ralatOcr} ralat; jalankan semula dari halaman dokumen" : 'Jalankan OCR dari halaman dokumen'])
         @include('dashboard.partials.kad-kpi', ['label' => 'Jumlah Dokumen', 'nilai' => $jumlahDokumen, 'ikon' => 'bi-folder2-open',
             'warna' => 'hijau', 'url' => route('dokumen.index')])
     </div>

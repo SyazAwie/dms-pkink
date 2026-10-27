@@ -199,6 +199,9 @@
                                 <i class="bi bi-file-earmark-text"></i>
                                 <span class="fail-nama">{{ $scan->nama_fail }}</span>
                             </a>
+                            @if($scan->saizMudahDibaca())
+                                <span class="fail-saiz" title="SHA-256: {{ $scan->hash_sha256 }}">{{ $scan->saizMudahDibaca() }}</span>
+                            @endif
                             <span class="badge fail-status {{ $kelasOcr }}">{{ $scan->status_ocr }}</span>
                             @if($adaTeks)
                                 <button type="button" class="btn-teks-ocr" data-bs-toggle="collapse" data-bs-target="#ocr-{{ $scan->dokumen_scan_id }}" title="Papar teks OCR">
@@ -219,10 +222,49 @@
                         @if($adaTeks)
                             <div class="collapse" id="ocr-{{ $scan->dokumen_scan_id }}">
                                 <div class="ocr-teks-wrap">
-                                    @if($scan->ocr->skor_padanan !== null)
-                                        <div class="dms-hint mb-2">Skor keyakinan purata: {{ $scan->ocr->skor_padanan }}%</div>
-                                    @endif
+                                    @php
+                                        $semakan = $scan->ocr->status_semakan ?: 'Belum Disemak';
+                                        $kelasSemakan = match ($semakan) { 'Disemak' => 'ocr-selesai', 'Dibetulkan' => 'ocr-dibetulkan', default => 'ocr-kosong' };
+                                    @endphp
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                        <div class="dms-hint">
+                                            @if($scan->ocr->skor_padanan !== null)
+                                                Skor keyakinan purata: {{ $scan->ocr->skor_padanan }}% &middot;
+                                            @endif
+                                            Semakan: <span class="badge fail-status {{ $kelasSemakan }}">{{ $semakan }}</span>
+                                        </div>
+                                        @can('update', $dokumen)
+                                            <div class="d-flex gap-2">
+                                                @if($semakan === 'Belum Disemak')
+                                                    <form action="{{ route('dokumen.scan.ocr.semak', $scan->dokumen_scan_id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn-jalan-ocr"><i class="bi bi-check2"></i> Tandakan Disemak</button>
+                                                    </form>
+                                                @endif
+                                                <button type="button" class="btn-jalan-ocr" data-bs-toggle="collapse" data-bs-target="#betulkan-{{ $scan->dokumen_scan_id }}">
+                                                    <i class="bi bi-pencil"></i> Betulkan Teks
+                                                </button>
+                                            </div>
+                                        @endcan
+                                    </div>
                                     <pre class="ocr-teks">{{ $scan->ocr->teks_dibaca }}</pre>
+                                    @can('update', $dokumen)
+                                        <div class="collapse {{ $errors->has('teks_dibaca') && old('scan_id') == $scan->dokumen_scan_id ? 'show' : '' }}" id="betulkan-{{ $scan->dokumen_scan_id }}">
+                                            <form action="{{ route('dokumen.scan.ocr.betulkan', $scan->dokumen_scan_id) }}" method="POST" class="mt-2">
+                                                @csrf
+                                                @method('PUT')
+                                                <input type="hidden" name="scan_id" value="{{ $scan->dokumen_scan_id }}">
+                                                <label class="dms-hint mb-1" for="teks-{{ $scan->dokumen_scan_id }}">Betulkan teks OCR (teks asal disimpan dalam log audit):</label>
+                                                <textarea name="teks_dibaca" id="teks-{{ $scan->dokumen_scan_id }}" class="dms-input ocr-teks-input" rows="8">{{ old('scan_id') == $scan->dokumen_scan_id ? old('teks_dibaca') : $scan->ocr->teks_dibaca }}</textarea>
+                                                @if(old('scan_id') == $scan->dokumen_scan_id)
+                                                    @error('teks_dibaca') <div class="dms-error">{{ $message }}</div> @enderror
+                                                @endif
+                                                <div class="d-flex justify-content-end mt-2">
+                                                    <button type="submit" class="btn text-white save-btn"><i class="bi bi-floppy me-1"></i> Simpan Pembetulan</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    @endcan
                                 </div>
                             </div>
                         @endif
@@ -308,6 +350,9 @@
     }
     .btn-jalan-ocr:hover { background: rgba(23, 105, 210, .08); }
     .ocr-teks-wrap { margin-top: 8px; padding: 12px; border: 1px dashed var(--dms-line); border-radius: 10px; background: rgba(23,105,210,.02); }
+    .fail-saiz { flex: 0 0 auto; color: var(--dms-muted); font-size: 11px; white-space: nowrap; }
+    .ocr-dibetulkan { background: rgba(23, 105, 210, .1); color: var(--dms-primary); }
+    .ocr-teks-input { width: 100%; font-size: 12px; line-height: 1.5; }
     .ocr-teks { margin: 0; max-height: 260px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-word; color: var(--dms-text); font-family: inherit; }
     .dms-hint { font-size: 12px; color: var(--dms-muted); }
     .btn-padam-outline { color: var(--dms-danger); border-color: var(--dms-danger); cursor: pointer; }

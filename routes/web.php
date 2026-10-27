@@ -56,9 +56,15 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
 
     // ---- Modul pentadbiran: SUPERADMIN & ADMIN sahaja ----
     // Tiada halaman butiran (show) bagi modul ini, jadi laluan show tidak didaftarkan.
+    // ---- KERANI boleh lihat senarai Kategori Dokumen & Bahagian (baca sahaja) ----
+    Route::middleware('peranan:SUPERADMIN,ADMIN,KERANI')->group(function () {
+        Route::get('/jenis-dokumen', [JenisDokumenController::class, 'index'])->name('jenis-dokumen.index');
+        Route::get('/bahagian', [BahagianController::class, 'index'])->name('bahagian.index');
+    });
+
     Route::middleware('peranan:SUPERADMIN,ADMIN')->group(function () {
-        Route::resource('jenis-dokumen', JenisDokumenController::class)->except('show');   // Kategori Dokumen
-        Route::resource('bahagian', BahagianController::class)->except('show');            // Pengurusan Bahagian
+        Route::resource('jenis-dokumen', JenisDokumenController::class)->except('show', 'index');   // Kategori Dokumen
+        Route::resource('bahagian', BahagianController::class)->except('show', 'index');            // Pengurusan Bahagian
         Route::resource('users', UserController::class)->except('show');                   // Pengurusan Kakitangan
 
         // Pengesahan Pendaftaran staf baharu
@@ -71,6 +77,9 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::resource('dokumen', DokumenController::class);
     Route::get('/dokumen/scan/{id}/papar', [DokumenController::class, 'paparScan'])->name('dokumen.scan.papar');
     Route::post('/dokumen/scan/{id}/ocr', [DokumenController::class, 'jalankanOcr'])->name('dokumen.scan.ocr');
+    // Semakan teks OCR oleh staf: tandakan disemak / betulkan teks (kebenaran edit dokumen)
+    Route::post('/dokumen/scan/{id}/ocr/semak', [DokumenController::class, 'semakOcr'])->name('dokumen.scan.ocr.semak');
+    Route::put('/dokumen/scan/{id}/ocr/teks', [DokumenController::class, 'betulkanOcr'])->name('dokumen.scan.ocr.betulkan');
 
     // ---- Imbas & Arkib: dokumen fizikal SEDIA LULUS, OCR+AI isi borang ----
     // Hanya KERANI/ADMIN/SUPERADMIN: dokumen terus "Diluluskan" tanpa Penyokong/Pelulus,

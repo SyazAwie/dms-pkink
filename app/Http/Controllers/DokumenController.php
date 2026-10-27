@@ -583,14 +583,90 @@ class DokumenController extends Controller
             );
 
             $scan->update(['status_ocr' => $hasil['teks'] !== '' ? 'Selesai' : 'Tiada Teks Dikesan']);
+            $this->logOcrManual($scan, ['status_ocr' => $scan->status_ocr, 'skor' => $hasil['skor'], 'enjin' => $hasil['enjin'] ?? []]);
 
             return back()->with('success', "OCR selesai untuk \"{$scan->nama_fail}\".");
         } catch (\Throwable $e) {
             Log::warning("OCR gagal untuk dokumen_scan_id {$scan->dokumen_scan_id}: " . $e->getMessage());
             $scan->update(['status_ocr' => 'Ralat']);
+            $this->logOcrManual($scan, ['status_ocr' => 'Ralat']);
 
             return back()->with('error', "OCR gagal untuk \"{$scan->nama_fail}\". Sila cuba lagi atau hubungi Pentadbir Sistem." . $this->butiranRalat($e));
         }
+    }
+
+    /**
+     * Staf mengesahkan teks OCR sudah disemak dan betul (status_semakan = Disemak).
+     * Kebenaran sama seperti edit dokumen induk.
+     */
+    public function semakOcr($scanId)
+    {
+        $scan = DokumenScan::with(['dokumen', 'ocr'])->findOrFail($scanId);
+        Gate::authorize('update', $scan->dokumen);
+        abort_unless($scan->ocr, 404);
+
+        $statusLama = $scan->ocr->status_semakan;
+        $scan->ocr->update(['status_semakan' => 'Disemak']);
+        $this->logSemakanOcr($scan, 'Semak Teks OCR', ['status_semakan' => $statusLama], ['status_semakan' => 'Disemak']);
+
+        return back()->with('success', "Teks OCR \"{$scan->nama_fail}\" ditandakan sebagai disemak.");
+    }
+
+    /**
+     * Staf membetulkan teks OCR (status_semakan = Dibetulkan). Teks asal disimpan dalam
+     * log audit supaya pembetulan boleh dijejak (dan kelak digunakan untuk menilai OCR/AI).
+     */
+    public function betulkanOcr(Request $request, $scanId)
+    {
+        $scan = DokumenScan::with(['dokumen', 'ocr'])->findOrFail($scanId);
+        Gate::authorize('update', $scan->dokumen);
+        abort_unless($scan->ocr, 404);
+
+        $request->validate(['teks_dibaca' => 'required|string|max:200000'], [
+            'teks_dibaca.required' => 'Teks OCR tidak boleh dikosongkan.',
+        ]);
+
+        $teksLama = $scan->ocr->teks_dibaca;
+        $teksBaharu = str_replace("\r\n", "\n", (string) $request->input('teks_dibaca'));
+        if ($teksBaharu === $teksLama) {
+            return back()->with('success', 'Tiada perubahan pada teks OCR.');
+        }
+
+        $scan->ocr->update(['teks_dibaca' => $teksBaharu, 'status_semakan' => 'Dibetulkan']);
+        $this->logSemakanOcr($scan, 'Betulkan Teks OCR', ['teks_dibaca' => $teksLama], ['teks_dibaca' => $teksBaharu]);
+
+        return back()->with('success', "Teks OCR \"{$scan->nama_fail}\" telah dibetulkan.");
+    }
+
+    private function logSemakanOcr(DokumenScan $scan, string $tindakan, array $dataLama, array $dataBaharu): void
+    {
+        LogAudit::create([
+            'user_id' => Auth::id(),
+            'tindakan' => $tindakan,
+            'nama_jadual' => 'dokumen_ocr',
+            'rekod_id' => $scan->ocr->dokumen_ocr_id,
+            'data_lama' => $dataLama,
+            'data_baharu' => ['dokumen' => $scan->dokumen?->no_rujukan, 'nama_fail' => $scan->nama_fail] + $dataBaharu,
+            'alamat_ip' => request()->ip(),
+            'peranti_pengguna' => request()->userAgent(),
+            'created_at' => now(),
+        ]);
+    }
+
+    /** Log audit bagi OCR manual (#21): siapa menjalankan OCR atas fail mana, dan hasilnya. */
+    private function logOcrManual(DokumenScan $scan, array $hasil): void
+    {
+        LogAudit::create([
+            'user_id' => Auth::id(),
+            'tindakan' => 'Jalankan OCR',
+            'nama_jadual' => 'dokumen_scan',
+            'rekod_id' => $scan->dokumen_scan_id,
+            'data_lama' => null,
+            'data_baharu' => ['dokumen' => $scan->dokumen?->no_rujukan, 'nama_fail' => $scan->nama_fail] + $hasil,
+            'alamat_ip' => request()->ip(),
+            'peranti_pengguna' => request()->userAgent(),
+            'created_at' => now(),
+        ]);
     }
 
     /**

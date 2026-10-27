@@ -27,8 +27,9 @@ class UserObserver
     {
         if ($user->wasChanged('deleted_at')) return;
 
-        $dataLama = $user->getOriginal();
+        // Hanya lajur yang berubah (#19), sama seperti DokumenObserver
         $dataBaharu = $user->getChanges();
+        $dataLama = array_intersect_key($user->getOriginal(), $dataBaharu);
 
         $this->buangLajurSensitif($dataLama);
         $this->buangLajurSensitif($dataBaharu);

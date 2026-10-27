@@ -361,7 +361,7 @@
                             @if(request()->routeIs('dashboard'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
-                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN'))
+                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN', 'KERANI'))
                     <li>
                         <a href="{{ route('jenis-dokumen.index') }}" class="nav-link {{ request()->routeIs('jenis-dokumen.*') ? 'active' : '' }}">
                             <i class="bi bi-folder2-open" aria-hidden="true"></i>
@@ -398,7 +398,7 @@
                         </a>
                     </li>
                     @endif
-                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN'))
+                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN', 'KERANI'))
                     <li>
                         <a href="{{ route('bahagian.index') }}" class="nav-link {{ request()->routeIs('bahagian.*') ? 'active' : '' }}">
                             <i class="bi bi-building" aria-hidden="true"></i>

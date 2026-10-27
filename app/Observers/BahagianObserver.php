@@ -16,8 +16,18 @@ class BahagianObserver
 
     public function updated(Bahagian $bahagian): void
     {
-        if ($bahagian->wasChanged('deleted_at')) return; 
-        $this->rekodLog('Kemaskini', $bahagian, $bahagian->getOriginal(), $bahagian->getChanges());
+        if ($bahagian->wasChanged('deleted_at')) {
+            return;
+        }
+
+        // Hanya lajur yang berubah (#19), sama seperti DokumenObserver
+        $dataBaharu = $bahagian->getChanges();
+        unset($dataBaharu['updated_at']);
+        if (empty($dataBaharu)) {
+            return;
+        }
+
+        $this->rekodLog('Kemaskini', $bahagian, array_intersect_key($bahagian->getOriginal(), $dataBaharu), $dataBaharu);
     }
 
     public function deleted(Bahagian $bahagian): void

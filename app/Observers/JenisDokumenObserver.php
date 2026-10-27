@@ -20,8 +20,14 @@ class JenisDokumenObserver
         if ($dokumen->wasChanged('deleted_at')) {
             return;
         }
-        // Dapatkan hanya data yang berubah
-        $this->rekodLog('Kemaskini', $dokumen, $dokumen->getOriginal(), $dokumen->getChanges());
+        // Hanya lajur yang berubah (#19), sama seperti DokumenObserver
+        $dataBaharu = $dokumen->getChanges();
+        unset($dataBaharu['updated_at']);
+        if (empty($dataBaharu)) {
+            return;
+        }
+
+        $this->rekodLog('Kemaskini', $dokumen, array_intersect_key($dokumen->getOriginal(), $dataBaharu), $dataBaharu);
     }
 
     public function deleted(JenisDokumen $dokumen): void

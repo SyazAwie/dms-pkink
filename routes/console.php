@@ -17,6 +17,9 @@ Schedule::command('imbas-arkib:bersih')->daily();
 // pembangunan biasanya hidup ketika itu; penjadual tidak berjalan bila komputer dimatikan.
 Schedule::command('sandaran:jalan')->dailyAt('12:30')->withoutOverlapping();
 
+// Semakan integriti fail imbasan (FailIntegriti): fail hilang / SHA-256 berubah, setiap Isnin
+Schedule::command('fail:integriti')->weeklyOn(1, '12:45')->withoutOverlapping();
+
 // Muat model AI (Ollama) ke GPU sebelum digunakan, cth. sebelum demo/pembentangan,
 // supaya imbasan pertama tidak menunggu model dimuat. Model kekal selama OLLAMA_KEEP_ALIVE.
 Artisan::command('ai:panaskan', function () {

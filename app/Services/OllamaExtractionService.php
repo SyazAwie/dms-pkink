@@ -25,7 +25,7 @@ class OllamaExtractionService
     public function __construct()
     {
         $this->urlAsas = rtrim(config('services.ollama.url', 'http://127.0.0.1:11434'), '/');
-        $this->model = config('services.ollama.model', 'aisingapore/llama-sea-lion-v3.5-8b-r');
+        $this->model = config('services.ollama.model', 'sea-lion-local');
     }
 
     /** Kunci medan asas dokumen (bukan EAV) dalam hasil ekstrak() bila $medanAsas = true. */

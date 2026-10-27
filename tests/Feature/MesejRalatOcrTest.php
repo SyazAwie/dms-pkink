@@ -65,6 +65,9 @@ class MesejRalatOcrTest extends TestCase
         config(['app.debug' => false]);
 
         $this->jalankanOcr()->assertSessionHas('error', 'OCR gagal untuk "borang.pdf". Sila cuba lagi atau hubungi Pentadbir Sistem.');
+
+        // #21: percubaan yang gagal juga dilog
+        $this->assertSame('Ralat', \App\Models\LogAudit::where('tindakan', 'Jalankan OCR')->sole()->data_baharu['status_ocr']);
     }
 
     public function test_ocr_manual_pembangunan_papar_butiran(): void
