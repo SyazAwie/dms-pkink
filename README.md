@@ -2,7 +2,7 @@
 
 **Nama Penuh:** Sistem Pengurusan Dokumen Digital (Document Management System) Perbadanan Kemajuan Iktisad Negeri Kelantan
 **Jenis Projek:** Aplikasi Web Latihan Industri (Sains Komputer)
-**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 257 ujian automatik lulus.
+**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 273 ujian automatik lulus.
 
 ---
 
@@ -322,6 +322,9 @@ Pangkalan data mengandungi **17 jadual**: 13 jadual domain dalam 6 kumpulan, dan
 | dokumen_id | BIGINT (FK) | → dokumen |
 | nama_fail | VARCHAR(255) | Nama asal fail |
 | lokasi_fail | VARCHAR(500) | Laluan dalam storan **peribadi** (disk `local`); nama fail dijana rawak |
+| saiz_fail | BIGINT | Saiz (bait), diisi automatik |
+| jenis_mime | VARCHAR(100) | Jenis fail sebenar, diisi automatik |
+| hash_sha256 | CHAR(64) | Checksum untuk semakan integriti (`fail:integriti`) |
 | tarikh_scan | DATETIME | |
 | status_ocr | VARCHAR(50) | Pending / Selesai / Ralat / Tiada Teks Dikesan |
 
@@ -333,7 +336,7 @@ Pangkalan data mengandungi **17 jadual**: 13 jadual domain dalam 6 kumpulan, dan
 | dokumen_scan_id | BIGINT (FK) | → dokumen_scan |
 | teks_dibaca | LONGTEXT | Teks penuh hasil OCR (ikut baris) |
 | skor_padanan | DECIMAL(5,2) | Skor keyakinan purata Tesseract (0–100) |
-| status_semakan | VARCHAR(50) | Belum Disemak (UI semakan belum ada) |
+| status_semakan | VARCHAR(50) | Belum Disemak / Disemak / Dibetulkan (butang dalam panel teks OCR) |
 
 ### 4.5 Kumpulan: Aliran Kelulusan
 
@@ -399,7 +402,7 @@ Satu **bahagian bagi setiap peranan**, disusun ikut keutamaan (tugas yang memerl
 |---|---|---|
 | STAFF | Perlu Tindakan (ditolak), Sedang Diproses, Diluluskan, Belum Dihantar | 5 dokumen terkini + status + langkah seterusnya |
 | PENGURUS | Dokumen bulan ini, Menunggu Kelulusan, Diluluskan bulan ini, Ditolak (bahagian sendiri) | Permohonan bahagian terkini, kategori teratas |
-| KERANI | Dimuat naik / diarkib bulan ini, Fail belum di-OCR, Jumlah dokumen | Dokumen terkini |
+| KERANI | Dimuat naik / diarkib bulan ini, Fail belum di-OCR (termasuk Ralat), Jumlah dokumen | Dokumen terkini |
 | PENYOKONG / PELULUS | Menunggu, Tertunggak > 3 hari, Paling lama menunggu, Selesai bulan ini | Giliran paling lama dahulu (permohonan sendiri tidak termasuk) |
 | AUDIT | Log hari ini, Log 7 hari, Tindakan padam, Pengguna aktif | Log terkini, pecahan tindakan |
 | ADMIN / SUPERADMIN | Jumlah dokumen, Permohonan aktif, Purata kelulusan, Kakitangan | **Perlu Perhatian** (pendaftaran, tertunggak, OCR), aliran kelulusan, trend 6 bulan, analitik OCR/AI & kategori/bahagian (berlipat), dokumen terkini |
@@ -488,6 +491,8 @@ Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokon
 4. Muka surat dengan skor di bawah `OCR_VLM_AMBANG` (80) dibaca semula oleh **GLM-OCR** (`VlmOcrService`); jika gagal, teks Tesseract kekal
 5. Disimpan ke `dokumen_ocr`, dan status fail dikemas kini (`Selesai` / `Ralat` / `Tiada Teks Dikesan`)
 
+**Semakan teks OCR:** dalam panel teks OCR, staf yang boleh mengedit dokumen boleh **Tandakan Disemak** atau **Betulkan Teks** (status Dibetulkan); teks asal dan baharu direkod dalam log audit.
+
 OCR berjalan segerak dalam permintaan (had masa `OCR_HAD_MASA`, 300 s). Kegagalan OCR/AI **tidak** membatalkan dokumen induk: status ditanda `Ralat` dan butiran dilog. Mesej teknikal (laluan binari, respons Ollama) hanya dipaparkan di skrin bila `APP_DEBUG=true`.
 
 ### 5.11 Prestasi & Ketepatan OCR/AI (tempatan, tanpa kos)
@@ -529,7 +534,7 @@ CRUD penuh dengan soft delete (SUPERADMIN/ADMIN).
 
 ### 5.13 Log Audit
 
-Cipta/Kemaskini/Padam pada `bahagian`, `jenis_dokumen`, `users`, `dokumen` dan **`dokumen_field`** (setiap medan borang dalam pembina, hanya lajur yang berubah) direkod oleh Observer. Tindakan tanpa pengguna log masuk direkod dengan `user_id` kosong dan dipaparkan sebagai "Sistem / tetamu". Perubahan yang tidak dilihat oleh observer (nilai EAV, fail imbasan, langkah kelulusan `borang`, tetapan peranan, pendaftaran staf, tukar kata laluan) direkod terus dalam controller dengan `LogAudit::create()`. Halaman Log Audit (SUPERADMIN & AUDIT sahaja) ada penapis pengguna/jadual/tindakan/ID rekod/julat tarikh dan paginasi, dan setiap baris boleh dibuka untuk melihat JSON sebelum/selepas. `password` dan `remember_token` **sentiasa** ditapis.
+Cipta/Kemaskini/Padam pada `bahagian`, `jenis_dokumen`, `users`, `dokumen` dan **`dokumen_field`** (setiap medan borang dalam pembina) direkod oleh Observer; kemaskini hanya merekod lajur yang berubah. Tindakan tanpa pengguna log masuk direkod dengan `user_id` kosong dan dipaparkan sebagai "Sistem / tetamu". Perubahan yang tidak dilihat oleh observer (nilai EAV, fail imbasan, langkah kelulusan `borang`, tetapan peranan, pendaftaran staf, tukar kata laluan, tetapan semula kata laluan melalui emel, OCR manual, semakan/pembetulan teks OCR) direkod terus dalam controller dengan `LogAudit::create()`. Halaman Log Audit (SUPERADMIN & AUDIT sahaja) ada penapis pengguna/jadual/tindakan/ID rekod/julat tarikh dan paginasi, dan setiap baris boleh dibuka untuk melihat JSON sebelum/selepas. `password` dan `remember_token` **sentiasa** ditapis.
 
 ### 5.14 Bahasa & Antara Muka
 
@@ -552,7 +557,7 @@ Sistem ada **8 peranan**; seorang pengguna boleh memegang beberapa peranan. Kawa
 |---|---|---|---|---|---|---|---|
 | **SUPERADMIN** | Semua | Ya | Ya | Ya | Ya | Ya | Sahaja yang boleh tetapkan peranan & urus akaun SUPERADMIN; Log Audit |
 | **ADMIN** | Semua | Ya | Ya | Ya | Ya | Ya | Sokong & lulus (kecuali permohonan sendiri) |
-| **KERANI** | Semua | Ya | Ya | Ya | Ya | Tidak | |
+| **KERANI** | Semua | Ya | Ya | Ya | Ya | Lihat sahaja (senarai Kategori & Bahagian) | |
 | **PENGURUS** | Bahagian sendiri | Ya | Bahagian sendiri | Tidak | Tidak | Tidak | |
 | **STAFF** | Milik sendiri | Ya | Milik sendiri | Tidak | Tidak | Tidak | Hantar dokumen untuk kelulusan |
 | **PENYOKONG** | Semua (baca) | Tidak | Tidak | Tidak | Tidak | Tidak | Sokong/tolak peringkat 1 |
@@ -576,6 +581,7 @@ Menu sidebar dan butang tindakan **disembunyikan** mengikut peranan pengguna. Ak
 - **Perlindungan privilege escalation:** ADMIN tidak boleh mengedit/memadam/menukar kata laluan akaun SUPERADMIN; SUPERADMIN terakhir dilindungi
 - **Lajur sensitif ditapis daripada Log Audit** (`password`, `remember_token`)
 - **Suntikan dalam emel dihalang:** nama disahkan dengan regex (`PeraturanNama`), dan aksara Markdown di-escape dalam emel (`TeksEmel`)
+- **Integriti fail arkib:** SHA-256 setiap fail imbasan disimpan semasa muat naik dan disemak setiap minggu (`fail:integriti`); fail hilang/berubah dilaporkan
 - **Validasi keunikan selamat soft delete** melalui lajur janaan pangkalan data
 - **Perlindungan CSRF** pada setiap borang POST/PUT/DELETE; halaman 419 BM bila sesi tamat
 - **Subresource Integrity (SRI)** pada semua skrip/gaya CDN jsDelivr; `SriCdnTest` gagal jika tag CDN baharu tiada SRI
@@ -680,6 +686,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 |---|---|
 | `php artisan imbas-arkib:bersih [--jam=24] [--cuba]` | `app/Console/Commands/BersihImbasArkib.php` (dijadualkan harian) |
 | `php artisan sandaran:jalan [--simpan=14]` | `app/Console/Commands/SandaranJalan.php` (dijadualkan 12:30 setiap hari) |
+| `php artisan fail:integriti` | `app/Console/Commands/FailIntegriti.php` (dijadualkan setiap Isnin 12:45) |
 | `php artisan ai:panaskan` | `routes/console.php` |
 
 ### Views (`resources/views/`)
@@ -706,7 +713,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `routes/web.php`, `routes/console.php` | Laluan & jadual |
 
 ### Ujian (`tests/`)
-`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (42 kelas ujian, 257 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
+`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (45 kelas ujian, 273 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
 
 ---
 
@@ -819,12 +826,8 @@ OCR diproses dalam permintaan HTTP yang sama (tiada queue). Sesuai untuk volum r
 Tanda ✓ tulisan tangan, medan kosong yang diisi teks lain oleh AI, tulisan sambung dan Jawi (lihat 5.11). Cadangan: templat zon setiap medan, set ujian berlabel 30–50 dokumen + arahan penilaian, dan rekod pembetulan staf untuk penambahbaikan AI.
 
 ### Kerja Kecil Belum Dibuat
-- KERANI sepatutnya boleh "lihat sahaja" Kategori Dokumen & Bahagian, tetapi kini disekat sepenuhnya
 - Tiada skrin "Tong Sampah" untuk memulihkan rekod yang di-soft delete
 - Penapis julat nombor/tarikh berstruktur ke atas nilai EAV belum dibina
-- `dokumen_scan` tiada saiz fail, jenis MIME atau hash (checksum)
-- `dokumen_ocr.status_semakan` sentiasa "Belum Disemak" (tiada UI semakan OCR)
-- OCR manual dan tetapan semula kata laluan melalui emel belum dilog khusus dalam `log_audit`
 
 ---
 
