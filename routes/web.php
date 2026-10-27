@@ -13,6 +13,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
 use App\Http\Controllers\IsiBorangController;
+use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\PendaftaranStafController;
 
@@ -48,6 +49,12 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/profil', [ProfilController::class, 'index'])->name('profil.index');
     Route::put('/profil', [ProfilController::class, 'kemaskiniMaklumat'])->name('profil.kemaskini');
     Route::put('/profil/kata-laluan', [ProfilController::class, 'kemaskiniKataLaluan'])->name('profil.kata-laluan');
+    // ---- Notifikasi dalam sistem (loceng topbar), semua peranan ----
+    Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
+    Route::get('/notifikasi/ringkasan', [NotifikasiController::class, 'ringkasan'])->name('notifikasi.ringkasan');
+    Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'bacaSemua'])->name('notifikasi.baca-semua');
+    Route::get('/notifikasi/{id}/buka', [NotifikasiController::class, 'buka'])->name('notifikasi.buka');
+
     // Tukar peranan aktif bagi pengguna berbilang peranan (menu nama di topbar)
     Route::post('/peranan/tukar', [ProfilController::class, 'tukarPeranan'])->name('peranan.tukar');
 

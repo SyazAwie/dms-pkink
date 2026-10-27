@@ -2,7 +2,7 @@
 
 **Nama Penuh:** Sistem Pengurusan Dokumen Digital (Document Management System) Perbadanan Kemajuan Iktisad Negeri Kelantan
 **Jenis Projek:** Aplikasi Web Latihan Industri (Sains Komputer)
-**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 278 ujian automatik lulus.
+**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 286 ujian automatik lulus.
 
 ---
 
@@ -200,7 +200,7 @@ Skema `dms_pkink_db` diurus **secara manual dalam HeidiSQL** (dump SQL + skrip S
 - Perubahan skema diberi sebagai skrip SQL untuk dijalankan dalam HeidiSQL
 - **Keunikan yang selamat soft delete** dikuatkuasakan melalui lajur janaan (generated column) yang bernilai `NULL` bila rekod dipadam: `email_aktif`, `ic_pekerja_aktif`, `kod_bahagian_aktif`, `kod_dokumen_aktif`, `kod_field_aktif`, serta `ic_menunggu` / `email_menunggu` (pendaftaran staf)
 
-Pangkalan data mengandungi **17 jadual**: 13 jadual domain dalam 6 kumpulan, dan 4 jadual infra Laravel.
+Pangkalan data mengandungi **18 jadual**: 13 jadual domain dalam 6 kumpulan, `notifications`, dan 4 jadual infra Laravel.
 
 ### 4.1 Kumpulan: Organisasi & Kawalan Akses
 
@@ -368,6 +368,8 @@ Pangkalan data mengandungi **17 jadual**: 13 jadual domain dalam 6 kumpulan, dan
 | alamat_ip, peranti_pengguna | VARCHAR / TEXT | |
 | created_at | TIMESTAMP | Tiada `updated_at`: log tidak boleh diubah |
 
+**`notifications`**: notifikasi dalam sistem (UUID, `notifiable_id` = `user_id`, `data` JSON: jenis, tajuk, mesej, url, ikon, warna, peranan; `read_at`).
+
 **`password_reset_tokens`**, **`sessions`**, **`cache`**, **`cache_locks`**: jadual infra Laravel (token tetapan semula kata laluan, sesi log masuk, cache dan had kadar).
 
 ---
@@ -409,7 +411,7 @@ Satu **bahagian bagi setiap peranan**, disusun ikut keutamaan (tugas yang memerl
 
 Responsif: kad 4 lajur (≥1200px) / 2×2 (tablet & telefon); jadual menjadi senarai kad di bawah 576px; carta ialah bar HTML. SQL papan pemuka mudah alih (tiada fungsi khusus MySQL) supaya `DashboardTest` boleh berjalan atas SQLite. Fail: `DashboardController`, `dashboard/index.blade.php`, `dashboard/partials/*`.
 
-**Loceng topbar:** bilangan sebenar giliran kelulusan (PENYOKONG: Dalam Proses, PELULUS: Disokong, pentadbir: kedua-duanya, tanpa permohonan sendiri) + pendaftaran staf menunggu (pentadbir).
+**Loceng topbar (semua peranan):** notifikasi dalam sistem (jadual `notifications`), dengan badge belum dibaca, 6 terkini, "Tandakan semua dibaca" dan halaman `/notifikasi`; disemak setiap 30 s dengan popup dalam halaman bila notifikasi baharu masuk, dan ditapis ikut peranan aktif. Penerima (`App\Support\Notifikasi`, observer `BorangNotifikasiObserver` selepas commit): permohonan dihantar → PENYOKONG; disokong → pemohon + PELULUS; diluluskan/ditolak → pemohon; pendaftaran staf baharu dan sandaran/integriti gagal → SUPERADMIN/ADMIN. Menu loceng turut memaparkan giliran kelulusan dan pendaftaran yang menunggu tindakan.
 
 ### 5.5 Pengurusan Kategori Dokumen (`jenis_dokumen`)
 
@@ -715,7 +717,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `routes/web.php`, `routes/console.php` | Laluan & jadual |
 
 ### Ujian (`tests/`)
-`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (46 kelas ujian, 278 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
+`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (48 kelas ujian, 286 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
 
 ---
 

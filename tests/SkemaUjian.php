@@ -106,6 +106,17 @@ trait SkemaUjian
             $t->softDeletes();
         });
 
+        // Notifikasi dalam sistem (loceng topbar)
+        Schema::create('notifications', function (Blueprint $t) {
+            $t->uuid('id')->primary();
+            $t->string('type');
+            $t->string('notifiable_type');
+            $t->unsignedBigInteger('notifiable_id');
+            $t->text('data');
+            $t->timestamp('read_at')->nullable();
+            $t->timestamps();
+        });
+
         Schema::create('borang', function (Blueprint $t) {
             $t->id('borang_id');
             $t->unsignedBigInteger('dokumen_id');

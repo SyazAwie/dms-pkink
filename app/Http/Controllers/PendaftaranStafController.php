@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Notifications\PendaftaranDiluluskan;
 use App\Notifications\PendaftaranDitolak;
+use App\Support\Notifikasi;
 use App\Support\PeraturanNama;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -102,7 +103,7 @@ class PendaftaranStafController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($request, $data) {
+            $pendaftaran = DB::transaction(function () use ($request, $data) {
                 $pendaftaran = PendaftaranStaf::create($data + ['alamat_ip' => $request->ip()]);
 
                 LogAudit::create([
@@ -116,7 +117,12 @@ class PendaftaranStafController extends Controller
                     'peranti_pengguna' => $request->userAgent(),
                     'created_at' => now(),
                 ]);
+
+                return $pendaftaran;
             });
+
+            // Pentadbir dimaklumkan (loceng / peranti) supaya permohonan diproses segera
+            Notifikasi::pendaftaranBaharu($pendaftaran);
         } catch (QueryException $e) {
             // Dua permohonan serentak dengan IC/emel sama: lajur janaan UNIQUE menolak yang kedua
             if (($e->errorInfo[1] ?? null) !== 1062) {

@@ -140,7 +140,7 @@ class KelulusanPemohonTest extends TestCase
 
         // Loceng topbar & giliran papan pemuka hanya mengira permohonan orang lain
         $this->actingAs($penyokong)->get(route('dashboard'))->assertOk()
-            ->assertSee('Pemberitahuan: 1 perkara menunggu tindakan anda')
+            ->assertSee('1 perkara menunggu tindakan anda')
             ->assertSee($lain->no_rujukan)
             ->assertDontSee($sendiri->no_rujukan);
     }
