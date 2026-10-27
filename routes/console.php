@@ -13,6 +13,10 @@ Artisan::command('inspire', function () {
 // setiap minit (cron / Task Scheduler). Tanpanya, jalankan arahan ini secara manual.
 Schedule::command('imbas-arkib:bersih')->daily();
 
+// Sandaran pangkalan data + fail imbasan (SandaranJalan). Waktu tengah hari kerana komputer
+// pembangunan biasanya hidup ketika itu; penjadual tidak berjalan bila komputer dimatikan.
+Schedule::command('sandaran:jalan')->dailyAt('12:30')->withoutOverlapping();
+
 // Muat model AI (Ollama) ke GPU sebelum digunakan, cth. sebelum demo/pembentangan,
 // supaya imbasan pertama tidak menunggu model dimuat. Model kekal selama OLLAMA_KEEP_ALIVE.
 Artisan::command('ai:panaskan', function () {

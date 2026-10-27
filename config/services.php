@@ -69,4 +69,15 @@ return [
         'had_masa' => (int) env('OLLAMA_HAD_MASA', 180),
     ],
 
+    // Sandaran harian (php artisan sandaran:jalan): pangkalan data + fail imbasan dalam satu zip
+    'sandaran' => [
+        // Laluan penuh .exe kerana Herd tidak nampak PATH Windows (cth. XAMPP)
+        'mysqldump_bin' => env('SANDARAN_MYSQLDUMP_BIN', 'mysqldump'),
+        'folder' => env('SANDARAN_FOLDER', storage_path('app/sandaran')),
+        // Salinan kedua di luar projek (cth. folder OneDrive) supaya selamat jika cakera rosak
+        'salinan' => env('SANDARAN_SALINAN'),
+        'simpan_hari' => (int) env('SANDARAN_SIMPAN_HARI', 14),
+        'had_masa' => (int) env('SANDARAN_HAD_MASA', 900),
+    ],
+
 ];
