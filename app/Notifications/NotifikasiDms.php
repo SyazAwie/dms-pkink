@@ -3,6 +3,8 @@
 namespace App\Notifications;
 
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * Notifikasi dalam sistem (loceng topbar & halaman Notifikasi), disimpan dalam jadual
@@ -11,6 +13,9 @@ use Illuminate\Notifications\Notification;
  * Data: jenis, tajuk, mesej, url, ikon (Bootstrap Icons), warna, peranan.
  * `peranan` = senarai kod peranan yang berkaitan (cth. ['PENYOKONG']) supaya loceng
  * hanya memaparkannya bila peranan itu aktif; null = notifikasi peribadi (sentiasa dipapar).
+ *
+ * Juga dihantar sebagai notifikasi peranti (Web Push, public/sw.js) kepada setiap peranti
+ * yang pengguna telah hidupkan (jadual push_subscriptions).
  */
 class NotifikasiDms extends Notification
 {
@@ -26,7 +31,13 @@ class NotifikasiDms extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $saluran = ['database'];
+        if (config('webpush.vapid.public_key') && method_exists($notifiable, 'pushSubscriptions')
+            && $notifiable->pushSubscriptions()->exists()) {
+            $saluran[] = WebPushChannel::class;
+        }
+
+        return $saluran;
     }
 
     public function toArray(object $notifiable): array
@@ -40,5 +51,17 @@ class NotifikasiDms extends Notification
             'warna' => $this->warna,
             'peranan' => $this->peranan,
         ];
+    }
+
+    public function toWebPush(object $notifiable, $notification): WebPushMessage
+    {
+        return (new WebPushMessage)
+            ->title($this->tajuk)
+            ->body($this->mesej)
+            ->icon('/ikon/dms-192.png')
+            ->badge('/ikon/dms-192.png')
+            ->tag($this->jenis)
+            ->data(['url' => $this->url])
+            ->options(['TTL' => 86400]); // simpan 24 jam di pelayan push jika peranti luar talian
     }
 }

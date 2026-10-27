@@ -54,6 +54,9 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/notifikasi/ringkasan', [NotifikasiController::class, 'ringkasan'])->name('notifikasi.ringkasan');
     Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'bacaSemua'])->name('notifikasi.baca-semua');
     Route::get('/notifikasi/{id}/buka', [NotifikasiController::class, 'buka'])->name('notifikasi.buka');
+    // Langganan notifikasi peranti (Web Push) bagi pelayar/peranti semasa
+    Route::post('/notifikasi/langganan', [NotifikasiController::class, 'langgan'])->name('notifikasi.langgan');
+    Route::delete('/notifikasi/langganan', [NotifikasiController::class, 'hentiLanggan'])->name('notifikasi.henti-langgan');
 
     // Tukar peranan aktif bagi pengguna berbilang peranan (menu nama di topbar)
     Route::post('/peranan/tukar', [ProfilController::class, 'tukarPeranan'])->name('peranan.tukar');

@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- PWA & notifikasi peranti (public/manifest.webmanifest, public/sw.js) --}}
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <meta name="theme-color" content="#183f68">
+    <link rel="apple-touch-icon" href="{{ asset('ikon/dms-192.png') }}">
+    <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
     <title>DMS PKINK - @yield('title', 'Papan Pemuka')</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -202,6 +207,10 @@
         .loceng-giliran { padding: 6px; border-bottom: 1px solid var(--dms-line); background: rgba(231, 239, 248, .4); }
         .loceng-kaki { display: block; padding: 10px 14px; color: var(--dms-primary); font-size: 12.5px; font-weight: 700; text-align: center; }
         .loceng-kaki:hover { background: rgba(23, 105, 210, .05); }
+        .loceng-peranti { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--dms-line); color: var(--dms-text); background: rgba(37, 169, 121, .06); font-size: 12px; }
+        .loceng-peranti i { color: var(--dms-mint); }
+        .loceng-peranti.mati { background: rgba(231, 239, 248, .5); }
+        .loceng-peranti.mati i { color: var(--dms-muted); }
         /* Popup notifikasi baharu dalam halaman */
         .notif-toast-bekas { position: fixed; right: 16px; bottom: 16px; z-index: 1090; display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); }
         .notif-toast { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: start; padding: 12px; border: 1px solid var(--dms-line); border-radius: 12px; color: var(--dms-text); background: #fff; box-shadow: 0 14px 34px rgba(15, 23, 42, .18); animation: notifMasuk .25s ease; }
@@ -559,6 +568,12 @@
                                     <button type="submit" class="loceng-pautan" id="locengBacaSemua" @if(!$bilBelumBaca) hidden @endif>Tandakan semua dibaca</button>
                                 </form>
                             </div>
+                            {{-- Notifikasi peranti (Web Push): keadaan & butang diisi oleh skrip --}}
+                            <div class="loceng-peranti" id="locengPeranti" data-langgan="{{ route('notifikasi.langgan') }}" hidden>
+                                <i class="bi bi-phone-vibrate" aria-hidden="true"></i>
+                                <span id="locengPerantiTeks">Terima notifikasi di peranti ini</span>
+                                <button type="button" class="loceng-pautan" id="locengPerantiButang">Hidupkan</button>
+                            </div>
                             <div class="loceng-senarai" id="locengSenarai">
                                 @forelse($notifTerkini as $n)
                                     <a href="{{ route('notifikasi.buka', $n->id) }}" class="loceng-item {{ $n->read_at ? '' : 'belum-baca' }}">
@@ -783,6 +798,109 @@
             semak();
             setInterval(() => { if (!document.hidden) semak(); }, 30000);
             document.addEventListener('visibilitychange', () => { if (!document.hidden) semak(); });
+        })();
+
+        // Notifikasi peranti (P-D, Web Push): service worker public/sw.js memaparkan notifikasi
+        // sistem pengendalian walaupun tab ditutup. Perlukan HTTPS atau localhost; di iPhone
+        // hanya selepas "Tambah ke Skrin Utama". Langganan diselaraskan setiap kali halaman dibuka
+        // (peranti dikongsi: pengguna yang log masuk menjadi pemilik langganan) dan dibuang semasa log keluar.
+        (async () => {
+            const baris = document.getElementById('locengPeranti');
+            const kunciAwam = document.querySelector('meta[name="vapid-public-key"]')?.content;
+            if (!baris || !kunciAwam) return;
+            const teks = document.getElementById('locengPerantiTeks');
+            const butang = document.getElementById('locengPerantiButang');
+            const csrf = document.querySelector('meta[name="csrf-token"]').content;
+            const url = baris.dataset.langgan;
+            const papar = (mesej, labelButang, hidup) => {
+                baris.hidden = false;
+                teks.textContent = mesej;
+                butang.hidden = !labelButang;
+                butang.textContent = labelButang || '';
+                baris.classList.toggle('mati', !hidup);
+            };
+
+            const iPhone = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            if (!window.isSecureContext || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+                papar(iPhone ? 'iPhone: tambah laman ini ke Skrin Utama untuk notifikasi peranti' : 'Notifikasi peranti memerlukan sambungan HTTPS', null, false);
+                return;
+            }
+
+            const kunci = (b64) => {
+                const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+                const mentah = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+                return Uint8Array.from([...mentah].map((c) => c.charCodeAt(0)));
+            };
+            const hantar = (kaedah, badan) => fetch(url, {
+                method: kaedah, credentials: 'same-origin', keepalive: true,
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify(badan),
+            });
+            // Simpan langganan di pelayan; gagal (cth. 419/422) = langganan pelayar dibuang semula
+            const simpan = async (langganan) => {
+                const json = langganan.toJSON();
+                const r = await hantar('POST', { endpoint: json.endpoint, keys: json.keys, contentEncoding: (PushManager.supportedContentEncodings || ['aes128gcm'])[0] });
+                if (!r.ok) {
+                    await langganan.unsubscribe().catch(() => {});
+                    throw new Error(`Pelayan menolak langganan (kod ${r.status})`);
+                }
+            };
+
+            let reg;
+            try { reg = await navigator.serviceWorker.register('/sw.js'); await navigator.serviceWorker.ready; } catch (e) { return; }
+
+            const kemaskini = async () => {
+                const langganan = await reg.pushManager.getSubscription();
+                if (Notification.permission === 'denied') {
+                    papar('Notifikasi disekat oleh pelayar. Benarkan notifikasi untuk laman ini dalam tetapan pelayar.', null, false);
+                } else if (langganan && Notification.permission === 'granted') {
+                    papar('Notifikasi peranti dihidupkan', 'Matikan', true);
+                } else {
+                    papar('Terima notifikasi di peranti ini', 'Hidupkan', false);
+                }
+                return langganan;
+            };
+
+            butang.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                butang.disabled = true;
+                try {
+                    const sedia = await reg.pushManager.getSubscription();
+                    if (sedia) {
+                        await hantar('DELETE', { endpoint: sedia.endpoint });
+                        await sedia.unsubscribe();
+                    } else if (await Notification.requestPermission() === 'granted') {
+                        const baharu = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: kunci(kunciAwam) });
+                        await simpan(baharu);
+                    }
+                    butang.disabled = false;
+                    await kemaskini();
+                } catch (err) {
+                    console.warn('Notifikasi peranti:', err);
+                    butang.disabled = false;
+                    papar(`Notifikasi peranti tidak dapat dihidupkan: ${err.message || err}`, 'Cuba lagi', false);
+                }
+            });
+
+            // Selaraskan langganan sedia ada dengan pengguna yang sedang log masuk
+            const sedia = await kemaskini();
+            if (sedia && Notification.permission === 'granted') {
+                simpan(sedia).catch((err) => {
+                    console.warn('Notifikasi peranti:', err);
+                    papar(`Notifikasi peranti tidak aktif: ${err.message || err}`, 'Cuba lagi', false);
+                });
+            }
+
+            // Log keluar: buang langganan peranti ini daripada akaun (peranti dikongsi semasa demo)
+            document.querySelectorAll('form.logout-form').forEach((borang) => borang.addEventListener('submit', (e) => {
+                if (borang.dataset.selesai) return;
+                e.preventDefault(); // mesti segerak; log keluar diteruskan selepas langganan dibuang
+                borang.dataset.selesai = '1';
+                reg.pushManager.getSubscription()
+                    .then((langganan) => langganan ? hantar('DELETE', { endpoint: langganan.endpoint }) : null)
+                    .catch(() => {})
+                    .finally(() => borang.submit());
+            }));
         })();
 
         // Kamera semasa muat naik: kamera langsung (getUserMedia: kamera belakang telefon / webcam

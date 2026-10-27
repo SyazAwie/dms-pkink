@@ -6,10 +6,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable
 {
-    use Notifiable, SoftDeletes;
+    // HasPushSubscriptions: langganan notifikasi peranti (Web Push) bagi setiap pelayar/peranti
+    use HasPushSubscriptions, Notifiable, SoftDeletes;
 
     // Beritahu Laravel nama table yang betul
     protected $table = 'users';

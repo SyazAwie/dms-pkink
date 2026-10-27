@@ -117,6 +117,17 @@ trait SkemaUjian
             $t->timestamps();
         });
 
+        // Langganan notifikasi peranti (Web Push)
+        Schema::create('push_subscriptions', function (Blueprint $t) {
+            $t->id();
+            $t->morphs('subscribable');
+            $t->string('endpoint', 1024)->unique();
+            $t->string('public_key')->nullable();
+            $t->string('auth_token')->nullable();
+            $t->string('content_encoding')->nullable();
+            $t->timestamps();
+        });
+
         Schema::create('borang', function (Blueprint $t) {
             $t->id('borang_id');
             $t->unsignedBigInteger('dokumen_id');

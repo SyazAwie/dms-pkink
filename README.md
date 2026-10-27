@@ -2,7 +2,7 @@
 
 **Nama Penuh:** Sistem Pengurusan Dokumen Digital (Document Management System) Perbadanan Kemajuan Iktisad Negeri Kelantan
 **Jenis Projek:** Aplikasi Web Latihan Industri (Sains Komputer)
-**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 286 ujian automatik lulus.
+**Status (27 Oktober 2026):** Modul teras berfungsi dan digunakan secara rintis oleh Bahagian Digital. 293 ujian automatik lulus.
 
 ---
 
@@ -200,7 +200,7 @@ Skema `dms_pkink_db` diurus **secara manual dalam HeidiSQL** (dump SQL + skrip S
 - Perubahan skema diberi sebagai skrip SQL untuk dijalankan dalam HeidiSQL
 - **Keunikan yang selamat soft delete** dikuatkuasakan melalui lajur janaan (generated column) yang bernilai `NULL` bila rekod dipadam: `email_aktif`, `ic_pekerja_aktif`, `kod_bahagian_aktif`, `kod_dokumen_aktif`, `kod_field_aktif`, serta `ic_menunggu` / `email_menunggu` (pendaftaran staf)
 
-Pangkalan data mengandungi **18 jadual**: 13 jadual domain dalam 6 kumpulan, `notifications`, dan 4 jadual infra Laravel.
+Pangkalan data mengandungi **19 jadual**: 13 jadual domain dalam 6 kumpulan, `notifications`, `push_subscriptions`, dan 4 jadual infra Laravel.
 
 ### 4.1 Kumpulan: Organisasi & Kawalan Akses
 
@@ -368,6 +368,8 @@ Pangkalan data mengandungi **18 jadual**: 13 jadual domain dalam 6 kumpulan, `no
 | alamat_ip, peranti_pengguna | VARCHAR / TEXT | |
 | created_at | TIMESTAMP | Tiada `updated_at`: log tidak boleh diubah |
 
+**`push_subscriptions`**: langganan notifikasi peranti (Web Push): `subscribable_id` = `user_id`, `endpoint` (unik, ASCII), `public_key`, `auth_token`, `content_encoding`.
+
 **`notifications`**: notifikasi dalam sistem (UUID, `notifiable_id` = `user_id`, `data` JSON: jenis, tajuk, mesej, url, ikon, warna, peranan; `read_at`).
 
 **`password_reset_tokens`**, **`sessions`**, **`cache`**, **`cache_locks`**: jadual infra Laravel (token tetapan semula kata laluan, sesi log masuk, cache dan had kadar).
@@ -412,6 +414,8 @@ Satu **bahagian bagi setiap peranan**, disusun ikut keutamaan (tugas yang memerl
 Responsif: kad 4 lajur (≥1200px) / 2×2 (tablet & telefon); jadual menjadi senarai kad di bawah 576px; carta ialah bar HTML. SQL papan pemuka mudah alih (tiada fungsi khusus MySQL) supaya `DashboardTest` boleh berjalan atas SQLite. Fail: `DashboardController`, `dashboard/index.blade.php`, `dashboard/partials/*`.
 
 **Loceng topbar (semua peranan):** notifikasi dalam sistem (jadual `notifications`), dengan badge belum dibaca, 6 terkini, "Tandakan semua dibaca" dan halaman `/notifikasi`; disemak setiap 30 s dengan popup dalam halaman bila notifikasi baharu masuk, dan ditapis ikut peranan aktif. Penerima (`App\Support\Notifikasi`, observer `BorangNotifikasiObserver` selepas commit): permohonan dihantar → PENYOKONG; disokong → pemohon + PELULUS; diluluskan/ditolak → pemohon; pendaftaran staf baharu dan sandaran/integriti gagal → SUPERADMIN/ADMIN. Menu loceng turut memaparkan giliran kelulusan dan pendaftaran yang menunggu tindakan.
+
+**Notifikasi peranti (Web Push):** butang **Hidupkan** dalam menu loceng meminta izin pelayar dan menyimpan langganan peranti (jadual `push_subscriptions`). Setiap notifikasi kemudian turut dipaparkan sebagai notifikasi sistem pengendalian (Windows/Android/Mac) walaupun tab atau pelayar ditutup; klik membuka dokumen berkaitan. Pakej `laravel-notification-channels/webpush`, kunci VAPID dalam `.env`, service worker `public/sw.js`, manifest PWA `public/manifest.webmanifest` (ikon `public/ikon/`). Hanya endpoint perkhidmatan push yang dikenali diterima (FCM, Mozilla, WNS, Apple) dan klien HTTP tidak mengikut redirect (`config/webpush.php`). Langganan berpindah kepada pengguna yang log masuk pada peranti itu, dan dibuang semasa log keluar. Had: memerlukan HTTPS (atau localhost); iPhone hanya selepas "Tambah ke Skrin Utama" (iOS 16.4+); notifikasi pelayar mesti dibenarkan dalam tetapan sistem pengendalian.
 
 ### 5.5 Pengurusan Kategori Dokumen (`jenis_dokumen`)
 
@@ -657,6 +661,8 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `app/Http/Middleware/SemakPeranan.php` | Alias `peranan:` |
 | `app/Http/Middleware/WajibTukarKataLaluan.php` | Alias `wajib.tukar` |
 | `app/Notifications/PendaftaranDiluluskan.php`, `PendaftaranDitolak.php` | Emel keputusan pendaftaran |
+| `app/Notifications/NotifikasiDms.php`, `app/Support/Notifikasi.php`, `app/Observers/BorangNotifikasiObserver.php` | Notifikasi loceng & peranti (penerima ikut peranan) |
+| `public/sw.js`, `public/manifest.webmanifest`, `public/ikon/`, `config/webpush.php` | Notifikasi peranti (Web Push) & PWA |
 
 ### Service (`app/Services/`)
 | Fail | Peranan |
@@ -674,7 +680,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `AuthController` | Log masuk / log keluar |
 | `PasswordResetController` | Lupa & tetap semula kata laluan |
 | `PendaftaranStafController` | Permohonan awam + Pengesahan Pendaftaran |
-| `ProfilController` | Profil & tukar kata laluan (termasuk wajib tukar) |
+| `ProfilController` | Profil, tukar kata laluan (termasuk wajib tukar) & tukar peranan aktif |
 | `DashboardController` | Papan pemuka ikut peranan |
 | `JenisDokumenController` | Kategori Dokumen + pembina medan + endpoint medan |
 | `BahagianController`, `UserController` | Pengurusan Bahagian & Kakitangan |
@@ -684,6 +690,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `ImbasHantarController` (mewarisi `ImbasArkibController`) | Imbas & Hantar (`mod()` = `hantar`) |
 | `BorangController` | Aliran kelulusan |
 | `LogAuditController` | Log Audit |
+| `NotifikasiController` | Loceng, halaman Notifikasi, langganan peranti |
 
 ### Arahan Konsol
 | Arahan | Fail |
@@ -717,7 +724,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `routes/web.php`, `routes/console.php` | Laluan & jadual |
 
 ### Ujian (`tests/`)
-`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (48 kelas ujian, 286 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
+`tests/SkemaUjian.php` mencipta skema minimum dalam SQLite `:memory:` (jadual domain tiada dalam SQLite secara lalai); `tests/Feature/*` dan `tests/Unit/*` (49 kelas ujian, 293 ujian) meliputi log masuk, pendaftaran, profil, kata laluan sementara, dokumen & transaksi fail, medan EAV, Imbas & Arkib/Hantar, OCR hibrid, AI, papan pemuka, kelulusan, halaman ralat, locale, SRI dan UI. DB & storan sebenar tidak disentuh (`Storage::fake`).
 
 ---
 
@@ -738,14 +745,15 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
    OCR_PDFTOPPM_BIN="C:/poppler/Library/bin/pdftoppm.exe"
    ```
 8. Pasang Ollama, kemudian daftarkan model SEA-LION sebagai `sea-lion-local` dan tarik GLM-OCR: `ollama pull glm-ocr:q8_0`. Tetapan `OCR_*`, `OCR_VLM_*` dan `OLLAMA_*` sudah ada dalam `.env.example`
-9. Jalankan `php artisan config:clear`
-10. Jalankan `php artisan serve` (atau buka melalui Herd)
-11. Tetapkan sandaran dalam `.env` (`SANDARAN_MYSQLDUMP_BIN`, `SANDARAN_SALINAN`; lihat 10.2), kemudian jadualkan penjadual Laravel setiap minit melalui Windows Task Scheduler (jalankan sekali dalam PowerShell, tukar laluan ikut komputer):
+9. Notifikasi peranti: `php artisan webpush:vapid` (menulis `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` ke `.env`) dan tetapkan `VAPID_SUBJECT`. Di **Windows**, PHP perlukan pemboleh ubah persekitaran `OPENSSL_CONF` untuk mencipta kunci EC (penjanaan kunci dan penyulitan setiap mesej); tanpanya ralat "Unable to create the key". Tetapkan sekali (`setx OPENSSL_CONF "C:\Users\NAMA\.config\herd\bin\php83\extras\ssl\openssl.cnf"`), kemudian mulakan semula pelayan dalam terminal baharu
+10. Jalankan `php artisan config:clear`
+11. Jalankan `php artisan serve` (atau buka melalui Herd)
+12. Tetapkan sandaran dalam `.env` (`SANDARAN_MYSQLDUMP_BIN`, `SANDARAN_SALINAN`; lihat 10.2), kemudian jadualkan penjadual Laravel setiap minit melalui Windows Task Scheduler (jalankan sekali dalam PowerShell, tukar laluan ikut komputer):
     ```
     schtasks /Create /TN "DMS PKINK Penjadual" /SC MINUTE /MO 1 /F /TR 'conhost.exe --headless C:\Users\NAMA\.config\herd\bin\php83\php.exe C:\laluan\projek\artisan schedule:run'
     ```
     `conhost --headless` mengelakkan tetingkap konsol muncul setiap minit (laluan tanpa ruang kosong). Ini menjalankan `imbas-arkib:bersih` (harian) dan `sandaran:jalan` (12:30 setiap hari)
-12. Sebelum demo: `php artisan ai:panaskan`
+13. Sebelum demo: `php artisan ai:panaskan`
 
 **Produksi:** tetapkan `APP_ENV=production`, `APP_DEBUG=false`, dan padam akaun ujian (Bahagian 13).
 
