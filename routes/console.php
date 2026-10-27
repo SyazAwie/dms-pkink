@@ -1,7 +1,9 @@
 <?php
 
+use App\Services\OllamaExtractionService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -17,20 +19,24 @@ Schedule::command('imbas-arkib:bersih')->daily();
 // pembangunan biasanya hidup ketika itu; penjadual tidak berjalan bila komputer dimatikan.
 Schedule::command('sandaran:jalan')->dailyAt('12:30')->withoutOverlapping();
 
+// Degupan penjadual: halaman Status Sistem menyemak penjadual (Task Scheduler) masih berjalan
+Schedule::call(fn () => Cache::forever('penjadual:degupan', now()->toIso8601String()))
+    ->everyMinute()->name('degupan-penjadual');
+
 // Semakan integriti fail imbasan (FailIntegriti): fail hilang / SHA-256 berubah, setiap Isnin
 Schedule::command('fail:integriti')->weeklyOn(1, '12:45')->withoutOverlapping();
 
 // Muat model AI (Ollama) ke GPU sebelum digunakan, cth. sebelum demo/pembentangan,
 // supaya imbasan pertama tidak menunggu model dimuat. Model kekal selama OLLAMA_KEEP_ALIVE.
 Artisan::command('ai:panaskan', function () {
-    $ai = app(\App\Services\OllamaExtractionService::class);
+    $ai = app(OllamaExtractionService::class);
     if ($ai->sudahDimuat()) {
         $this->info('Model AI sudah dimuat.');
 
         return 0;
     }
     $mula = microtime(true);
-    if (!$ai->panaskan()) {
+    if (! $ai->panaskan()) {
         $this->error('Model AI gagal dimuat. Pastikan Ollama berjalan dan OLLAMA_MODEL betul.');
 
         return 1;

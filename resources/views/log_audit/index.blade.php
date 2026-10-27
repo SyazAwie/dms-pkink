@@ -15,6 +15,10 @@
         <h2>Log Audit</h2>
         <p>Jejak semua tindakan dalam sistem. Rekod bersifat baca sahaja dan tidak boleh diubah.</p>
     </div>
+    {{-- Eksport CSV ikut penapis semasa (P14) --}}
+    <a href="{{ route('log-audit.eksport', request()->query()) }}" class="outline-button kekal-label text-decoration-none">
+        <i class="bi bi-download" aria-hidden="true"></i> <span>Eksport CSV</span>
+    </a>
 </div>
 
 <!-- ============ Penapis ============ -->

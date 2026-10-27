@@ -69,6 +69,12 @@ return [
         'had_masa' => (int) env('OLLAMA_HAD_MASA', 180),
     ],
 
+    // Notifikasi emel (P2): mati secara lalai kerana akaun ujian guna domain @pkink.com yang
+    // mungkin domain sebenar; hidupkan semasa serahan bila akaun sebenar digunakan
+    'notifikasi' => [
+        'emel' => (bool) env('NOTIFIKASI_EMEL', false),
+    ],
+
     // Sandaran harian (php artisan sandaran:jalan): pangkalan data + fail imbasan dalam satu zip
     'sandaran' => [
         // Laluan penuh .exe kerana Herd tidak nampak PATH Windows (cth. XAMPP)

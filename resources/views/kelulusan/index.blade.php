@@ -23,6 +23,23 @@
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
+{{-- Penapis (P10): tab status untuk pentadbir + carian No. Rujukan / pemohon --}}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2">
+        @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN'))
+            <a href="{{ route('kelulusan.index', array_filter(['q' => request('q')])) }}" class="tab-kel {{ request('status') ? '' : 'aktif' }}">Semua <span class="tab-bil">{{ $bilStatus->sum() }}</span></a>
+            @foreach(\App\Http\Controllers\BorangController::STATUS as $s)
+                <a href="{{ route('kelulusan.index', array_filter(['status' => $s, 'q' => request('q')])) }}" class="tab-kel {{ request('status') === $s ? 'aktif' : '' }}">{{ $s }} <span class="tab-bil">{{ $bilStatus[$s] ?? 0 }}</span></a>
+            @endforeach
+        @endif
+    </div>
+    <form method="GET" action="{{ route('kelulusan.index') }}" class="kel-cari" role="search">
+        @if(request('status'))<input type="hidden" name="status" value="{{ request('status') }}">@endif
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" name="q" value="{{ request('q') }}" class="dms-input" placeholder="Cari No. Rujukan atau pemohon..." aria-label="Cari permohonan">
+    </form>
+</div>
+
 <div class="glass-panel">
     <div class="table-responsive">
         <table class="table dms-table align-middle mb-0">
@@ -60,7 +77,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center py-4 dms-hint">Tiada permohonan menunggu tindakan.</td>
+                        <td colspan="6" class="text-center py-4 dms-hint">{{ request()->hasAny(['status', 'q']) ? 'Tiada permohonan sepadan dengan penapis.' : 'Tiada permohonan menunggu tindakan.' }}</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -77,6 +94,13 @@
 
 @push('styles')
 <style>
+    .tab-kel { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid var(--dms-line); border-radius: 999px; color: var(--dms-text); background: var(--dms-surface-strong); font-size: 12.5px; font-weight: 700; }
+    .tab-kel.aktif { border-color: var(--dms-primary); color: #fff; background: var(--dms-primary); }
+    .tab-bil { min-width: 22px; padding: 1px 7px; border-radius: 10px; background: rgba(104, 121, 141, .15); font-size: 11px; text-align: center; }
+    .tab-kel.aktif .tab-bil { background: rgba(255, 255, 255, .25); }
+    .kel-cari { position: relative; min-width: min(280px, 100%); }
+    .kel-cari i { position: absolute; top: 50%; left: 12px; color: var(--dms-muted); transform: translateY(-50%); }
+    .kel-cari .dms-input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--dms-line); border-radius: 10px; font-size: 13px; background: #fff; }
     .dms-table { font-size: 13px; }
     .dms-table thead th {
         font-size: 11px; text-transform: uppercase; letter-spacing: .4px;
