@@ -4,6 +4,8 @@
 
 @section('content')
 
+@php $bolehUrus = Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN'); @endphp
+
 <!-- Bahagian Pengenalan Halaman -->
 <div class="page-intro">
     <div>
@@ -15,9 +17,13 @@
             <i class="bi bi-calendar3"></i>
             {{ now()->translatedFormat('d F Y') }}
         </div>
-        <a href="{{ route('jenis-dokumen.create') }}" class="btn text-white shadow-sm add-category-btn">
-            <i class="bi bi-plus-lg me-2"></i> Tambah Kategori
-        </a>
+        @if($bolehUrus)
+            <a href="{{ route('jenis-dokumen.create') }}" class="btn text-white shadow-sm add-category-btn">
+                <i class="bi bi-plus-lg me-2"></i> Tambah Kategori
+            </a>
+        @else
+            <span class="date-chip"><i class="bi bi-eye"></i> Paparan sahaja</span>
+        @endif
     </div>
 </div>
 
@@ -90,7 +96,9 @@
                     <th class="py-3 sortable" data-sort="text">NAMA DOKUMEN <i class="bi bi-arrow-down-up sort-icon"></i></th>
                     <th class="py-3 sortable" data-sort="text">KUMPULAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
                     <th class="py-3 sortable" data-sort="text">MEDAN <i class="bi bi-arrow-down-up sort-icon"></i></th>
-                    <th class="pe-4 py-3 text-end">TINDAKAN</th>
+                    @if($bolehUrus)
+                        <th class="pe-4 py-3 text-end">TINDAKAN</th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
@@ -115,6 +123,7 @@
                             <span class="badge tanpa-medan-badge" title="Tambah medan melalui butang Edit">Tiada medan</span>
                         @endif
                     </td>
+                    @if($bolehUrus)
                     <td class="pe-4 text-end">
                         <div class="d-flex justify-content-end gap-2">
                             <a href="{{ route('jenis-dokumen.edit', $item->jenis_dokumen_id) }}"
@@ -135,13 +144,16 @@
                             </button>
                         </div>
                     </td>
+                    @endif
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="text-center py-5">
+                    <td colspan="{{ $bolehUrus ? 6 : 5 }}" class="text-center py-5">
                         <div class="text-muted mb-2"><i class="bi bi-folder-x" style="font-size: 32px; opacity: 0.5;"></i></div>
                         <div style="font-size: 14px; font-weight: 700; color: var(--dms-brand);">Tiada rekod kategori dokumen ditemui.</div>
-                        <div style="font-size: 12px; color: var(--dms-muted); margin-top: 4px;">Sila klik butang 'Tambah Kategori' untuk memulakan.</div>
+                        @if($bolehUrus)
+                            <div style="font-size: 12px; color: var(--dms-muted); margin-top: 4px;">Sila klik butang 'Tambah Kategori' untuk memulakan.</div>
+                        @endif
                     </td>
                 </tr>
                 @endforelse
@@ -162,6 +174,7 @@
 </div>
 
 <!-- Modal Pengesahan Padam -->
+@if($bolehUrus)
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content dms-modal">
@@ -186,6 +199,7 @@
         </div>
     </div>
 </div>
+@endif
 
 @endsection
 
