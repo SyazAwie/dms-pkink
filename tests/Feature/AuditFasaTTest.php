@@ -114,6 +114,41 @@ class AuditFasaTTest extends TestCase
         $this->assertSame(1, LogAudit::where('nama_jadual', 'bahagian')->where('tindakan', 'Kemaskini')->count());
     }
 
+    public function test_ocr_manual_dilog(): void
+    {
+        $kerani = $this->buatPengguna(['KERANI']);
+        $jenis = \App\Models\JenisDokumen::create(['kod_dokumen' => 'BPK', 'nama_dokumen' => 'Borang Pohon']);
+        $dokumen = \App\Models\Dokumen::create(['jenis_dokumen_id' => $jenis->jenis_dokumen_id, 'no_rujukan' => 'BPK/2026/0001',
+            'tarikh_dokumen' => '2026-10-27', 'created_by' => $kerani->user_id]);
+        $scan = \App\Models\DokumenScan::create(['dokumen_id' => $dokumen->dokumen_id, 'nama_fail' => 'borang.pdf', 'lokasi_fail' => 'dokumen/borang.pdf']);
+        $this->mock(\App\Services\OcrService::class)->shouldReceive('proses')
+            ->andReturn(['teks' => 'BORANG PERMOHONAN', 'skor' => 88.5, 'enjin' => ['tesseract']]);
+
+        $this->actingAs($kerani)->post(route('dokumen.scan.ocr', $scan->dokumen_scan_id))->assertRedirect();
+
+        $log = LogAudit::where('tindakan', 'Jalankan OCR')->sole();
+        $this->assertSame($kerani->user_id, $log->user_id);
+        $this->assertSame('dokumen_scan', $log->nama_jadual);
+        $this->assertSame($scan->dokumen_scan_id, $log->rekod_id);
+        $this->assertSame(['dokumen' => 'BPK/2026/0001', 'nama_fail' => 'borang.pdf', 'status_ocr' => 'Selesai', 'skor' => 88.5, 'enjin' => ['tesseract']], $log->data_baharu);
+    }
+
+    public function test_tetapan_semula_kata_laluan_melalui_emel_dilog_atas_nama_pengguna(): void
+    {
+        $staf = $this->buatPengguna(['STAFF'], ['email' => 'staf@pkink.test']);
+        $token = \Illuminate\Support\Facades\Password::createToken($staf);
+
+        $this->post(route('password.update'), [
+            'token' => $token, 'email' => 'staf@pkink.test',
+            'password' => 'Baharu123', 'password_confirmation' => 'Baharu123',
+        ])->assertRedirect('/');
+
+        $log = LogAudit::where('tindakan', 'Tetapan Semula Kata Laluan (Emel)')->sole();
+        $this->assertSame($staf->user_id, $log->user_id);
+        $this->assertSame($staf->user_id, $log->rekod_id);
+        $this->assertNull($log->data_baharu); // kata laluan tidak pernah dilog
+    }
+
     public function test_log_audit_papar_sistem_bagi_log_tanpa_pengguna(): void
     {
         $audit = $this->buatPengguna(['AUDIT']);

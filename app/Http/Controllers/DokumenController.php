@@ -583,14 +583,32 @@ class DokumenController extends Controller
             );
 
             $scan->update(['status_ocr' => $hasil['teks'] !== '' ? 'Selesai' : 'Tiada Teks Dikesan']);
+            $this->logOcrManual($scan, ['status_ocr' => $scan->status_ocr, 'skor' => $hasil['skor'], 'enjin' => $hasil['enjin'] ?? []]);
 
             return back()->with('success', "OCR selesai untuk \"{$scan->nama_fail}\".");
         } catch (\Throwable $e) {
             Log::warning("OCR gagal untuk dokumen_scan_id {$scan->dokumen_scan_id}: " . $e->getMessage());
             $scan->update(['status_ocr' => 'Ralat']);
+            $this->logOcrManual($scan, ['status_ocr' => 'Ralat']);
 
             return back()->with('error', "OCR gagal untuk \"{$scan->nama_fail}\". Sila cuba lagi atau hubungi Pentadbir Sistem." . $this->butiranRalat($e));
         }
+    }
+
+    /** Log audit bagi OCR manual (#21): siapa menjalankan OCR atas fail mana, dan hasilnya. */
+    private function logOcrManual(DokumenScan $scan, array $hasil): void
+    {
+        LogAudit::create([
+            'user_id' => Auth::id(),
+            'tindakan' => 'Jalankan OCR',
+            'nama_jadual' => 'dokumen_scan',
+            'rekod_id' => $scan->dokumen_scan_id,
+            'data_lama' => null,
+            'data_baharu' => ['dokumen' => $scan->dokumen?->no_rujukan, 'nama_fail' => $scan->nama_fail] + $hasil,
+            'alamat_ip' => request()->ip(),
+            'peranti_pengguna' => request()->userAgent(),
+            'created_at' => now(),
+        ]);
     }
 
     /**

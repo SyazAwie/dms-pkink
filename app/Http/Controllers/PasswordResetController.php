@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LogAudit;
 use App\Support\PolisiKataLaluan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -96,6 +97,19 @@ class PasswordResetController extends Controller
 
                 $user->save();
                 event(new PasswordReset($user));
+
+                // #21: identiti disahkan melalui token emel, jadi tindakan direkod atas nama pengguna itu
+                LogAudit::create([
+                    'user_id' => $user->user_id,
+                    'tindakan' => 'Tetapan Semula Kata Laluan (Emel)',
+                    'nama_jadual' => 'users',
+                    'rekod_id' => $user->user_id,
+                    'data_lama' => null,
+                    'data_baharu' => null,
+                    'alamat_ip' => request()->ip(),
+                    'peranti_pengguna' => request()->userAgent(),
+                    'created_at' => now(),
+                ]);
             }
         );
 
