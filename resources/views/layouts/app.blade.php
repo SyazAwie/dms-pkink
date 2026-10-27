@@ -289,15 +289,16 @@
             // Giliran tindakan untuk loceng topbar & menu sidebar (bukan sistem notifikasi penuh):
             // kelulusan dokumen (PENYOKONG = Dalam Proses, PELULUS = Disokong, Admin = kedua-duanya)
             // dan pendaftaran staf baharu yang menunggu pengesahan (SUPERADMIN/ADMIN).
+            // Permohonan sendiri tidak dikira: pemohon tidak boleh bertindak ke atasnya.
             $penggunaSemasa = Auth::user();
             $bolehKelulusan = $penggunaSemasa->hasAnyRole('PENYOKONG', 'PELULUS', 'SUPERADMIN', 'ADMIN');
             $bolehPendaftaran = $penggunaSemasa->hasAnyRole('SUPERADMIN', 'ADMIN');
             $bilKelulusan = 0;
             if ($penggunaSemasa->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN')) {
-                $bilKelulusan += \App\Models\Borang::dokumenAktif()->where('status_permohonan', 'Dalam Proses')->count();
+                $bilKelulusan += \App\Models\Borang::dokumenAktif()->bukanMilik($penggunaSemasa->user_id)->where('status_permohonan', 'Dalam Proses')->count();
             }
             if ($penggunaSemasa->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN')) {
-                $bilKelulusan += \App\Models\Borang::dokumenAktif()->where('status_permohonan', 'Disokong')->count();
+                $bilKelulusan += \App\Models\Borang::dokumenAktif()->bukanMilik($penggunaSemasa->user_id)->where('status_permohonan', 'Disokong')->count();
             }
             $bilPendaftaran = $bolehPendaftaran
                 ? \App\Models\PendaftaranStaf::where('status', \App\Models\PendaftaranStaf::MENUNGGU)->count()

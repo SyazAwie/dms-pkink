@@ -161,11 +161,12 @@ class DashboardController extends Controller
 
     /**
      * PENYOKONG / PELULUS: giliran permohonan pada peringkat $status, paling lama dahulu
-     * (FIFO), dengan umur (hari) sejak masuk giliran ($lajurMasuk).
+     * (FIFO), dengan umur (hari) sejak masuk giliran ($lajurMasuk). Permohonan sendiri
+     * tidak termasuk kerana pemohon tidak boleh bertindak ke atasnya.
      */
     private function dataGiliran(User $user, string $status, string $lajurMasuk, string $lajurPegawai, string $lajurSelesai): array
     {
-        $giliran = fn () => Borang::dokumenAktif()->where('status_permohonan', $status);
+        $giliran = fn () => Borang::dokumenAktif()->bukanMilik($user->user_id)->where('status_permohonan', $status);
         $tertua = $giliran()->min($lajurMasuk);
 
         return [
