@@ -104,20 +104,30 @@ class SandaranTest extends TestCase
 
     public function test_sandaran_lama_dipadam_ikut_tempoh_simpanan(): void
     {
+        // Simpanan bertingkat (Fasa Keselamatan S4): tarikh daripada nama fail
+        $nama = fn ($t) => 'sandaran_'.$t->format('Ymd').'_123000.zip';
+        $rabu = now()->subWeeks(4)->startOfWeek()->addDays(2);
+        $fail = [
+            'baharu' => $nama(now()->subDays(7)),          // dalam 14 hari: disimpan
+            'mingguRabu' => $nama($rabu),                  // minggu sama: hanya yang terbaharu
+            'mingguKhamis' => $nama($rabu->copy()->addDay()),
+            'terlaluLama' => $nama(now()->subDays(200)),   // melebihi 6 bulan: dipadam
+        ];
         $this->palsuMysqldump();
         foreach ([$this->folder, $this->salinan] as $f) {
             File::ensureDirectoryExists($f);
-            File::put("{$f}/sandaran_20260901_123000.zip", 'lama');
-            touch("{$f}/sandaran_20260901_123000.zip", now()->subDays(20)->getTimestamp());
-            File::put("{$f}/sandaran_20261020_123000.zip", 'baharu');
-            touch("{$f}/sandaran_20261020_123000.zip", now()->subDays(7)->getTimestamp());
+            foreach ($fail as $n) {
+                File::put("{$f}/{$n}", 'zip');
+            }
         }
 
         $this->artisan('sandaran:jalan')->assertSuccessful();
 
         foreach ([$this->folder, $this->salinan] as $f) {
-            $this->assertFileDoesNotExist("{$f}/sandaran_20260901_123000.zip");
-            $this->assertFileExists("{$f}/sandaran_20261020_123000.zip");
+            $this->assertFileExists("{$f}/{$fail['baharu']}");
+            $this->assertFileExists("{$f}/{$fail['mingguKhamis']}");
+            $this->assertFileDoesNotExist("{$f}/{$fail['mingguRabu']}");
+            $this->assertFileDoesNotExist("{$f}/{$fail['terlaluLama']}");
         }
     }
 

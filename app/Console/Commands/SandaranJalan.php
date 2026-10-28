@@ -17,10 +17,16 @@ use ZipArchive;
  *   fail/...                       (storage/app/private, kecuali ocr_sementara)
  *
  * Disimpan dalam services.sandaran.folder, disalin ke services.sandaran.salinan jika
- * ditetapkan (cth. OneDrive), dan sandaran lebih lama daripada simpan_hari dipadam di
- * kedua-dua lokasi. Keputusan terakhir ditulis ke {folder}/terakhir.json.
+ * ditetapkan (cth. OneDrive). Keputusan terakhir ditulis ke {folder}/terakhir.json.
  *
- * Pemulihan: lihat README bahagian 10.2.
+ * Fasa Keselamatan S4 (tahan ransomware):
+ * - Zip disulitkan AES-256 bila SANDARAN_KATA_LALUAN ditetapkan: sandaran yang dicuri
+ *   tidak boleh dibaca. Simpan kata laluan itu DI LUAR pelayan (cth. sampul bermeterai).
+ * - Simpanan bertingkat: semua sandaran simpan_hari terakhir, kemudian satu setiap minggu
+ *   (8 minggu) dan satu setiap bulan (6 bulan), supaya serangan yang lambat dikesan
+ *   (data disulitkan senyap-senyap berminggu-minggu) masih boleh dipulihkan.
+ *
+ * Pemulihan: php artisan sandaran:pulih (README 10.2).
  */
 class SandaranJalan extends Command
 {
@@ -60,6 +66,7 @@ class SandaranJalan extends Command
             }
 
             $dipadam = $this->padamLama($folder, $simpanHari) + ($salinan ? $this->padamLama($salinan, $simpanHari) : 0);
+            $disulitkan = (bool) config('services.sandaran.kata_laluan');
         } catch (\Throwable $e) {
             Log::error('Sandaran gagal: ' . $e->getMessage());
             $this->tulisStatus($folder, ['berjaya' => false, 'masa' => now()->toDateTimeString(), 'ralat' => $e->getMessage()]);
@@ -82,6 +89,7 @@ class SandaranJalan extends Command
             'saiz' => $saiz,
             'bil_fail' => $bilFail,
             'salinan' => $disalin ? $salinan : null,
+            'disulitkan' => $disulitkan,
             'tempoh_saat' => $tempoh,
         ]);
         Log::info("Sandaran berjaya: {$nama} (" . number_format($saiz / 1048576, 1) . " MB, {$bilFail} fail imbasan).");
@@ -138,7 +146,15 @@ class SandaranJalan extends Command
             throw new \RuntimeException("Fail zip tidak dapat dicipta: {$zip}");
         }
 
-        $arkib->addFile($sql, 'pangkalan_data/' . preg_replace('/_\d{8}_\d{6}(?=\.sql$)/', '', basename($sql)));
+        $kataLaluan = (string) config('services.sandaran.kata_laluan');
+        $tambah = function (string $sumber, string $nama) use ($arkib, $kataLaluan) {
+            $arkib->addFile($sumber, $nama);
+            if ($kataLaluan !== '' && ! $arkib->setEncryptionName($nama, ZipArchive::EM_AES_256, $kataLaluan)) {
+                throw new \RuntimeException('Penyulitan AES-256 tidak disokong oleh sambungan zip PHP ini.');
+            }
+        };
+
+        $tambah($sql, 'pangkalan_data/' . preg_replace('/_\d{8}_\d{6}(?=\.sql$)/', '', basename($sql)));
 
         $disk = Storage::disk('local');
         $bil = 0;
@@ -146,7 +162,7 @@ class SandaranJalan extends Command
             if (in_array(strtok($fail, '/'), self::DIKECUALIKAN, true) || basename($fail) === '.gitignore') {
                 continue;
             }
-            $arkib->addFile($disk->path($fail), 'fail/' . $fail);
+            $tambah($disk->path($fail), 'fail/' . $fail);
             $bil++;
         }
 
@@ -157,19 +173,50 @@ class SandaranJalan extends Command
         return $bil;
     }
 
-    /** Padam sandaran_*.zip yang lebih lama daripada $hari hari. */
+    /** Padam sandaran_*.zip yang tidak lagi diperlukan oleh simpanan bertingkat. */
     private function padamLama(string $folder, int $hari): int
     {
-        $had = now()->subDays($hari)->getTimestamp();
         $bil = 0;
-        foreach (File::glob("{$folder}/sandaran_*.zip") as $fail) {
-            if (File::lastModified($fail) < $had) {
-                File::delete($fail);
-                $bil++;
-            }
+        foreach (self::untukDipadam(File::glob("{$folder}/sandaran_*.zip"), $hari) as $fail) {
+            File::delete($fail);
+            $bil++;
         }
 
         return $bil;
+    }
+
+    /**
+     * Simpanan bertingkat: semua dalam $hari terakhir; selepas itu terbaharu setiap minggu
+     * ISO hingga 8 minggu, dan terbaharu setiap bulan hingga 6 bulan. Masa diambil daripada
+     * nama fail (sandaran_YYYYMMDD_HHMMSS.zip) kerana salinan OneDrive menukar masa ubah suai.
+     *
+     * @param  list<string>  $fail
+     * @return list<string>
+     */
+    public static function untukDipadam(array $fail, int $hari): array
+    {
+        $masa = [];
+        foreach ($fail as $f) {
+            if (preg_match('/sandaran_(\d{8}_\d{6})\.zip$/', $f, $m)) {
+                $masa[$f] = \Illuminate\Support\Carbon::createFromFormat('Ymd_His', $m[1]);
+            }
+        }
+        arsort($masa);
+
+        $simpan = [];
+        $kumpulan = [];
+        foreach ($masa as $f => $t) {
+            $umurHari = $t->diffInDays(now());
+            if ($umurHari < $hari) {
+                $simpan[$f] = true;
+            } elseif ($umurHari < 8 * 7 && ! isset($kumpulan['m'.$t->format('o-W')])) {
+                $simpan[$f] = $kumpulan['m'.$t->format('o-W')] = true;
+            } elseif ($umurHari >= 8 * 7 && $umurHari < 183 && ! isset($kumpulan['b'.$t->format('Y-m')])) {
+                $simpan[$f] = $kumpulan['b'.$t->format('Y-m')] = true;
+            }
+        }
+
+        return array_values(array_filter(array_keys($masa), fn ($f) => ! isset($simpan[$f])));
     }
 
     private function tulisStatus(string $folder, array $status): void

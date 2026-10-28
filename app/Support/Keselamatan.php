@@ -111,6 +111,7 @@ class Keselamatan
                 'Tukar segera. Penyerang mencuba kata laluan seperti 123456789 dahulu.');
 
         $hasil[] = self::semakSandaran($semak);
+        $hasil[] = self::semakUjiPulih($semak);
         $hasil[] = self::semakLuarTalian($semak);
 
         $integriti = self::statusJson('integriti.json');
@@ -135,9 +136,31 @@ class Keselamatan
             return $semak('Sandaran harian', 'ralat', 'Gagal '.$bila->diffForHumans(), $s['ralat'] ?? null);
         }
 
-        return $bila->lt(now()->subHours(36))
-            ? $semak('Sandaran harian', 'amaran', $bila->diffForHumans(), 'Lebih 36 jam tanpa sandaran.')
-            : $semak('Sandaran harian', 'ok', $bila->diffForHumans().(! empty($s['salinan']) ? ' · salinan kedua' : ''));
+        if ($bila->lt(now()->subHours(36))) {
+            return $semak('Sandaran harian', 'amaran', $bila->diffForHumans(), 'Lebih 36 jam tanpa sandaran.');
+        }
+        $nilai = $bila->diffForHumans().(! empty($s['salinan']) ? ' · salinan kedua' : '');
+
+        return empty($s['disulitkan'])
+            ? $semak('Sandaran harian', 'amaran', $nilai.' · TIDAK disulitkan',
+                'Tetapkan SANDARAN_KATA_LALUAN supaya sandaran yang dicuri tidak boleh dibaca (simpan kata laluan itu di luar pelayan).')
+            : $semak('Sandaran harian', 'ok', $nilai.' · disulitkan AES-256');
+    }
+
+    private static function semakUjiPulih(callable $semak): array
+    {
+        $s = self::statusJson('uji_pulih.json');
+        if (! $s) {
+            return $semak('Uji pemulihan sandaran', 'amaran', 'Belum pernah diuji', 'Sandaran yang tidak pernah diuji mungkin gagal bila diperlukan: php artisan sandaran:uji');
+        }
+        $bila = Carbon::parse($s['masa']);
+        if (! ($s['berjaya'] ?? false)) {
+            return $semak('Uji pemulihan sandaran', 'ralat', 'Gagal '.$bila->diffForHumans(), $s['ralat'] ?? null);
+        }
+
+        return $bila->lt(now()->subDays(14))
+            ? $semak('Uji pemulihan sandaran', 'amaran', 'Terakhir '.$bila->diffForHumans(), 'Lebih 14 hari. php artisan sandaran:uji')
+            : $semak('Uji pemulihan sandaran', 'ok', "Berjaya {$bila->diffForHumans()} · {$s['jadual']} jadual, {$s['bil_fail']} fail");
     }
 
     private static function semakLuarTalian(callable $semak): array

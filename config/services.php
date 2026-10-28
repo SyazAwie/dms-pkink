@@ -116,6 +116,10 @@ return [
         'salinan' => env('SANDARAN_SALINAN'),
         'simpan_hari' => (int) env('SANDARAN_SIMPAN_HARI', 14),
         'had_masa' => (int) env('SANDARAN_HAD_MASA', 900),
+        // Fasa Keselamatan S4: zip disulitkan AES-256 (simpan kata laluan DI LUAR pelayan)
+        'kata_laluan' => env('SANDARAN_KATA_LALUAN'),
+        // Klien mysql untuk sandaran:uji / sandaran:pulih (lalai: sebelah mysqldump)
+        'mysql_bin' => env('SANDARAN_MYSQL_BIN'),
     ],
 
 ];
