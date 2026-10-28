@@ -520,6 +520,13 @@
                         </a>
                     </li>
                     <li>
+                        <a href="{{ route('keselamatan.index') }}" class="nav-link {{ request()->routeIs('keselamatan.*') ? 'active' : '' }}">
+                            <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                            <span>Pusat Keselamatan</span>
+                            @if(request()->routeIs('keselamatan.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ route('status-sistem.index') }}" class="nav-link {{ request()->routeIs('status-sistem.*') ? 'active' : '' }}">
                             <i class="bi bi-activity" aria-hidden="true"></i>
                             <span>Status Sistem</span>

@@ -11,6 +11,7 @@ use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
 use App\Http\Controllers\IsiBorangController;
 use App\Http\Controllers\JenisDokumenController;
+use App\Http\Controllers\KeselamatanController;
 use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\LogMasukController;
 use App\Http\Controllers\NotifikasiController;
@@ -113,6 +114,9 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
         Route::get('/pelupusan', [PelupusanController::class, 'index'])->name('pelupusan.index');
         Route::post('/pelupusan/{id}/kekalkan', [PelupusanController::class, 'kekalkan'])->whereNumber('id')->name('pelupusan.kekalkan');
         Route::post('/pelupusan/{id}/lupus', [PelupusanController::class, 'lupus'])->whereNumber('id')->name('pelupusan.lupus');
+
+        // Pusat Keselamatan (Fasa Keselamatan): ancaman, pengerasan, butang kecemasan
+        Route::get('/keselamatan', [KeselamatanController::class, 'index'])->name('keselamatan.index');
 
         // Status Sistem: semakan OCR/AI, sandaran, penjadual, storan
         Route::get('/status-sistem', [StatusSistemController::class, 'index'])->name('status-sistem.index');
