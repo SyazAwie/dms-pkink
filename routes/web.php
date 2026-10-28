@@ -14,12 +14,17 @@ use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PendaftaranStafController;
 use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\SlipKelulusanController;
 use App\Http\Controllers\StatusSistemController;
 use App\Http\Controllers\TongSampahController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Pengesahan slip kelulusan (P6): AWAM, dibuka oleh kod QR pada slip; kod HMAC + had kadar
+Route::get('/sahkan-slip/{borang}/{kod}', [SlipKelulusanController::class, 'sahkan'])
+    ->whereNumber('borang')->where('kod', '[A-Za-z0-9]{1,32}')->middleware('throttle:30,1')->name('slip.sahkan');
 
 // Laluan tetamu: pengguna yang sudah log masuk akan dibawa ke papan pemuka
 Route::middleware('guest')->group(function () {
@@ -147,6 +152,7 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::post('/dokumen/{id}/kelulusan/sokong', [BorangController::class, 'sokong'])->name('kelulusan.sokong');
     Route::post('/dokumen/{id}/kelulusan/lulus', [BorangController::class, 'lulus'])->name('kelulusan.lulus');
     Route::post('/dokumen/{id}/kelulusan/tolak', [BorangController::class, 'tolak'])->name('kelulusan.tolak');
+    Route::get('/dokumen/{id}/kelulusan/slip', [SlipKelulusanController::class, 'muatTurun'])->name('kelulusan.slip');
     Route::get('/kelulusan', [BorangController::class, 'index'])
         ->middleware('peranan:SUPERADMIN,ADMIN,PENYOKONG,PELULUS')
         ->name('kelulusan.index');

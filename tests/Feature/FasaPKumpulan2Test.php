@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\DokumenData;
 use App\Models\DokumenField;
@@ -15,7 +16,8 @@ use Tests\SkemaUjian;
 use Tests\TestCase;
 
 /**
- * Fasa P kumpulan 2: penapis berstruktur EAV (P8), pratonton & muat turun bertera air (P11).
+ * Fasa P kumpulan 2: penapis berstruktur EAV (P8), slip kelulusan ber-QR (P6),
+ * pratonton & muat turun bertera air (P11).
  */
 class FasaPKumpulan2Test extends TestCase
 {
@@ -176,5 +178,67 @@ class FasaPKumpulan2Test extends TestCase
             ->assertSee('data-src="'.route('dokumen.scan.papar', $imej->dokumen_scan_id).'"', false)
             ->assertSee(route('dokumen.scan.muat-turun', $pdf->dokumen_scan_id))
             ->assertSee(route('dokumen.scan.muat-turun', $imej->dokumen_scan_id));
+    }
+
+    private function borangLulus(): Borang
+    {
+        $d = $this->invois('INV-LULUS', '10.00', '2026-01-10', 'Dell');
+        $pemohon = $this->buatPengguna(['STAFF']);
+        $pelulus = $this->buatPengguna(['PELULUS']);
+
+        return Borang::create(['dokumen_id' => $d->dokumen_id, 'pemohon_id' => $pemohon->user_id,
+            'pegawai_pelulus_id' => $pelulus->user_id, 'status_permohonan' => 'Diluluskan',
+            'tarikh_permohonan' => now()->subDay(), 'tarikh_kelulusan' => now()->startOfMinute()]);
+    }
+
+    public function test_slip_kelulusan_pdf_dijana_dan_direkod(): void
+    {
+        $borang = $this->borangLulus();
+
+        $this->actingAs($this->admin)->get(route('dokumen.show', $borang->dokumen_id))
+            ->assertSee(route('kelulusan.slip', $borang->dokumen_id));
+
+        $respons = $this->actingAs($this->admin)->get(route('kelulusan.slip', $borang->dokumen_id));
+        $respons->assertOk()->assertHeader('Content-Type', 'application/pdf')->assertDownload('Slip_Kelulusan_INV-LULUS.pdf');
+        $this->assertStringStartsWith('%PDF', $respons->streamedContent());
+        $this->assertDatabaseHas('log_audit', ['tindakan' => 'Jana Slip Kelulusan', 'rekod_id' => $borang->borang_id]);
+    }
+
+    public function test_slip_hanya_bagi_permohonan_diluluskan_dan_ikut_dasar(): void
+    {
+        $borang = $this->borangLulus();
+        $this->actingAs($this->buatPengguna(['STAFF']))->get(route('kelulusan.slip', $borang->dokumen_id))->assertForbidden();
+
+        $borang->update(['status_permohonan' => 'Disokong']);
+        $this->actingAs($this->admin)->get(route('dokumen.show', $borang->dokumen_id))
+            ->assertDontSee(route('kelulusan.slip', $borang->dokumen_id));
+        $this->actingAs($this->admin)->from(route('dokumen.show', $borang->dokumen_id))
+            ->get(route('kelulusan.slip', $borang->dokumen_id))
+            ->assertRedirect(route('dokumen.show', $borang->dokumen_id))
+            ->assertSessionHas('error', 'Slip kelulusan hanya boleh dijana bagi permohonan yang telah diluluskan.');
+    }
+
+    public function test_pengesahan_awam_slip_sah_dan_tidak_sah(): void
+    {
+        $borang = $this->borangLulus();
+        $kod = $borang->kodPengesahan();
+        $this->assertMatchesRegularExpression('/^[0-9A-F]{12}$/', $kod);
+
+        // Tanpa log masuk
+        $this->get(route('slip.sahkan', [$borang->borang_id, $kod]))->assertOk()
+            ->assertSee('Slip Sah')->assertSee('INV-LULUS')->assertSee($borang->pemohon->nama_staff);
+        $this->get(route('slip.sahkan', [$borang->borang_id, strtolower($kod)]))->assertSee('Slip Sah');
+        $this->get(route('slip.sahkan', [$borang->borang_id, 'AAAAAAAAAAAA']))->assertOk()
+            ->assertSee('Slip Tidak Sah')->assertDontSee('INV-LULUS');
+        $this->get(route('slip.sahkan', [999, $kod]))->assertSee('Slip Tidak Sah');
+
+        // Diluluskan semula (tarikh baharu): slip lama tidak sah lagi
+        $borang->update(['tarikh_kelulusan' => now()->addHour()]);
+        $this->get(route('slip.sahkan', [$borang->borang_id, $kod]))->assertSee('Slip Tidak Sah');
+
+        // Dokumen dipadam: tidak sah
+        $kodBaharu = $borang->fresh()->kodPengesahan();
+        $borang->dokumen->delete();
+        $this->get(route('slip.sahkan', [$borang->borang_id, $kodBaharu]))->assertSee('Slip Tidak Sah');
     }
 }

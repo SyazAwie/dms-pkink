@@ -117,6 +117,11 @@
                     @if($dokumen->borang->ulasan_pelulus)
                         <div class="kel-ulasan"><i class="bi bi-chat-left-text"></i> <strong>Pelulus:</strong> {{ $dokumen->borang->ulasan_pelulus }}</div>
                     @endif
+                    @if($dokumen->borang->kodPengesahan())
+                        <a href="{{ route('kelulusan.slip', $dokumen->dokumen_id) }}" class="outline-button w-100 justify-content-center mt-3 text-decoration-none">
+                            <i class="bi bi-qr-code"></i> Muat Turun Slip Kelulusan (PDF)
+                        </a>
+                    @endif
                 @endif
 
                 {{-- Hantar / hantar semula --}}
