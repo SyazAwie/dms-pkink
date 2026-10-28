@@ -73,7 +73,7 @@ class AppServiceProvider extends ServiceProvider
                 ->line('Kami menerima permintaan untuk menetapkan semula kata laluan akaun anda dalam Sistem Arkib Digital PKINK.')
                 ->action('Tetapkan Semula Kata Laluan', $url)
                 ->line("Pautan ini sah selama {$minit} minit sahaja.")
-                ->line('Jika anda tidak membuat permintaan ini, sila abaikan emel ini. Kata laluan anda tidak akan berubah.')
+                ->markdown('notifications::email', ['peringatan' => '⚠ **Peringatan keselamatan.** Jika anda **tidak** meminta untuk menetapkan semula kata laluan, abaikan emel ini (kata laluan anda tidak akan berubah) dan maklumkan kepada Bahagian Digital PKINK. **Jangan kongsi emel ini atau pautan di dalamnya dengan sesiapa**, termasuk orang yang mengaku sebagai kakitangan PKINK. Bahagian Digital tidak akan sekali-kali meminta kata laluan anda.'])
                 ->salutation('Sekian, terima kasih. Bahagian Digital PKINK');
         });
     }

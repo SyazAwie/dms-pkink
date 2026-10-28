@@ -38,6 +38,7 @@ class PendaftaranDiluluskan extends Notification
             ->action('Log Masuk Sekarang', route('login'))
             ->line("Kata laluan sementara ini sah selama {$this->jamSah} jam sahaja. Anda akan diminta menukarnya kepada kata laluan baharu sebaik sahaja log masuk.")
             ->line('Jika kata laluan sementara telah tamat tempoh, gunakan pautan "Lupa Kata Laluan?" di halaman log masuk.')
+            ->markdown('notifications::email', ['peringatan' => '⚠ **Peringatan keselamatan.** Jika anda **tidak** memohon akaun ini, jangan log masuk dan maklumkan kepada Bahagian Digital PKINK dengan segera. **Jangan kongsi No. KP, kata laluan sementara atau emel ini dengan sesiapa**, termasuk orang yang mengaku sebagai kakitangan PKINK. Bahagian Digital tidak akan sekali-kali meminta kata laluan anda.'])
             ->salutation('Sekian, terima kasih. Bahagian Digital PKINK');
     }
 }
