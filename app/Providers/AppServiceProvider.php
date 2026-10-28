@@ -31,8 +31,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Mod Demo (Fasa D): permintaan web sahaja. Konsol & penjadual (sandaran harian,
         // semakan keselamatan) kekal pada DB sebenar walaupun demo sedang berjalan.
-        if (! $this->app->runningInConsole() && Demo::penandaWujud()) {
-            Demo::terapkan();
+        if (! $this->app->runningInConsole() && ($mod = Demo::modPenanda())) {
+            Demo::terapkan($mod);
         }
     }
 

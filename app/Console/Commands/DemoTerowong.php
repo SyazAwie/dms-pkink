@@ -10,8 +10,9 @@ use Symfony\Component\Process\Process;
 /**
  * Buka laman Herd kepada Internet melalui Cloudflare Quick Tunnel (Fasa D7): percuma,
  * HTTPS automatik, tiada port router dibuka. Alamat *.trycloudflare.com berubah setiap
- * kali, jadi ia disimpan dalam storage/app/demo/terowong.json untuk halaman /demo (QR)
- * dan penjanaan URL (Demo::selarasUrl). Terowong hidup selagi arahan ini berjalan.
+ * kali, jadi ia disimpan dalam storage/app/demo/terowong.json (dengan degupan setiap 10 s)
+ * untuk halaman /demo (QR) dan penjanaan URL (Demo::selarasUrl). Terowong hidup selagi
+ * arahan ini berjalan.
  */
 class DemoTerowong extends Command
 {
@@ -24,7 +25,7 @@ class DemoTerowong extends Command
     public function handle(): int
     {
         if (! Demo::penandaWujud()) {
-            $this->warn('Mod demo belum hidup: peserta akan nampak DB sebenar. Jalankan `php artisan demo:hidup` dahulu.');
+            $this->warn('Mod demo/percubaan belum hidup: peserta akan nampak DB sebenar. Jalankan `php artisan demo:hidup [--percubaan]` dahulu.');
             if (! $this->confirm('Teruskan juga?', false)) {
                 return self::FAILURE;
             }
@@ -52,22 +53,31 @@ class DemoTerowong extends Command
         }
 
         $url = null;
-        foreach ($proses as $output) {
+        $degupan = 0;
+        $mula = now()->toIso8601String();
+        while ($proses->isRunning()) {
+            $output = $proses->getIncrementalOutput().$proses->getIncrementalErrorOutput();
             if (! $url && preg_match('#https://[a-z0-9-]+\.trycloudflare\.com#i', $output, $m)) {
                 $url = $m[0];
-                File::ensureDirectoryExists(Demo::folder());
-                File::put(Demo::folder('terowong.json'), json_encode(['url' => $url, 'mula' => now()->toIso8601String(), 'pid' => $proses->getPid()]));
                 $this->newLine();
                 $this->info("Pautan demo: {$url}");
                 $this->line("Tayang kod QR: {$url}/demo  (atau http://{$host}/demo di komputer ini)");
                 $this->line('Biarkan tetingkap ini terbuka. Tekan Ctrl+C untuk menutup terowong.');
             }
+            // Degupan: jika arahan ini terhenti (Ctrl+C), alamat lama tamat sendiri dalam
+            // Demo::DEGUPAN_SAAT dan laman tidak lagi menghala ke terowong yang mati.
+            if ($url && time() - $degupan >= 10) {
+                $degupan = time();
+                File::ensureDirectoryExists(Demo::folder());
+                File::put(Demo::folder('terowong.json'), json_encode(['url' => $url, 'mula' => $mula, 'degupan' => $degupan]));
+            }
+            usleep(500_000);
         }
 
         File::delete(Demo::folder('terowong.json'));
         if (! $url) {
             $this->error('Terowong gagal dimulakan:');
-            $this->line(trim($proses->getErrorOutput() ?: $proses->getOutput()));
+            $this->line(trim($proses->getErrorOutput().$proses->getOutput()));
 
             return self::FAILURE;
         }

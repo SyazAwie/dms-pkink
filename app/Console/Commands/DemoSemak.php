@@ -52,11 +52,25 @@ class DemoSemak extends Command
 
     private function modDemo(): void
     {
-        $db = Demo::namaDb();
+        $penanda = Demo::modPenanda();
+        $mod = $penanda ?? Demo::DEMO;
+        $db = Demo::namaDb($mod);
         $adaDb = (bool) DB::selectOne('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?', [$db]);
-        $this->catat($adaDb && File::exists(Demo::folder('asas.sql')) ? 'OK' : 'RALAT', 'DB demo', $adaDb ? "{$db} + keadaan asas" : 'php artisan demo:sedia');
-        $this->catat(Demo::penandaWujud() ? 'OK' : 'RALAT', 'Mod demo', Demo::penandaWujud()
-            ? 'HIDUP (APP_DEBUG dimatikan, emel ke log, log masuk butang sahaja)' : 'php artisan demo:hidup');
+        $sedia = $mod === Demo::PERCUBAAN ? 'php artisan demo:sedia --percubaan --kekal=<No. KP anda>' : 'php artisan demo:sedia';
+        $this->catat($adaDb && File::exists(Demo::folderData($mod, 'asas.sql')) ? 'OK' : 'RALAT', "DB {$mod}", $adaDb ? "{$db} + keadaan asas" : $sedia);
+
+        $this->catat($penanda ? 'OK' : 'RALAT', 'Mod', match ($penanda) {
+            Demo::DEMO => 'DEMO hidup (APP_DEBUG dimatikan, emel ke log, log masuk butang sahaja)',
+            Demo::PERCUBAAN => 'PERCUBAAN hidup (sistem penuh, emel sebenar, APP_DEBUG dimatikan)',
+            default => 'php artisan demo:hidup  (atau --percubaan)',
+        });
+
+        if ($penanda === Demo::PERCUBAAN) {
+            $smtp = config('mail.default') === 'smtp' && config('mail.mailers.smtp.host');
+            $this->catat($smtp ? 'OK' : 'RALAT', 'Emel (SMTP)', $smtp
+                ? config('mail.mailers.smtp.host').' · daripada '.config('mail.from.address')
+                : 'MAIL_MAILER bukan smtp: peserta tidak akan terima kata laluan sementara');
+        }
     }
 
     private function laman(): void

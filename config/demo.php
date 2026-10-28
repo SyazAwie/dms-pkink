@@ -9,11 +9,12 @@
 
 return [
 
-    // Diisi oleh AppServiceProvider bagi setiap permintaan web (jangan tetapkan di .env)
-    'aktif' => false,
+    // Diisi oleh AppServiceProvider bagi setiap permintaan web: null | 'demo' | 'percubaan'
+    'mod' => null,
 
-    // Pangkalan data salinan untuk demo (dicipta oleh demo:sedia). Mesti berbeza daripada DB sebenar.
+    // Pangkalan data salinan (dicipta oleh demo:sedia [--percubaan]). Mesti berbeza daripada DB sebenar.
     'db' => env('DEMO_DB', 'dms_pkink_demo'),
+    'percubaan_db' => env('PERCUBAAN_DB', 'dms_pkink_percubaan'),
 
     // Akaun demo yang dipaparkan sebagai butang "Masuk sebagai..." (No. KP, ikut susunan paparan).
     // Hanya akaun ini boleh log masuk semasa mod demo; kata laluan akaun lain dalam salinan dirawakkan.

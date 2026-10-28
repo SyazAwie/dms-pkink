@@ -8,6 +8,7 @@ use App\Models\DokumenField;
 use App\Models\JenisDokumen;
 use App\Models\LogMasuk;
 use App\Models\User;
+use App\Notifications\NotifikasiDms;
 use App\Services\OcrService;
 use App\Services\OllamaExtractionService;
 use App\Support\Demo;
@@ -41,9 +42,23 @@ class ModDemoTest extends TestCase
         config(['demo.akaun' => ['990101010101', '990101010104']]);
     }
 
-    private function hidupkan(): void
+    private function hidupkan(string $mod = Demo::DEMO): void
     {
-        config(['demo.aktif' => true]);
+        config(['demo.mod' => $mod]);
+    }
+
+    /** Storan sementara dengan terowong.json (degupan = berapa saat yang lalu). Pulangkan laluan. */
+    private function terowong(int $saatLalu = 0): string
+    {
+        $storan = sys_get_temp_dir().'/dms-demo-ujian-'.uniqid();
+        $this->app->useStoragePath($storan);
+        File::ensureDirectoryExists($storan.'/app/demo');
+        File::put($storan.'/app/demo/terowong.json', json_encode([
+            'url' => 'https://contoh-ujian.trycloudflare.com', 'degupan' => time() - $saatLalu,
+        ]));
+        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory($storan));
+
+        return $storan;
     }
 
     public function test_mod_mati_tiada_kesan(): void
@@ -127,20 +142,38 @@ class ModDemoTest extends TestCase
     public function test_url_ikut_alamat_terowong_bagi_permintaan_cloudflare(): void
     {
         $this->hidupkan();
-        $storan = sys_get_temp_dir().'/dms-demo-ujian-'.uniqid();
-        $this->app->useStoragePath($storan);
-        File::ensureDirectoryExists($storan.'/app/demo');
-        File::put($storan.'/app/demo/terowong.json', json_encode(['url' => 'https://contoh-ujian.trycloudflare.com']));
+        $this->terowong();
 
-        try {
-            // Tanpa header Cloudflare (akses di komputer sendiri): URL biasa
-            $this->get(route('login'))->assertDontSee('contoh-ujian.trycloudflare.com');
-            // Melalui terowong: URL dijana ikut alamat terowong (https)
-            $this->withHeader('CF-Connecting-IP', '203.0.113.9')->get(route('login'))
-                ->assertSee('https://contoh-ujian.trycloudflare.com/favicon.ico', false);
-        } finally {
-            File::deleteDirectory($storan);
-        }
+        // Tanpa header Cloudflare (akses di komputer sendiri): URL biasa
+        $this->get(route('login'))->assertDontSee('contoh-ujian.trycloudflare.com');
+        // Melalui terowong: URL dijana ikut alamat terowong (https)
+        $this->withHeader('CF-Connecting-IP', '203.0.113.9')->get(route('login'))
+            ->assertSee('https://contoh-ujian.trycloudflare.com/favicon.ico', false);
+    }
+
+    public function test_alamat_terowong_tanpa_degupan_baharu_diabaikan(): void
+    {
+        $this->terowong(Demo::DEGUPAN_SAAT + 5);
+        $this->assertNull(Demo::urlTerowong());
+
+        $this->terowong(2);
+        $this->assertSame('https://contoh-ujian.trycloudflare.com', Demo::urlTerowong());
+    }
+
+    public function test_ip_peserta_diambil_daripada_header_cloudflare(): void
+    {
+        $this->withHeader('CF-Connecting-IP', '203.0.113.9')
+            ->post(route('login.proses'), ['ic_pekerja' => $this->admin->ic_pekerja, 'password' => 'salah']);
+
+        $this->assertSame('203.0.113.9', LogMasuk::latest('log_masuk_id')->value('alamat_ip'));
+    }
+
+    public function test_header_cloudflare_daripada_ip_luar_tidak_dipercayai(): void
+    {
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.7'])->withHeader('CF-Connecting-IP', '203.0.113.9')
+            ->post(route('login.proses'), ['ic_pekerja' => $this->admin->ic_pekerja, 'password' => 'salah']);
+
+        $this->assertSame('198.51.100.7', LogMasuk::latest('log_masuk_id')->value('alamat_ip'));
     }
 
     public function test_nama_db_demo_tidak_boleh_sama_dengan_db_sebenar(): void
@@ -149,6 +182,77 @@ class ModDemoTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
         Demo::namaDb();
+    }
+
+    // ---------- Mod Percubaan: sistem penuh untuk latihan ----------
+
+    public function test_percubaan_log_masuk_dan_pendaftaran_biasa_dibuka(): void
+    {
+        $this->hidupkan(Demo::PERCUBAAN);
+
+        $this->get(route('login'))->assertOk()
+            ->assertSee('name="password"', false)
+            ->assertSee('id="modalDaftar"', false)
+            ->assertSee('Mod Percubaan.')
+            ->assertSee('akan dipadam selepas sesi tamat')
+            ->assertDontSee('name="ic"', false);
+        $this->post(route('demo.masuk'), ['ic' => '990101010101'])->assertNotFound();
+
+        $this->post(route('login.proses'), ['ic_pekerja' => $this->admin->ic_pekerja, 'password' => 'Lama1234'])
+            ->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($this->admin);
+        $this->get(route('dashboard'))->assertSee('Mod Percubaan.');
+    }
+
+    public function test_percubaan_tiada_sekatan_tindakan(): void
+    {
+        $this->hidupkan(Demo::PERCUBAAN);
+
+        $this->actingAs($this->admin)->delete(route('users.destroy', $this->staf->user_id))->assertSessionMissing('demo_disekat');
+        $this->assertSoftDeleted($this->staf);
+    }
+
+    public function test_percubaan_alih_akses_tempatan_ke_terowong_dan_url_emel_ikut_terowong(): void
+    {
+        $this->hidupkan(Demo::PERCUBAAN);
+        $this->terowong();
+
+        // Pentadbir membuka dms-pkink.test semasa terowong hidup: dialihkan supaya satu domain/sesi
+        $this->get('/lupa-kata-laluan?a=1')->assertRedirect('https://contoh-ujian.trycloudflare.com/lupa-kata-laluan?a=1');
+        // Melalui terowong: tiada pengalihan, pautan ikut alamat terowong
+        $this->withHeader('CF-Connecting-IP', '203.0.113.9')->get(route('login'))
+            ->assertOk()->assertSee('https://contoh-ujian.trycloudflare.com/lupa-kata-laluan', false);
+        // POST tempatan (cth. lulus pendaftaran) tidak dialihkan; URL yang dijana (emel) ikut terowong
+        $this->post(route('login.proses'), ['ic_pekerja' => $this->admin->ic_pekerja, 'password' => 'Lama1234'])
+            ->assertRedirect('https://contoh-ujian.trycloudflare.com/dashboard');
+    }
+
+    public function test_percubaan_tanpa_terowong_akses_tempatan_biasa(): void
+    {
+        $this->hidupkan(Demo::PERCUBAAN);
+        $this->terowong(Demo::DEGUPAN_SAAT + 60); // terowong ditutup (Ctrl+C), fail lama tertinggal
+
+        $this->get(route('login'))->assertOk()->assertDontSee('contoh-ujian.trycloudflare.com');
+    }
+
+    public function test_akaun_dikunci_tidak_diemel_notifikasi(): void
+    {
+        config(['services.notifikasi.emel' => true]);
+        $n = new NotifikasiDms('ujian', 'Tajuk', 'Mesej', 'http://localhost');
+        $this->assertContains('mail', $n->via($this->admin));
+
+        $this->admin->forceFill(['dikunci_hingga' => now()->addYears(50)])->save();
+        $this->assertNotContains('mail', $n->via($this->admin->fresh()));
+    }
+
+    public function test_halaman_percubaan_papar_langkah_daftar(): void
+    {
+        $this->hidupkan(Demo::PERCUBAAN);
+
+        $this->get(route('demo.halaman'))->assertOk()
+            ->assertSee('Cuba sistem sebenar')
+            ->assertSee('Daftar Akaun Baharu')
+            ->assertDontSee('Admin Demo');
     }
 
     // ---------- D4: satu analisis OCR/AI pada satu masa ----------

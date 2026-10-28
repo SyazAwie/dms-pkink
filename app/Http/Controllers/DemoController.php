@@ -56,14 +56,20 @@ class DemoController extends Controller
         return redirect()->route('dashboard');
     }
 
-    /** Halaman tayangan: kod QR pautan demo + senarai akaun. */
+    /** Halaman tayangan: kod QR pautan + senarai akaun demo (mod demo) atau langkah daftar (mod percubaan). */
     public function halaman()
     {
-        abort_unless(Demo::aktif(), 404);
+        abort_unless(Demo::mod() !== null, 404);
 
         $url = Demo::urlTerowong() ?? url('/');
         $qr = (new Writer(new ImageRenderer(new RendererStyle(320, 1), new SvgImageBackEnd)))->writeString($url);
 
-        return view('demo.index', ['url' => $url, 'qr' => $qr, 'akaun' => self::senaraiAkaun(), 'adaTerowong' => Demo::urlTerowong() !== null]);
+        return view('demo.index', [
+            'url' => $url,
+            'qr' => $qr,
+            'percubaan' => Demo::percubaan(),
+            'akaun' => Demo::aktif() ? self::senaraiAkaun() : collect(),
+            'adaTerowong' => Demo::urlTerowong() !== null,
+        ]);
     }
 }

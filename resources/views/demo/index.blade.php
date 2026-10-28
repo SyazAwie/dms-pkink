@@ -56,18 +56,30 @@
                     <div class="jenama-sub">Sistem Arkib Digital &middot; Perbadanan Kemajuan Iktisad Negeri Kelantan</div>
                 </div>
             </div>
-            <h1>Cuba sistem di telefon anda</h1>
-            <ol class="langkah">
-                <li>Imbas kod QR dengan kamera telefon.</li>
-                <li>Pilih satu peranan di halaman log masuk (tiada kata laluan diperlukan).</li>
-                <li>Cuba Isi Borang, Imbas &amp; Hantar dengan kamera, atau Kelulusan.</li>
-            </ol>
-            <ul class="akaun">
-                @foreach($akaun as $a)
-                    <li><strong>{{ $a['peranan'] }}</strong><span>{{ $a['nama'] }}</span></li>
-                @endforeach
-            </ul>
-            <p class="nota">Data rekaan sahaja. Jangan masukkan maklumat peribadi sebenar; semua perubahan dipadam selepas demo.</p>
+            @if($percubaan)
+                <h1>Cuba sistem sebenar</h1>
+                <ol class="langkah">
+                    <li>Imbas kod QR dengan kamera telefon.</li>
+                    <li>Tekan <strong>Daftar Akaun Baharu</strong> dan isi No. KP, nama, emel serta bahagian.</li>
+                    <li>Tunggu pentadbir meluluskan permohonan anda.</li>
+                    <li>Semak emel: log masuk dengan kata laluan sementara, kemudian tetapkan kata laluan baharu.</li>
+                    <li>Cuba Isi Borang, Imbas &amp; Hantar dengan kamera, dan ikuti status kelulusan anda.</li>
+                </ol>
+                <p class="nota">Sesi latihan: akaun dan semua data anda (termasuk No. KP dan emel) akan dipadam selepas sesi tamat.</p>
+            @else
+                <h1>Cuba sistem di telefon anda</h1>
+                <ol class="langkah">
+                    <li>Imbas kod QR dengan kamera telefon.</li>
+                    <li>Pilih satu peranan di halaman log masuk (tiada kata laluan diperlukan).</li>
+                    <li>Cuba Isi Borang, Imbas &amp; Hantar dengan kamera, atau Kelulusan.</li>
+                </ol>
+                <ul class="akaun">
+                    @foreach($akaun as $a)
+                        <li><strong>{{ $a['peranan'] }}</strong><span>{{ $a['nama'] }}</span></li>
+                    @endforeach
+                </ul>
+                <p class="nota">Data rekaan sahaja. Jangan masukkan maklumat peribadi sebenar; semua perubahan dipadam selepas demo.</p>
+            @endif
         </div>
     </main>
 </body>

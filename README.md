@@ -747,7 +747,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `php artisan sandaran:luar-talian {destinasi}` | `app/Console/Commands/SandaranLuarTalian.php` (manual, mingguan) |
 | `php artisan sandaran:pulih [zip] [--pangkalan-data] [--fail-imbasan] [--ke-db=] [--ya]` | `app/Console/Commands/SandaranPulih.php` |
 | `php artisan ocr:nilai [folder] [--jana-label=KOD] [--tanpa-few-shot] [--simpan=laporan.json]` | `app/Console/Commands/OcrNilai.php` (P15; lalai `../Ujian_Borang_Diisi`) |
-| `php artisan demo:sedia\|hidup\|mati\|set-semula\|terowong\|semak` | `app/Console/Commands/Demo*.php` (Fasa D, lihat 10.3) |
+| `php artisan demo:sedia\|hidup\|mati\|set-semula\|terowong\|semak [--percubaan]` | `app/Console/Commands/Demo*.php` (Fasa D: mod demo & mod percubaan, lihat 10.3) |
 
 ### Views (`resources/views/`)
 | Folder | Kandungan |
@@ -870,7 +870,22 @@ Tayang `https://….trycloudflare.com/demo` (atau `http://dms-pkink.test/demo`) 
 php artisan demo:set-semula   # buang semua perubahan peserta (DB + fail demo), ~1 s
 php artisan demo:mati         # laman kembali kepada DB sebenar
 ```
-Tutup tetingkap `demo:terowong` (Ctrl+C) untuk menutup pautan awam. Pautan `trycloudflare.com` berubah setiap kali terowong dimulakan, jadi cetak kod QR dari halaman `/demo` pada hari demo, bukan lebih awal.
+Tutup tetingkap `demo:terowong` (Ctrl+C) untuk menutup pautan awam. Pautan `trycloudflare.com` berubah setiap kali terowong dimulakan, jadi cetak kod QR dari halaman `/demo` pada hari demo, bukan lebih awal. `demo:terowong` menulis degupan setiap 10 s; jika ia terhenti, alamat lama diabaikan selepas 30 s.
+
+**Mod Percubaan (sistem penuh, selepas peserta biasa dengan mod demo)**
+
+Peserta mendaftar akaun sendiri, pentadbir meluluskan di komputer ini, peserta menerima emel kata laluan sementara dan menggunakan semua aliran sebenar tanpa sekatan.
+```
+php artisan demo:sedia --percubaan --kekal=<No. KP akaun SUPERADMIN anda>   # dms_pkink_percubaan
+php artisan demo:hidup --percubaan
+php artisan demo:terowong       # tetingkap berasingan
+# di komputer ini juga buka pautan terowong (dms-pkink.test dialihkan ke situ semasa terowong hidup)
+```
+- Semua akaun kecuali `--kekal` dikunci (kata laluan rawak + `dikunci_hingga`), kerana kata laluan akaun ujian tercatat dalam README 13. Akaun yang dikekalkan tidak diubah (termasuk 2FA).
+- Emel SEBENAR dihantar melalui SMTP `.env` (kata laluan sementara, lupa kata laluan, notifikasi aliran kelulusan `NOTIFIKASI_EMEL` dihidupkan). Akaun yang dikunci tidak diemel.
+- Semua URL (termasuk pautan dalam emel yang dijana semasa pentadbir meluluskan) ikut alamat terowong.
+- IP setiap peserta diambil daripada `CF-Connecting-IP` (`IpTerowong`), jadi had percubaan log masuk & sekatan IP dikira bagi setiap peranti. Peserta dalam satu Wi-Fi berkongsi IP awam: tambah IP itu ke `KESELAMATAN_IP_DIPERCAYAI` jika perlu.
+- Selepas sesi: `php artisan demo:mati` kemudian **`php artisan demo:set-semula --percubaan`** untuk memadam akaun dan data peribadi peserta (No. KP, emel).
 
 ---
 

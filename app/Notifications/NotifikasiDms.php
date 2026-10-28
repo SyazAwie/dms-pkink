@@ -38,8 +38,10 @@ class NotifikasiDms extends Notification
             && $notifiable->pushSubscriptions()->exists()) {
             $saluran[] = WebPushChannel::class;
         }
-        // Emel (P2): hanya bila NOTIFIKASI_EMEL=true dan penerima ada alamat emel
-        if (config('services.notifikasi.emel') && ! empty($notifiable->email)) {
+        // Emel (P2): hanya bila NOTIFIKASI_EMEL=true dan penerima ada alamat emel; akaun yang
+        // dikunci tidak boleh bertindak, jadi tidak diemel (cth. akaun ujian dalam mod percubaan)
+        if (config('services.notifikasi.emel') && ! empty($notifiable->email)
+            && ! (method_exists($notifiable, 'dikunci') && $notifiable->dikunci())) {
             $saluran[] = 'mail';
         }
 

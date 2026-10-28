@@ -290,6 +290,11 @@
                     @if(session('demo_disekat'))
                         <div class="alert alert-custom" role="alert" aria-live="polite">{{ session('demo_disekat') }}</div>
                     @endif
+                    @if(\App\Support\Demo::percubaan())
+                        <div class="demo-kotak" role="note">
+                            <strong>Mod Percubaan.</strong> Sistem sebenar untuk latihan. Belum ada akaun? Tekan <strong>Daftar Akaun Baharu</strong> di bawah dan tunggu kelulusan pentadbir.
+                        </div>
+                    @endif
 
                     @if($modDemo)
                     {{-- Mod Demo (Fasa D3): satu ketikan untuk masuk; borang kata laluan & pendaftaran ditutup --}}
@@ -402,6 +407,9 @@
                     </div>
                     <div class="modal-body">
                         <p class="nota mb-3">Permohonan anda akan disemak oleh pentadbir sistem. Jika diluluskan, kata laluan sementara akan dihantar ke emel anda.</p>
+                        @if(\App\Support\Demo::percubaan())
+                            <div class="demo-kotak">Sesi latihan: akaun dan semua maklumat yang anda isi (termasuk No. KP dan emel) akan dipadam selepas sesi tamat.</div>
+                        @endif
 
                         @if($ralatDaftar->has('pendaftaran'))
                             <div class="alert alert-custom" role="alert">{{ $ralatDaftar->first('pendaftaran') }}</div>

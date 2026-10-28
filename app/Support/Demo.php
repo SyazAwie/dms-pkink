@@ -7,87 +7,150 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\URL;
 
 /**
- * Mod Demo (Fasa D). Fail penanda storage/app/demo/aktif menghidupkan mod ini bagi
- * permintaan web sahaja (lihat AppServiceProvider::register):
- * - pangkalan data salinan (config demo.db) dan folder fail berasingan (storage/app/demo/fail),
- *   jadi peserta tidak menyentuh rekod atau fail sebenar;
- * - APP_DEBUG dimatikan, emel ditulis ke log, notifikasi emel dimatikan;
- * - log masuk melalui butang akaun demo sahaja (DemoController), tindakan berisiko disekat
- *   (middleware ModDemo).
+ * Mod Demo & Mod Percubaan (Fasa D). Fail penanda storage/app/demo/aktif (kandungan: nama mod)
+ * menghidupkan mod bagi permintaan web sahaja (lihat AppServiceProvider::register); arahan
+ * konsol & penjadual (sandaran, semakan keselamatan) kekal pada DB sebenar.
  *
- * Struktur folder storage/app/demo:
- *   aktif            fail penanda mod demo
- *   fail/            akar disk `local` semasa demo
- *   asas.sql         keadaan asas DB demo (untuk demo:set-semula)
- *   asas-fail/       keadaan asas fail demo
- *   terowong.json    alamat terowong semasa (ditulis oleh demo:terowong)
+ * demo       Peserta mencuba sistem dengan selamat: log masuk butang akaun demo sahaja,
+ *            tindakan berisiko disekat (ModDemo), emel ke log.
+ * percubaan  Sistem penuh tanpa sekatan untuk latihan: peserta mendaftar akaun sendiri,
+ *            pentadbir meluluskan, emel sebenar dihantar. Semua URL ikut alamat terowong
+ *            supaya pautan dalam emel boleh dibuka dari telefon.
+ *
+ * Kedua-dua mod: DB salinan & folder fail sendiri (dicipta oleh demo:sedia), APP_DEBUG mati.
+ *
+ * storage/app/demo        aktif, terowong.json, fail/, asas.sql, asas-fail/   (mod demo)
+ * storage/app/percubaan   fail/, asas.sql, asas-fail/                         (mod percubaan)
  */
 class Demo
 {
+    public const DEMO = 'demo';
+
+    public const PERCUBAAN = 'percubaan';
+
+    /** Terowong dianggap mati jika degupan demo:terowong lebih lama daripada ini (saat). */
+    public const DEGUPAN_SAAT = 30;
+
+    /** Folder kawalan (penanda & terowong) dan data mod demo. */
     public static function folder(string $laluan = ''): string
     {
         return storage_path('app/demo'.($laluan !== '' ? '/'.$laluan : ''));
     }
 
-    /** Fail penanda wujud (digunakan oleh arahan konsol; permintaan web guna aktif()). */
-    public static function penandaWujud(): bool
+    /** Folder data (fail/, asas.sql, asas-fail/) bagi satu mod. */
+    public static function folderData(string $mod, string $laluan = ''): string
     {
-        return File::exists(self::folder('aktif'));
+        return storage_path('app/'.self::sahkanMod($mod).($laluan !== '' ? '/'.$laluan : ''));
     }
 
-    /** Mod demo berkuat kuasa bagi permintaan semasa. */
-    public static function aktif(): bool
+    public static function sahkanMod(string $mod): string
     {
-        return (bool) config('demo.aktif');
-    }
-
-    /** Nama DB demo; enggan jika sama dengan DB sebenar (perlindungan daripada tersalah tulis). */
-    public static function namaDb(): string
-    {
-        $demo = (string) config('demo.db');
-        $sebenar = (string) config('database.connections.'.config('database.default').'.database');
-        if ($demo === '' || strcasecmp($demo, $sebenar) === 0 || ! preg_match('/^[A-Za-z0-9_]+$/', $demo)) {
-            throw new \RuntimeException("Nama DB demo tidak sah atau sama dengan DB sebenar ({$sebenar}). Semak DEMO_DB.");
+        if (! in_array($mod, [self::DEMO, self::PERCUBAAN], true)) {
+            throw new \InvalidArgumentException("Mod tidak sah: {$mod}");
         }
 
-        return $demo;
+        return $mod;
     }
 
-    /** Tukar konfigurasi kepada persekitaran demo. Dipanggil sebelum sambungan DB dibuka. */
-    public static function terapkan(): void
+    /** Mod yang dihidupkan oleh fail penanda (untuk konsol; permintaan web guna mod()). */
+    public static function modPenanda(): ?string
+    {
+        if (! File::exists(self::folder('aktif'))) {
+            return null;
+        }
+        $isi = trim((string) File::get(self::folder('aktif')));
+
+        return $isi === self::PERCUBAAN ? self::PERCUBAAN : self::DEMO;
+    }
+
+    public static function penandaWujud(): bool
+    {
+        return self::modPenanda() !== null;
+    }
+
+    /** Mod yang berkuat kuasa bagi permintaan semasa (null = sistem biasa). */
+    public static function mod(): ?string
+    {
+        return config('demo.mod');
+    }
+
+    /** Mod demo (sekatan + log masuk butang). */
+    public static function aktif(): bool
+    {
+        return self::mod() === self::DEMO;
+    }
+
+    /** Mod percubaan (sistem penuh untuk latihan). */
+    public static function percubaan(): bool
+    {
+        return self::mod() === self::PERCUBAAN;
+    }
+
+    /** Nama DB bagi mod; enggan jika sama dengan DB sebenar (perlindungan daripada tersalah tulis). */
+    public static function namaDb(string $mod = self::DEMO): string
+    {
+        $nama = (string) config(self::sahkanMod($mod) === self::PERCUBAAN ? 'demo.percubaan_db' : 'demo.db');
+        $sebenar = (string) config('database.connections.'.config('database.default').'.database');
+        if ($nama === '' || strcasecmp($nama, $sebenar) === 0 || ! preg_match('/^[A-Za-z0-9_]+$/', $nama)) {
+            throw new \RuntimeException("Nama DB {$mod} tidak sah atau sama dengan DB sebenar ({$sebenar}). Semak DEMO_DB / PERCUBAAN_DB.");
+        }
+
+        return $nama;
+    }
+
+    /** Tukar konfigurasi kepada persekitaran mod. Dipanggil sebelum sambungan DB dibuka. */
+    public static function terapkan(string $mod = self::DEMO): void
     {
         $sambungan = config('database.default');
         config([
-            'demo.aktif' => true,
-            "database.connections.{$sambungan}.database" => self::namaDb(),
-            'filesystems.disks.local.root' => self::folder('fail'),
+            'demo.mod' => self::sahkanMod($mod),
+            "database.connections.{$sambungan}.database" => self::namaDb($mod),
+            'filesystems.disks.local.root' => self::folderData($mod, 'fail'),
             'app.debug' => false,
-            'mail.default' => 'log',
-            'services.notifikasi.emel' => false,
         ]);
+
+        // Demo: tiada emel keluar. Percubaan: emel sebenar + notifikasi emel aliran kelulusan
+        config($mod === self::DEMO
+            ? ['mail.default' => 'log', 'services.notifikasi.emel' => false]
+            : ['services.notifikasi.emel' => true]);
     }
 
     /**
-     * Permintaan melalui terowong Cloudflare: cloudflared menulis semula Host kepada laman
-     * Herd (dms-pkink.test), jadi URL dijana ikut alamat terowong yang disimpan demo:terowong.
+     * Permintaan datang melalui cloudflared (berjalan pada komputer ini): header
+     * CF-Connecting-IP daripada alamat loopback. Ditanda oleh IpTerowong sebelum IP ditukar.
+     */
+    public static function melaluiTerowong(Request $request): bool
+    {
+        return (bool) ($request->attributes->get('melalui_terowong')
+            ?? ($request->headers->has('CF-Connecting-IP') && in_array($request->server('REMOTE_ADDR'), ['127.0.0.1', '::1'], true)));
+    }
+
+    /**
+     * URL dijana ikut alamat terowong: bagi permintaan melalui terowong (cloudflared menulis
+     * semula Host kepada laman Herd), dan dalam mod percubaan bagi SEMUA permintaan supaya
+     * pautan dalam emel (cth. diluluskan dari komputer pentadbir) boleh dibuka dari telefon.
      */
     public static function selarasUrl(Request $request): void
     {
-        if (! $request->headers->has('CF-Connecting-IP') || ! in_array($request->server('REMOTE_ADDR'), ['127.0.0.1', '::1'], true)) {
-            return;
-        }
-        if ($url = self::urlTerowong()) {
+        $url = self::urlTerowong();
+        if ($url && (self::melaluiTerowong($request) || self::percubaan())) {
             URL::forceRootUrl($url);
             URL::forceScheme('https');
         }
     }
 
+    /** Alamat terowong yang masih hidup (degupan baharu), atau null. */
     public static function urlTerowong(): ?string
     {
         $data = json_decode((string) @file_get_contents(self::folder('terowong.json')), true);
-        $url = is_array($data) ? ($data['url'] ?? null) : null;
+        if (! is_array($data) || ! isset($data['url'], $data['degupan'])) {
+            return null;
+        }
+        if (time() - (int) $data['degupan'] > self::DEGUPAN_SAAT) {
+            return null;
+        }
 
-        return is_string($url) && preg_match('#^https://[a-z0-9.-]+$#i', $url) ? $url : null;
+        return is_string($data['url']) && preg_match('#^https://[a-z0-9.-]+$#i', $data['url']) ? $data['url'] : null;
     }
 
     /** No. KP akaun demo (config demo.akaun). */
