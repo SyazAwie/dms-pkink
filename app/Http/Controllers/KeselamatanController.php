@@ -41,6 +41,16 @@ class KeselamatanController extends Controller
         return view('keselamatan.index', compact('ringkasan', 'senaraiSemak', 'bilMasalah', 'superadmin', 'sasaran', 'dikunci', 'ipDisekat', 'kecemasan'));
     }
 
+    /** Pelan Tindak Balas Insiden (S5): docs/PELAN_TINDAK_BALAS_INSIDEN.md, boleh dicetak. */
+    public function pelan()
+    {
+        $laluan = base_path('docs/PELAN_TINDAK_BALAS_INSIDEN.md');
+        abort_unless(is_file($laluan), 404, 'Dokumen pelan tindak balas insiden tidak dijumpai.');
+        $html = \Illuminate\Support\Str::markdown((string) file_get_contents($laluan), ['html_input' => 'strip', 'allow_unsafe_links' => false]);
+
+        return view('keselamatan.pelan', compact('html'));
+    }
+
     public function logKeluar(Request $request)
     {
         $sasaran = $this->sasaran($request);

@@ -44,6 +44,14 @@ class PusatKeselamatanTest extends TestCase
             ->assertSee('Pentadbir Utama'); // tanpa 2FA
     }
 
+    public function test_pelan_tindak_balas_insiden_boleh_dibuka_pentadbir(): void
+    {
+        $this->actingAs($this->buatPengguna(['STAFF']))->get(route('keselamatan.pelan'))->assertForbidden();
+        $this->actingAs($this->admin)->get(route('keselamatan.pelan'))->assertOk()
+            ->assertSee('JANGAN bayar wang tebusan')->assertSee('RANSOMWARE / PERAS UGUT')
+            ->assertSee('<table>', false)->assertSee('window.print()', false);
+    }
+
     public function test_pentadbir_kata_laluan_lalai_dikesan(): void
     {
         $this->buatPengguna(['SUPERADMIN'], ['nama_staff' => 'Akaun Demo Lemah', 'password' => Hash::make('123456789')]);

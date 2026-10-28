@@ -117,6 +117,7 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
 
         // Pusat Keselamatan (Fasa Keselamatan): ancaman, pengerasan, butang kecemasan
         Route::get('/keselamatan', [KeselamatanController::class, 'index'])->name('keselamatan.index');
+        Route::get('/keselamatan/pelan-insiden', [KeselamatanController::class, 'pelan'])->name('keselamatan.pelan');
         Route::post('/keselamatan/log-keluar', [KeselamatanController::class, 'logKeluar'])->name('keselamatan.log-keluar');
         Route::post('/keselamatan/log-keluar-semua', [KeselamatanController::class, 'logKeluarSemua'])->name('keselamatan.log-keluar-semua');
         Route::post('/keselamatan/kunci', [KeselamatanController::class, 'kunci'])->name('keselamatan.kunci');

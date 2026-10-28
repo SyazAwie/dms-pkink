@@ -9,6 +9,9 @@
         <h2>Pusat Keselamatan</h2>
         <p>Ringkasan ancaman 24 jam, semakan pengerasan sistem dan tindakan sensitif terkini. Amaran automatik dihantar ke loceng & telefon pentadbir bila berlaku cubaan teka kata laluan, log masuk pentadbir dari IP baharu, fail berbahaya atau sandaran tertunggak.</p>
     </div>
+    <a href="{{ route('keselamatan.pelan') }}" class="outline-button kekal-label text-decoration-none">
+        <i class="bi bi-journal-medical" aria-hidden="true"></i> <span>Pelan Tindak Balas Insiden</span>
+    </a>
 </div>
 
 @if(session('success'))
