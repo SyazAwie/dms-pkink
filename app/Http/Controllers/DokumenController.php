@@ -6,16 +6,19 @@ use App\Models\Bahagian;
 use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\DokumenData;
+use App\Models\DokumenField;
 use App\Models\DokumenOcr;
 use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Services\OcrService;
+use App\Services\TeraAirService;
 use App\Support\Csv;
 use App\Support\JenisMedan;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -34,10 +37,49 @@ class DokumenController extends Controller
 
         $jenisDokumenSenarai = JenisDokumen::orderBy('nama_dokumen')->get();
         $bahagianSenarai = Bahagian::orderBy('nama_bahagian')->get();
-        $adaPenapis = $request->hasAny(['q', 'jenis', 'bahagian', 'dari', 'hingga'])
-            && collect($request->only(['q', 'jenis', 'bahagian', 'dari', 'hingga']))->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty();
+        $medanTapis = $this->medanBolehTapis($request);
+        $penapisMedan = $this->penapisMedanAktif($request, $medanTapis);
+        $adaPenapis = $penapisMedan !== [] || ($request->hasAny(['q', 'jenis', 'bahagian', 'dari', 'hingga'])
+            && collect($request->only(['q', 'jenis', 'bahagian', 'dari', 'hingga']))->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty());
 
-        return view('dokumen.index', compact('senarai', 'jenisDokumenSenarai', 'bahagianSenarai', 'adaPenapis'));
+        return view('dokumen.index', compact('senarai', 'jenisDokumenSenarai', 'bahagianSenarai', 'adaPenapis', 'medanTapis', 'penapisMedan'));
+    }
+
+    /** Jenis medan EAV yang boleh ditapis secara berstruktur (P8): julat, atau padanan pilihan */
+    public const MEDAN_JULAT = ['nombor', 'wang', 'tarikh'];
+
+    public const MEDAN_PILIHAN = ['dropdown', 'radio', 'ya_tidak'];
+
+    /** Medan kategori terpilih yang boleh ditapis (hanya bila satu Jenis Dokumen dipilih). */
+    private function medanBolehTapis(Request $request)
+    {
+        if (! $request->filled('jenis') || ! ctype_digit((string) $request->input('jenis'))) {
+            return collect();
+        }
+
+        return DokumenField::where('jenis_dokumen_id', $request->integer('jenis'))
+            ->whereIn('jenis_data', [...self::MEDAN_JULAT, ...self::MEDAN_PILIHAN])
+            ->orderBy('susunan')->get();
+    }
+
+    /**
+     * Penapis medan yang diisi: [dokumen_field_id => ['medan' => DokumenField, 'dari' =>, 'hingga' =>, 'sama' =>]].
+     * Input: medan[{id}][dari|hingga] (julat) atau medan[{id}][sama] (pilihan).
+     */
+    private function penapisMedanAktif(Request $request, $medanTapis): array
+    {
+        $hasil = [];
+        foreach ($medanTapis as $medan) {
+            $nilai = array_filter((array) $request->input("medan.{$medan->dokumen_field_id}", []), fn ($v) => is_string($v) && trim($v) !== '');
+            $nilai = in_array($medan->jenis_data, self::MEDAN_JULAT, true)
+                ? array_intersect_key($nilai, array_flip(['dari', 'hingga']))
+                : array_intersect_key($nilai, array_flip(['sama']));
+            if ($nilai) {
+                $hasil[$medan->dokumen_field_id] = ['medan' => $medan] + $nilai;
+            }
+        }
+
+        return $hasil;
     }
 
     /**
@@ -105,6 +147,46 @@ class DokumenController extends Controller
 
         if ($request->filled('jenis')) {
             $query->where('jenis_dokumen_id', $request->jenis);
+        }
+
+        // Penapis berstruktur nilai EAV (P8): julat nombor/wang/tarikh, atau padanan pilihan
+        $medanTapis = $this->medanBolehTapis($request);
+        $peraturan = ['medan' => 'nullable|array'];
+        foreach ($medanTapis as $m) {
+            $k = "medan.{$m->dokumen_field_id}";
+            $jenis = $m->jenis_data === 'tarikh' ? 'date' : 'numeric';
+            if (in_array($m->jenis_data, self::MEDAN_JULAT, true)) {
+                $peraturan["{$k}.dari"] = ['nullable', $jenis];
+                $peraturan["{$k}.hingga"] = array_merge(['nullable', $jenis],
+                    filled($request->input("{$k}.dari")) ? [$jenis === 'date' ? "after_or_equal:{$k}.dari" : "gte:{$k}.dari"] : []);
+            } else {
+                $peraturan["{$k}.sama"] = ['nullable', 'string', 'max:255'];
+            }
+        }
+        $request->validate($peraturan, [], $medanTapis->mapWithKeys(fn ($m) => [
+            "medan.{$m->dokumen_field_id}.dari" => "{$m->nama_field} (dari)",
+            "medan.{$m->dokumen_field_id}.hingga" => "{$m->nama_field} (hingga)",
+        ])->all());
+
+        foreach ($this->penapisMedanAktif($request, $medanTapis) as $p) {
+            $medan = $p['medan'];
+            $query->whereHas('data', function ($d) use ($medan, $p) {
+                $d->where('dokumen_field_id', $medan->dokumen_field_id);
+                if (isset($p['sama'])) {
+                    $d->where('nilai_data', $p['sama']);
+
+                    return;
+                }
+                if ($medan->jenis_data === 'tarikh') {
+                    // Tarikh disimpan Y-m-d, jadi perbandingan teks adalah tertib kronologi
+                    isset($p['dari']) && $d->where('nilai_data', '>=', Carbon::parse($p['dari'])->format('Y-m-d'));
+                    isset($p['hingga']) && $d->where('nilai_data', '<=', Carbon::parse($p['hingga'])->format('Y-m-d'));
+                } else {
+                    // Nilai EAV ialah teks: banding sebagai nombor (CAST mudah alih MySQL & SQLite)
+                    isset($p['dari']) && $d->whereRaw('CAST(nilai_data AS DECIMAL(20,4)) >= ?', [(float) $p['dari']]);
+                    isset($p['hingga']) && $d->whereRaw('CAST(nilai_data AS DECIMAL(20,4)) <= ?', [(float) $p['hingga']]);
+                }
+            });
         }
         if ($request->filled('bahagian')) {
             $query->where('bahagian_id', $request->bahagian);
@@ -597,6 +679,48 @@ class DokumenController extends Controller
         }
 
         return Storage::disk('local')->response($scan->lokasi_fail, $scan->nama_fail);
+    }
+
+    /**
+     * Muat turun salinan bertera air (P11): nama pemuat turun, tarikh/masa dan no. rujukan
+     * dicetak pada setiap muka surat, dan setiap muat turun direkod dalam log audit.
+     * Fail asal tidak diubah (hash integriti kekal sah).
+     */
+    public function muatTurunScan(Request $request, $id)
+    {
+        $scan = DokumenScan::with('dokumen')->findOrFail($id);
+        Gate::authorize('view', $scan->dokumen);
+
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($scan->lokasi_fail), 404, 'Fail tidak dijumpai dalam storan.');
+
+        set_time_limit((int) config('services.ocr.had_masa', 300));
+        $pengguna = $request->user();
+        $masa = now()->format('d/m/Y H:i');
+
+        try {
+            $hasil = app(TeraAirService::class)->jana(
+                $disk->path($scan->lokasi_fail),
+                $scan->jenis_mime,
+                'SALINAN TERKAWAL PKINK',
+                "Dimuat turun oleh {$pengguna->nama_staff} pada {$masa} | {$scan->dokumen->no_rujukan} | Sistem Arkib Digital PKINK"
+            );
+        } catch (\Throwable $e) {
+            Log::warning("Tera air gagal untuk dokumen_scan_id {$scan->dokumen_scan_id}: ".$e->getMessage());
+
+            return back()->with('error', "Salinan \"{$scan->nama_fail}\" tidak dapat dijana. Sila hubungi Pentadbir Sistem.".$this->butiranRalat($e));
+        }
+
+        LogAudit::create([
+            'user_id' => $pengguna->user_id, 'tindakan' => 'Muat Turun Fail', 'nama_jadual' => 'dokumen_scan',
+            'rekod_id' => $scan->dokumen_scan_id, 'data_lama' => null,
+            'data_baharu' => ['dokumen' => $scan->dokumen->no_rujukan, 'nama_fail' => $scan->nama_fail, 'tera_air' => true],
+            'alamat_ip' => $request->ip(), 'peranti_pengguna' => $request->userAgent(), 'created_at' => now(),
+        ]);
+
+        $nama = pathinfo($scan->nama_fail, PATHINFO_FILENAME).'_salinan.'.$hasil['sambungan'];
+
+        return response()->streamDownload(fn () => print($hasil['kandungan']), $nama, ['Content-Type' => $hasil['mime']]);
     }
 
     /**

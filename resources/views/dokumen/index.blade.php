@@ -23,7 +23,7 @@
 @endif
 
 @php
-    $bilPenapis = collect(['q', 'jenis', 'bahagian', 'dari', 'hingga'])->filter(fn ($k) => request()->filled($k))->count();
+    $bilPenapis = collect(['q', 'jenis', 'bahagian', 'dari', 'hingga'])->filter(fn ($k) => request()->filled($k))->count() + count($penapisMedan);
     $labelSusun = ['tarikh_desc' => 'Tarikh dokumen: terbaru', 'tarikh_asc' => 'Tarikh dokumen: terlama', 'rujukan' => 'No. Rujukan (A-Z)'];
 
     $chips = [];
@@ -33,6 +33,14 @@
     if (request()->filled('dari')) $chips['dari'] = 'Dari: ' . \Carbon\Carbon::parse(request('dari'))->format('d/m/Y');
     if (request()->filled('hingga')) $chips['hingga'] = 'Hingga: ' . \Carbon\Carbon::parse(request('hingga'))->format('d/m/Y');
     if (isset($labelSusun[request('susun')])) $chips['susun'] = 'Susunan: ' . $labelSusun[request('susun')];
+    // Penapis medan (P8): buang cip Jenis turut membuang penapis medan kategori itu
+    $kunciBuang = ['jenis' => ['jenis', 'medan']];
+    foreach ($penapisMedan as $id => $p) {
+        $fmt = fn ($v) => $p['medan']->jenis_data === 'tarikh' ? \Carbon\Carbon::parse($v)->format('d/m/Y') : $v;
+        $chips["medan.{$id}"] = $p['medan']->nama_field . ': ' . (isset($p['sama']) ? $p['sama']
+            : (isset($p['dari'], $p['hingga']) ? $fmt($p['dari']) . ' – ' . $fmt($p['hingga'])
+            : (isset($p['dari']) ? '≥ ' . $fmt($p['dari']) : '≤ ' . $fmt($p['hingga']))));
+    }
 @endphp
 
 <div class="result-toolbar">
@@ -46,7 +54,7 @@
         @if($chips)
             <div class="chip-list">
                 @foreach($chips as $kunci => $label)
-                    <a href="{{ route('dokumen.index', request()->except([$kunci, 'page'])) }}" class="filter-chip" title="Buang penapis ini">
+                    <a href="{{ route('dokumen.index', request()->except([...($kunciBuang[$kunci] ?? [$kunci]), 'page'])) }}" class="filter-chip" title="Buang penapis ini">
                         <span>{{ $label }}</span> <i class="bi bi-x"></i>
                     </a>
                 @endforeach
@@ -132,6 +140,40 @@
                 @endif
             </div>
         </div>
+
+        {{-- Penapis medan kategori (P8): muncul selepas satu Jenis Dokumen dipilih dan dicari --}}
+        @if($medanTapis->isNotEmpty())
+            <div class="medan-tapis mt-3">
+                <div class="medan-tapis-tajuk"><i class="bi bi-sliders" aria-hidden="true"></i> Penapis medan: {{ $jenisDokumenSenarai->firstWhere('jenis_dokumen_id', request('jenis'))->nama_dokumen ?? '' }}</div>
+                <div class="row g-3">
+                    @foreach($medanTapis as $m)
+                        @php $k = "medan.{$m->dokumen_field_id}"; $n = "medan[{$m->dokumen_field_id}]"; @endphp
+                        <div class="col-lg-4 col-md-6">
+                            <label class="dms-label">{{ $m->nama_field }}</label>
+                            @if(in_array($m->jenis_data, \App\Http\Controllers\DokumenController::MEDAN_JULAT, true))
+                                @php $jenisInput = $m->jenis_data === 'tarikh' ? 'date' : 'number'; @endphp
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="{{ $jenisInput }}" step="any" name="{{ $n }}[dari]" value="{{ request("{$k}.dari") }}" class="dms-input @error("{$k}.dari") is-invalid @enderror" placeholder="Dari" aria-label="{{ $m->nama_field }} dari">
+                                    <span class="dms-hint">–</span>
+                                    <input type="{{ $jenisInput }}" step="any" name="{{ $n }}[hingga]" value="{{ request("{$k}.hingga") }}" class="dms-input @error("{$k}.hingga") is-invalid @enderror" placeholder="Hingga" aria-label="{{ $m->nama_field }} hingga">
+                                </div>
+                                @error("{$k}.dari") <div class="dms-error">{{ $message }}</div> @enderror
+                                @error("{$k}.hingga") <div class="dms-error">{{ $message }}</div> @enderror
+                            @else
+                                <select name="{{ $n }}[sama]" class="dms-input">
+                                    <option value="">Semua</option>
+                                    @foreach($m->jenis_data === 'ya_tidak' ? \App\Support\JenisMedan::YA_TIDAK : ($m->pilihan ?? []) as $pilihan)
+                                        <option value="{{ $pilihan }}" @selected(request("{$k}.sama") === $pilihan)>{{ $pilihan }}</option>
+                                    @endforeach
+                                </select>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @elseif(! request()->filled('jenis'))
+            <div class="dms-hint mt-3"><i class="bi bi-info-circle" aria-hidden="true"></i> Pilih Jenis Dokumen dan tekan Cari untuk menapis ikut medan kategori (julat nombor/tarikh, pilihan).</div>
+        @endif
     </form>
 </div>
 </div>
@@ -218,6 +260,8 @@
 <style>
     /* ============ Carian & Penapis ============ */
     .filter-panel { padding: 20px; }
+    .medan-tapis { padding-top: 16px; border-top: 1px dashed var(--dms-line); }
+    .medan-tapis-tajuk { margin-bottom: 10px; color: var(--dms-brand); font-size: 12.5px; font-weight: 800; }
     .dms-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--dms-text); margin-bottom: 6px; }
     .dms-input {
         width: 100%;

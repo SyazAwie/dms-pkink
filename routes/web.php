@@ -14,12 +14,17 @@ use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PendaftaranStafController;
 use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\SlipKelulusanController;
 use App\Http\Controllers\StatusSistemController;
 use App\Http\Controllers\TongSampahController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Pengesahan slip kelulusan (P6): AWAM, dibuka oleh kod QR pada slip; kod HMAC + had kadar
+Route::get('/sahkan-slip/{borang}/{kod}', [SlipKelulusanController::class, 'sahkan'])
+    ->whereNumber('borang')->where('kod', '[A-Za-z0-9]{1,32}')->middleware('throttle:30,1')->name('slip.sahkan');
 
 // Laluan tetamu: pengguna yang sudah log masuk akan dibawa ke papan pemuka
 Route::middleware('guest')->group(function () {
@@ -100,6 +105,8 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/dokumen/eksport', [DokumenController::class, 'eksport'])->name('dokumen.eksport');
     Route::resource('dokumen', DokumenController::class);
     Route::get('/dokumen/scan/{id}/papar', [DokumenController::class, 'paparScan'])->name('dokumen.scan.papar');
+    // Salinan bertera air (P11): nama pemuat turun + tarikh pada setiap muka surat, direkod dalam log audit
+    Route::get('/dokumen/scan/{id}/muat-turun', [DokumenController::class, 'muatTurunScan'])->name('dokumen.scan.muat-turun');
     Route::post('/dokumen/scan/{id}/ocr', [DokumenController::class, 'jalankanOcr'])->name('dokumen.scan.ocr');
     // Semakan teks OCR oleh staf: tandakan disemak / betulkan teks (kebenaran edit dokumen)
     Route::post('/dokumen/scan/{id}/ocr/semak', [DokumenController::class, 'semakOcr'])->name('dokumen.scan.ocr.semak');
@@ -145,6 +152,7 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::post('/dokumen/{id}/kelulusan/sokong', [BorangController::class, 'sokong'])->name('kelulusan.sokong');
     Route::post('/dokumen/{id}/kelulusan/lulus', [BorangController::class, 'lulus'])->name('kelulusan.lulus');
     Route::post('/dokumen/{id}/kelulusan/tolak', [BorangController::class, 'tolak'])->name('kelulusan.tolak');
+    Route::get('/dokumen/{id}/kelulusan/slip', [SlipKelulusanController::class, 'muatTurun'])->name('kelulusan.slip');
     Route::get('/kelulusan', [BorangController::class, 'index'])
         ->middleware('peranan:SUPERADMIN,ADMIN,PENYOKONG,PELULUS')
         ->name('kelulusan.index');

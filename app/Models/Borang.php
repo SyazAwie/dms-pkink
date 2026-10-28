@@ -63,6 +63,23 @@ class Borang extends Model
         return $this->pemohon_id !== null && (int) $this->pemohon_id === (int) $userId;
     }
 
+    /**
+     * Kod pengesahan slip kelulusan (P6): HMAC pendek dengan APP_KEY, jadi tidak boleh diteka
+     * walaupun borang_id berjujukan. Tarikh kelulusan termasuk dalam kod, jadi slip lama
+     * menjadi tidak sah bila permohonan dihantar semula dan diluluskan semula.
+     * Null jika permohonan belum (atau tidak lagi) diluluskan.
+     */
+    public function kodPengesahan(): ?string
+    {
+        if ($this->status_permohonan !== 'Diluluskan' || ! $this->tarikh_kelulusan) {
+            return null;
+        }
+
+        $data = "slip|{$this->borang_id}|{$this->dokumen_id}|{$this->tarikh_kelulusan->timestamp}";
+
+        return strtoupper(substr(hash_hmac('sha256', $data, (string) config('app.key')), 0, 12));
+    }
+
     public function dokumen()
     {
         return $this->belongsTo(Dokumen::class, 'dokumen_id', 'dokumen_id');
