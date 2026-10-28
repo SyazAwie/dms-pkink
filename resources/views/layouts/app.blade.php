@@ -122,6 +122,7 @@
         .nav-area { flex: 1; overflow-y: auto; padding: 18px 16px; }
         .nav-label { margin: 0 12px 10px; color: var(--dms-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
         .nav-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+        .nav-list + .nav-label { margin-top: 20px; }
 
         .nav-link {
             display: grid;
@@ -424,7 +425,13 @@
             </div>
 
             <nav class="nav-area">
-                <p class="nav-label">Menu Utama</p>
+                @php
+                    // Menu dikumpul ikut kekerapan guna: UTAMA (harian) di atas, pentadbiran & audit di bawah.
+                    // Label kumpulan hanya dipapar jika pengguna boleh lihat sekurang-kurangnya satu menu di dalamnya.
+                    $nampakKerani = $penggunaSemasa->hasAnyRole('SUPERADMIN', 'ADMIN', 'KERANI');
+                    $nampakAudit = $penggunaSemasa->hasAnyRole('SUPERADMIN', 'AUDIT');
+                @endphp
+                <p class="nav-label">Utama</p>
                 <ul class="nav-list">
                     <li>
                         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -433,30 +440,16 @@
                             @if(request()->routeIs('dashboard'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
-                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN', 'KERANI'))
+                    @if($bolehKelulusan)
                     <li>
-                        <a href="{{ route('jenis-dokumen.index') }}" class="nav-link {{ request()->routeIs('jenis-dokumen.*') ? 'active' : '' }}">
-                            <i class="bi bi-folder2-open" aria-hidden="true"></i>
-                            <span>Kategori Dokumen</span>
-                            @if(request()->routeIs('jenis-dokumen.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
-                        </a>
-                    </li>
-                    @endif
-                    @if(Auth::user()->can('viewAny', \App\Models\Dokumen::class))
-                    <li>
-                        <a href="{{ route('dokumen.index') }}" class="nav-link {{ request()->routeIs('dokumen.*') ? 'active' : '' }}">
-                            <i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i>
-                            <span>Dokumen</span>
-                            @if(request()->routeIs('dokumen.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
-                        </a>
-                    </li>
-                    @endif
-                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN', 'KERANI'))
-                    <li>
-                        <a href="{{ route('imbas-arkib.create') }}" class="nav-link {{ request()->routeIs('imbas-arkib.*') ? 'active' : '' }}">
-                            <i class="bi bi-magic" aria-hidden="true"></i>
-                            <span>Imbas &amp; Arkib</span>
-                            @if(request()->routeIs('imbas-arkib.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        <a href="{{ route('kelulusan.index') }}" class="nav-link {{ request()->routeIs('kelulusan.*') ? 'active' : '' }}">
+                            <i class="bi bi-patch-check" aria-hidden="true"></i>
+                            <span>Kelulusan</span>
+                            @if($bilKelulusan > 0)
+                                <span class="nav-bil" title="{{ $bilKelulusan }} permohonan menunggu tindakan">{{ $bilKelulusan > 99 ? '99+' : $bilKelulusan }}</span>
+                            @elseif(request()->routeIs('kelulusan.*'))
+                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                            @endif
                         </a>
                     </li>
                     @endif
@@ -470,24 +463,29 @@
                         </a>
                     </li>
                     @endif
-                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN', 'KERANI'))
+                    @if(Auth::user()->can('viewAny', \App\Models\Dokumen::class))
                     <li>
-                        <a href="{{ route('bahagian.index') }}" class="nav-link {{ request()->routeIs('bahagian.*') ? 'active' : '' }}">
-                            <i class="bi bi-building" aria-hidden="true"></i>
-                            <span>Pengurusan Bahagian</span>
-                            @if(request()->routeIs('bahagian.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        <a href="{{ route('dokumen.index') }}" class="nav-link {{ request()->routeIs('dokumen.*') ? 'active' : '' }}">
+                            <i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i>
+                            <span>Dokumen</span>
+                            @if(request()->routeIs('dokumen.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
                     @endif
-                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN'))
+                    @if($nampakKerani)
                     <li>
-                        <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                            <i class="bi bi-people-fill" aria-hidden="true"></i>
-                            <span>Pengurusan Kakitangan</span>
-                            @if(request()->routeIs('users.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        <a href="{{ route('imbas-arkib.create') }}" class="nav-link {{ request()->routeIs('imbas-arkib.*') ? 'active' : '' }}">
+                            <i class="bi bi-magic" aria-hidden="true"></i>
+                            <span>Imbas &amp; Arkib</span>
+                            @if(request()->routeIs('imbas-arkib.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
                     @endif
+                </ul>
+
+                @if($nampakKerani || $bolehKelulusan)
+                <p class="nav-label">Pengurusan</p>
+                <ul class="nav-list">
                     @if($bolehPendaftaran)
                     <li>
                         <a href="{{ route('pendaftaran.index') }}" class="nav-link {{ request()->routeIs('pendaftaran.*') ? 'active' : '' }}">
@@ -500,6 +498,45 @@
                             @endif
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                            <i class="bi bi-people-fill" aria-hidden="true"></i>
+                            <span>Pengurusan Kakitangan</span>
+                            @if(request()->routeIs('users.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    @endif
+                    @if($nampakKerani)
+                    <li>
+                        <a href="{{ route('bahagian.index') }}" class="nav-link {{ request()->routeIs('bahagian.*') ? 'active' : '' }}">
+                            <i class="bi bi-building" aria-hidden="true"></i>
+                            <span>Pengurusan Bahagian</span>
+                            @if(request()->routeIs('bahagian.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('jenis-dokumen.index') }}" class="nav-link {{ request()->routeIs('jenis-dokumen.*') ? 'active' : '' }}">
+                            <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                            <span>Kategori Dokumen</span>
+                            @if(request()->routeIs('jenis-dokumen.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    @endif
+                    @if($bolehKelulusan)
+                    <li>
+                        <a href="{{ route('delegasi.index') }}" class="nav-link {{ request()->routeIs('delegasi.*') ? 'active' : '' }}">
+                            <i class="bi bi-people" aria-hidden="true"></i>
+                            <span>Delegasi</span>
+                            @if(request()->routeIs('delegasi.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    @endif
+                </ul>
+                @endif
+
+                @if($bolehPendaftaran)
+                <p class="nav-label">Rekod</p>
+                <ul class="nav-list">
                     <li>
                         @php $bilTamatSimpanan = \App\Http\Controllers\PelupusanController::bilanganTamat(); @endphp
                         <a href="{{ route('pelupusan.index') }}" class="nav-link {{ request()->routeIs('pelupusan.*') ? 'active' : '' }}">
@@ -519,6 +556,13 @@
                             @if(request()->routeIs('tong-sampah.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
+                </ul>
+                @endif
+
+                @if($bolehPendaftaran || $nampakAudit)
+                <p class="nav-label">Keselamatan &amp; Audit</p>
+                <ul class="nav-list">
+                    @if($bolehPendaftaran)
                     <li>
                         <a href="{{ route('keselamatan.index') }}" class="nav-link {{ request()->routeIs('keselamatan.*') ? 'active' : '' }}">
                             <i class="bi bi-shield-lock" aria-hidden="true"></i>
@@ -526,15 +570,8 @@
                             @if(request()->routeIs('keselamatan.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
-                    <li>
-                        <a href="{{ route('status-sistem.index') }}" class="nav-link {{ request()->routeIs('status-sistem.*') ? 'active' : '' }}">
-                            <i class="bi bi-activity" aria-hidden="true"></i>
-                            <span>Status Sistem</span>
-                            @if(request()->routeIs('status-sistem.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
-                        </a>
-                    </li>
                     @endif
-                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'AUDIT'))
+                    @if($nampakAudit)
                     <li>
                         <a href="{{ route('log-audit.index') }}" class="nav-link {{ request()->routeIs('log-audit.*') ? 'active' : '' }}">
                             <i class="bi bi-shield-check" aria-hidden="true"></i>
@@ -550,23 +587,17 @@
                         </a>
                     </li>
                     @endif
-                    @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN', 'PENYOKONG', 'PELULUS'))
+                    @if($bolehPendaftaran)
                     <li>
-                        <a href="{{ route('kelulusan.index') }}" class="nav-link {{ request()->routeIs('kelulusan.*') ? 'active' : '' }}">
-                            <i class="bi bi-patch-check" aria-hidden="true"></i>
-                            <span>Kelulusan</span>
-                            @if(request()->routeIs('kelulusan.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('delegasi.index') }}" class="nav-link {{ request()->routeIs('delegasi.*') ? 'active' : '' }}">
-                            <i class="bi bi-people" aria-hidden="true"></i>
-                            <span>Delegasi</span>
-                            @if(request()->routeIs('delegasi.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        <a href="{{ route('status-sistem.index') }}" class="nav-link {{ request()->routeIs('status-sistem.*') ? 'active' : '' }}">
+                            <i class="bi bi-activity" aria-hidden="true"></i>
+                            <span>Status Sistem</span>
+                            @if(request()->routeIs('status-sistem.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
                     @endif
                 </ul>
+                @endif
             </nav>
 
             <div class="sidebar-footer">
