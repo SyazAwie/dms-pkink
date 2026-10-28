@@ -103,7 +103,8 @@ Beberapa ciri memerlukan perisian sistem tambahan dipasang **terus pada pelayan/
 - Pakej teras Laravel: Eloquent ORM, Blade, Validation, Soft Deletes, Notifications (emel), Rate Limiter
 - **Symfony Process** (terbina dalam Laravel) untuk memanggil CLI Tesseract/Poppler; **tiada** pustaka OCR pihak ketiga
 - **Laravel HTTP Client** (berasaskan Guzzle) untuk memanggil API tempatan Ollama; **tiada** SDK AI pihak ketiga
-- **GD** (sambungan PHP) untuk membuang garisan kotak/jadual daripada imej sebelum OCR
+- **GD** (sambungan PHP) untuk membuang garisan kotak/jadual daripada imej sebelum OCR, dan tera air salinan muat turun
+- Pakej kecil Fasa P: `laravel-notification-channels/webpush` (notifikasi peranti), `setasign/fpdf` (slip kelulusan & salinan bertera air), `bacon/bacon-qr-code` (kod QR slip & 2FA), `pragmarx/google2fa` (TOTP 2FA)
 
 Reka bentuk ini sengaja **meminimumkan kebergantungan pihak ketiga**: integrasi OCR dan AI dibina terus di atas keupayaan sedia ada Laravel (Process + HTTP Client), bukan pustaka luar yang menambah risiko keserasian versi.
 
@@ -353,6 +354,10 @@ Pangkalan data mengandungi **19 jadual**: 13 jadual domain dalam 6 kumpulan, `no
 | tarikh_permohonan, tarikh_sokongan, tarikh_kelulusan, tarikh_tolak | DATETIME | |
 | ulasan_penyokong, ulasan_pelulus | TEXT | Wajib bila menolak |
 
+**`borang_sejarah`** (P4): satu baris bagi setiap tindakan (Hantar, Hantar Semula, Sokong, Lulus, Tolak, Arkib Terus), ditulis oleh `BorangSejarahObserver` sahaja: `borang_id`, `tindakan`, `status_selepas`, `user_id`, `bagi_pihak_id` (pegawai asal bila melalui delegasi), `ulasan`, `created_at`. Hantar semula menimpa `borang` tetapi sejarah kekal.
+
+**`delegasi_kelulusan`** (P5): `pemberi_id`, `penerima_id`, `kod_peranan` (PENYOKONG/PELULUS, CHECK), `tarikh_mula`, `tarikh_tamat` (CHECK ≥ mula), `sebab`, `dicipta_oleh`, `dibatalkan_pada` (tiada padam: dibatalkan sahaja).
+
 ### 4.6 Kumpulan: Audit & Infra Laravel
 
 **`log_audit`**: Jejak setiap tindakan dalam sistem
@@ -367,6 +372,12 @@ Pangkalan data mengandungi **19 jadual**: 13 jadual domain dalam 6 kumpulan, `no
 | data_lama, data_baharu | JSON | Sebelum & selepas (`password`/`remember_token` sentiasa ditapis) |
 | alamat_ip, peranti_pengguna | VARCHAR / TEXT | |
 | created_at | TIMESTAMP | Tiada `updated_at`: log tidak boleh diubah |
+
+**`log_masuk`** (P13): setiap cubaan log masuk: `user_id` (NULL bila No. KP tidak berdaftar; No. KP yang dicuba **tidak** disimpan), `berjaya`, `sebab` (Kata laluan salah, Kod 2FA salah, Disekat, Kod pemulihan digunakan, ...), `alamat_ip`, `peranti_pengguna`, `created_at`.
+
+**`pembetulan_ai`** (P16): nilai AI berbanding nilai akhir staf bagi setiap medan semasa Imbas & Arkib/Hantar: `dokumen_id`, `jenis_dokumen_id`, `dokumen_field_id`, `nilai_ai`, `nilai_disimpan`, `sama`, `model_ai`, `user_id`.
+
+**Lajur tambahan (Fasa P):** `jenis_dokumen.tempoh_simpanan_tahun` (NULL = kekal) & `tindakan_tamat_tempoh`; `dokumen.tarikh_tamat_simpanan`, `status_pelupusan`, `tarikh_pelupusan`, `pelupusan_oleh`, `catatan_pelupusan` (P12); `users.dua_faktor_rahsia`, `dua_faktor_kod_pemulihan` (kedua-duanya disulitkan APP_KEY), `dua_faktor_disahkan_pada` (P13).
 
 **`push_subscriptions`**: langganan notifikasi peranti (Web Push): `subscribable_id` = `user_id`, `endpoint` (unik, ASCII), `public_key`, `auth_token`, `content_encoding`.
 
@@ -384,6 +395,8 @@ Pangkalan data mengandungi **19 jadual**: 13 jadual domain dalam 6 kumpulan, `no
 - **Laluan tetamu** (log masuk, lupa/tetap semula kata laluan) dilindungi middleware `guest`; pengguna yang sudah log masuk dibawa ke papan pemuka
 - **Lupa kata laluan:** pautan tetapan semula dihantar ke emel (kandungan emel dalam BM). Respons **sama** sama ada emel berdaftar, tidak berdaftar atau SMTP gagal, supaya borang tidak boleh digunakan untuk meneka emel. Had: 5 seminit bagi setiap emel + IP, 10 setiap 10 minit bagi setiap IP
 - **Polisi kata laluan** (`PolisiKataLaluan`): sekurang-kurangnya 8 aksara, mengandungi huruf dan nombor. Terpakai untuk kata laluan yang dipilih pengguna sendiri
+- **Pengesahan dua faktor (2FA, P13):** pilihan dari Profil (QR untuk Google/Microsoft Authenticator, 8 kod pemulihan sekali guna, rahsia disulitkan). Kata laluan disemak dengan `Auth::validate()` dahulu; akaun ber-2FA dibawa ke `/log-masuk/dua-faktor` (sesi menunggu sah 5 minit, 5 cubaan seminit) sebelum sesi dibuka. `DUA_FAKTOR_WAJIB=true` (lalai `false` hingga serahan) memaksa SUPERADMIN/ADMIN mendaftar (middleware `wajib.dua.faktor`) dan menghalang mereka mematikannya
+- **Sejarah log masuk (P13):** setiap cubaan direkod dalam `log_masuk`; halaman **Sejarah Log Masuk** (SUPERADMIN/AUDIT) dengan penapis, dan Profil memaparkan 5 log masuk terkini pengguna
 - **Kata laluan sementara:** kata laluan yang ditetapkan pentadbir untuk orang lain, dan kata laluan dalam emel pendaftaran, mesti ditukar pada log masuk seterusnya (middleware `wajib.tukar` → `/tukar-kata-laluan`). Kata laluan sementara daripada emel pendaftaran tamat selepas 72 jam
 
 ### 5.2 Pendaftaran Staf Baharu
@@ -456,6 +469,8 @@ CRUD penuh dengan soft delete (SUPERADMIN/ADMIN). Senarai memaparkan bilangan me
 
 **Padam:** soft delete. Rekod, nilai medan dan fail fizikal **dikekalkan** untuk arkib, dan No. Rujukan tidak digunakan semula.
 
+**Tempoh simpanan & pelupusan (P12):** setiap kategori boleh ada tempoh simpanan (tahun, kira dari Tarikh Dokumen) dan tindakan disyorkan (Semak Semula, Musnah, Serah Arkib Negara). `dokumen.tarikh_tamat_simpanan` dikira automatik semasa simpan, dan dikira semula bila tempoh kategori berubah (kecuali dokumen yang telah dikekalkan). Halaman **Pelupusan** (`/pelupusan`, SUPERADMIN/ADMIN, lencana bilangan dalam menu) dengan tab Tamat Tempoh / Akan Tamat (90 hari) / Telah Dilupuskan: **Kekalkan** (+1/2/5/10 tahun, catatan wajib) atau **Lupuskan / Diserah Arkib Negara** (catatan wajib): dokumen ditanda dan dipindah ke Tong Sampah, fail **kekal** dalam storan. Memulihkannya dari Tong Sampah mengosongkan keputusan pelupusan. Setiap keputusan dilog ("Kekalkan Dokumen", "Lupus Dokumen").
+
 **Tong Sampah** (`/tong-sampah`, SUPERADMIN/ADMIN): senarai dokumen, kategori, bahagian dan kakitangan yang dipadam (tab dengan bilangan), siapa memadam dan bila (daripada log audit), serta butang **Pulihkan**. Memulihkan kategori turut memulihkan medan yang dipadam bersamanya. ADMIN tidak boleh memulihkan akaun Super Admin. Jika kod/emel/No. KP sudah digunakan oleh rekod aktif lain, pemulihan ditolak dengan mesej. Tiada padam kekal (sistem arkib). Pemulihan dilog sebagai "Pulihkan".
 
 **Amaran padam beramai:** bila seorang pengguna memadam 5 rekod (dokumen/kategori/bahagian/kakitangan) dalam 10 minit, SUPERADMIN/ADMIN menerima notifikasi amaran sekali (`LogAudit::AMARAN_PADAM_*`).
@@ -492,6 +507,10 @@ Dua aliran yang berkongsi kod (`ImbasHantarController` mewarisi `ImbasArkibContr
 ### 5.9 Aliran Kelulusan (`borang`)
 
 Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokong** (PENYOKONG) → **Luluskan** (PELULUS), atau **Tolak** pada mana-mana peringkat (ulasan wajib). SUPERADMIN/ADMIN boleh menyokong dan meluluskan (disengajakan), tetapi **tiada sesiapa boleh menyokong, meluluskan atau menolak permohonan sendiri**; butang disembunyikan dengan nota "Anda pemohon permohonan ini". Pegawai yang menolak dan tarikhnya direkod (`pegawai_penolak_id`, `tarikh_tolak`) dan dipaparkan sebagai "Ditolak Oleh" kepada pemohon. Hantar semula hanya dibenarkan selepas Ditolak, dan mengosongkan rekod penolakan lama. Tindakan atas status yang sudah berubah memberi halaman **409** dengan mesej BM, dan dokumen terpadam memberi 404. Senarai `/kelulusan` memaparkan giliran PENYOKONG/PELULUS (tanpa permohonan sendiri), manakala pentadbir melihat semua dengan tab penapis status (bilangan setiap status). Semua peranan boleh mencari ikut No. Rujukan atau nama pemohon.
+
+**Sejarah permohonan (P4):** butang "Sejarah Permohonan" dalam panel Status Kelulusan memaparkan garis masa setiap tindakan (siapa, bila, ulasan, "bagi pihak"), termasuk ulasan penolakan lama selepas dihantar semula.
+
+**Skop bahagian & delegasi (P5, `App\Support\SkopKelulusan`):** PENYOKONG hanya menyokong/menolak permohonan **bahagian dokumen** itu; jika bahagian itu tiada PENYOKONG (atau dokumen tanpa bahagian), semua PENYOKONG boleh bertindak supaya tidak tersangkut. PELULUS semua bahagian; SUPERADMIN/ADMIN tanpa skop. Skop yang sama digunakan oleh senarai Kelulusan, papan pemuka, loceng, butang Butiran, tindakan dan penerima notifikasi. **Delegasi** (`/delegasi`): PENYOKONG/PELULUS melantik pengganti untuk julat tarikh (maks 180 hari, tiada pertindihan); pentadbir boleh mengurus sesiapa. Peranan delegasi aktif dimasukkan dalam `User::semuaKodPeranan()` (`kodPerananSendiri()` = peranan sebenar), jadi menu dan kebenaran ikut serta; penerima bertindak dengan skop bahagian pemberi dan direkod "bagi pihak" dalam sejarah. Penerima dimaklumkan melalui loceng.
 
 **Slip kelulusan PDF ber-QR** (`kelulusan.slip`, `SlipKelulusanService`, `bacon/bacon-qr-code` + FPDF): bagi permohonan Diluluskan, sesiapa yang boleh melihat dokumen boleh memuat turun slip (No. Rujukan, kategori, pemohon, penyokong, pelulus, tarikh, ulasan) dan setiap jana dilog. Kod QR membuka halaman **awam** `/sahkan-slip/{borang}/{kod}` (tanpa log masuk, had 30 permintaan/minit) yang memaparkan "Slip Sah" dengan maklumat minimum, atau "Slip Tidak Sah". `kod` = 12 aksara HMAC-SHA256 (APP_KEY) atas borang + dokumen + tarikh kelulusan (`Borang::kodPengesahan()`), jadi rekod tidak boleh diteka dan slip lama menjadi tidak sah bila permohonan dipadam atau diluluskan semula. URL dalam QR mengikut `APP_URL` (tetapkan ke alamat awam semasa demo/produksi). Menukar `APP_KEY` membatalkan semua slip lama.
 
@@ -552,7 +571,7 @@ CRUD penuh dengan soft delete (SUPERADMIN/ADMIN).
 
 Cipta/Kemaskini/Padam pada `bahagian`, `jenis_dokumen`, `users`, `dokumen` dan **`dokumen_field`** (setiap medan borang dalam pembina) direkod oleh Observer; kemaskini hanya merekod lajur yang berubah. Tindakan tanpa pengguna log masuk direkod dengan `user_id` kosong dan dipaparkan sebagai "Sistem / tetamu". Perubahan yang tidak dilihat oleh observer (nilai EAV, fail imbasan, langkah kelulusan `borang`, tetapan peranan, pendaftaran staf, tukar kata laluan, tetapan semula kata laluan melalui emel, OCR manual, semakan/pembetulan teks OCR) direkod terus dalam controller dengan `LogAudit::create()`. Halaman Log Audit (SUPERADMIN & AUDIT sahaja) ada penapis pengguna/jadual/tindakan/ID rekod/julat tarikh dan paginasi, dan setiap baris boleh dibuka untuk melihat JSON sebelum/selepas. `password` dan `remember_token` **sentiasa** ditapis. Butang **Eksport CSV** memuat turun log ikut penapis semasa (eksport itu sendiri dilog).
 
-**Status Sistem** (`/status-sistem`, SUPERADMIN/ADMIN): semakan langsung setiap kali dibuka, dengan status Baik/Amaran/Ralat dan nota tindakan: pangkalan data, mod debug, Tesseract (versi + pek bahasa `OCR_BAHASA`), Poppler, Ollama + model AI dan GLM-OCR (dimuat dalam memori atau belum), Web Push (kunci VAPID + OpenSSL), notifikasi emel, penjadual (degupan `penjadual:degupan` setiap minit), sandaran terakhir (`terakhir.json`), integriti fail (`integriti.json`) dan ruang cakera. Sesuai disemak sebelum demo.
+**Status Sistem** (`/status-sistem`, SUPERADMIN/ADMIN) turut memaparkan **Ketepatan AI** (P16): peratus medan yang disimpan tanpa diubah staf bagi setiap kategori, dan medan yang paling kerap dibetulkan. Semakan langsung setiap kali dibuka, dengan status Baik/Amaran/Ralat dan nota tindakan: pangkalan data, mod debug, Tesseract (versi + pek bahasa `OCR_BAHASA`), Poppler, Ollama + model AI dan GLM-OCR (dimuat dalam memori atau belum), Web Push (kunci VAPID + OpenSSL), notifikasi emel, penjadual (degupan `penjadual:degupan` setiap minit), sandaran terakhir (`terakhir.json`), integriti fail (`integriti.json`) dan ruang cakera. Sesuai disemak sebelum demo.
 
 ### 5.14 Bahasa & Antara Muka
 
@@ -705,7 +724,10 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `LogAuditController` | Log Audit |
 | `NotifikasiController` | Loceng, halaman Notifikasi, langganan peranti |
 | `TongSampahController` | Tong Sampah: senarai & pulih rekod terpadam |
-| `StatusSistemController` | Status Sistem (OCR/AI, notifikasi, sandaran, penjadual, storan) |
+| `StatusSistemController` | Status Sistem (OCR/AI, notifikasi, sandaran, penjadual, storan, ketepatan AI) |
+| `DelegasiController` | Delegasi kelulusan semasa cuti (P5) |
+| `PelupusanController` | Tempoh simpanan & pelupusan (P12) |
+| `DuaFaktorController`, `LogMasukController` | 2FA dalam Profil, Sejarah Log Masuk (P13) |
 
 ### Arahan Konsol
 | Arahan | Fail |
@@ -714,6 +736,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `php artisan sandaran:jalan [--simpan=14]` | `app/Console/Commands/SandaranJalan.php` (dijadualkan 12:30 setiap hari) |
 | `php artisan fail:integriti` | `app/Console/Commands/FailIntegriti.php` (dijadualkan setiap Isnin 12:45) |
 | `php artisan ai:panaskan` | `routes/console.php` |
+| `php artisan ocr:nilai [folder] [--jana-label=KOD] [--tanpa-few-shot] [--simpan=laporan.json]` | `app/Console/Commands/OcrNilai.php` (P15; lalai `../Ujian_Borang_Diisi`) |
 
 ### Views (`resources/views/`)
 | Folder | Kandungan |
@@ -841,8 +864,8 @@ Keputusan terakhir ditulis ke `{folder}/terakhir.json` (berjaya/gagal, saiz, bil
 
 ### Aliran Kelulusan: Versi Asas Sahaja (Disengajakan)
 Dibina ringkas kerana sistem baru digunakan oleh Bahagian Digital untuk mengarkib dokumen sedia lulus:
-- Satu dokumen = satu rekod `borang`; hantar semula **menimpa** rekod lama, tiada sejarah penghantaran
-- Penyokong & Pelulus tidak diskop ikut bahagian, dan tiada hierarki kelulusan
+- Satu dokumen = satu rekod `borang`; hantar semula menimpa rekod itu, tetapi setiap tindakan kekal dalam `borang_sejarah` (P4)
+- Skop: PENYOKONG ikut bahagian dokumen, PELULUS semua bahagian, dan delegasi semasa cuti (P5). Tiada carta organisasi berbilang peringkat
 - Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); hidupkan semasa serahan
 - Kebenaran disemak dalam controller, bukan melalui `BorangPolicy`
 
@@ -850,10 +873,14 @@ Dibina ringkas kerana sistem baru digunakan oleh Bahagian Digital untuk mengarki
 OCR diproses dalam permintaan HTTP yang sama (tiada queue). Sesuai untuk volum rendah semasa; perlu dipindah ke `php artisan queue:work` jika penggunaan meningkat.
 
 ### Ketepatan OCR/AI
-Tanda ✓ tulisan tangan, medan kosong yang diisi teks lain oleh AI, tulisan sambung dan Jawi (lihat 5.11). Cadangan: templat zon setiap medan, set ujian berlabel 30–50 dokumen + arahan penilaian, dan rekod pembetulan staf untuk penambahbaikan AI.
+Tanda ✓ tulisan tangan, medan kosong yang diisi teks lain oleh AI, tulisan sambung dan Jawi (lihat 5.11). Cadangan seterusnya: templat zon setiap medan.
+
+**Penilaian (P15):** `php artisan ocr:nilai` menilai setiap medan terhadap dokumen berlabel (`X.label.json` di sebelah fail: `kategori`, `disahkan`, `tarikh_dokumen`, `perkara`, `medan`; hanya label `"disahkan": true` dikira). `--jana-label=KOD` menjana draf label daripada hasil AI untuk disemak manusia, supaya set 30–50 dokumen boleh dibina dengan cepat. Laporan memaparkan ketepatan setiap dokumen, skor OCR, masa OCR/AI dan senarai medan salah.
+
+**Pembetulan staf (P16):** setiap simpan Imbas & Arkib/Hantar merekod nilai AI berbanding nilai akhir (`pembetulan_ai`). Prompt AI bagi kategori yang sama menyenaraikan nilai yang pernah **salah** (dan "medan ini biasanya kosong") supaya tidak diulang (`OLLAMA_FEW_SHOT`, lalai hidup). Nilai **betul** sengaja tidak dimasukkan: dalam ujian dengan borang 4-b, model menyalin nilai betul dokumen lama ke dokumen baharu walaupun diarah tidak. Contoh pada 4-b selepas satu pembetulan: "ERASED BN" pada medan nama yang kosong tidak lagi diisi (dokumen yang sama, jadi bukan ukuran ketepatan umum). LoRA kekal kerja masa depan.
 
 ### Kerja Kecil Belum Dibuat
-- Penapis julat nombor/tarikh berstruktur ke atas nilai EAV belum dibina
+- (Tiada: penapis julat EAV siap dalam P8)
 
 ---
 
