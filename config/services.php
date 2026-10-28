@@ -79,6 +79,8 @@ return [
         // Model kekal dalam memori selepas digunakan (lalai Ollama 5 minit → muat semula lambat)
         'keep_alive' => env('OLLAMA_KEEP_ALIVE', '30m'),
         'had_masa' => (int) env('OLLAMA_HAD_MASA', 180),
+        // P16: pembetulan staf terkini bagi kategori dimasukkan ke prompt sebagai contoh
+        'few_shot' => (bool) env('OLLAMA_FEW_SHOT', true),
     ],
 
     // Notifikasi emel (P2): mati secara lalai kerana akaun ujian guna domain @pkink.com yang

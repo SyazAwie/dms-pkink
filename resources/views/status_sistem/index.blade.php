@@ -36,6 +36,41 @@
     </div>
 @endforeach
 
+{{-- P16: ketepatan AI ikut pembetulan staf --}}
+<div class="glass-panel mb-4 overflow-hidden">
+    <div class="section-header px-4 pt-4 pb-3">
+        <h3>Ketepatan AI (Pembetulan Staf)</h3>
+    </div>
+    @if($ketepatanAi['kategori']->isEmpty())
+        <div class="ss-baris"><span></span><div class="ss-teks"><span>Belum ada data. Setiap dokumen yang disimpan melalui Imbas &amp; Arkib atau Imbas &amp; Hantar merekod nilai AI berbanding nilai akhir staf.</span></div></div>
+    @else
+        <div class="table-responsive">
+            <table class="table ss-jadual align-middle mb-0">
+                <thead><tr><th class="ps-4">Kategori</th><th class="text-end">Dokumen</th><th class="text-end">Medan dinilai</th><th class="text-end pe-4">Tepat</th></tr></thead>
+                <tbody>
+                    @foreach($ketepatanAi['kategori'] as $k)
+                        @php $peratus = $k->jumlah ? round($k->betul / $k->jumlah * 100) : 0; @endphp
+                        <tr>
+                            <td class="ps-4 boleh-balut">{{ $k->jenisDokumen->nama_dokumen ?? '-' }}</td>
+                            <td class="text-end">{{ $k->dokumen }}</td>
+                            <td class="text-end">{{ $k->jumlah }}</td>
+                            <td class="text-end pe-4"><strong class="{{ $peratus >= 80 ? 'ss-teks-ok' : ($peratus >= 60 ? 'ss-teks-amaran' : 'ss-teks-ralat') }}">{{ $peratus }}%</strong></td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @if($ketepatanAi['kerapDibetulkan']->isNotEmpty())
+            <div class="px-4 pt-3 pb-2 ss-subtajuk">Medan paling kerap dibetulkan (digunakan sebagai contoh dalam prompt AI)</div>
+            <ul class="ss-senarai px-4 pb-3 mb-0">
+                @foreach($ketepatanAi['kerapDibetulkan'] as $m)
+                    <li><span>{{ $m->medan->nama_field ?? '-' }} <small>· {{ $m->jenisDokumen->kod_dokumen ?? '' }}</small></span><strong>{{ $m->jumlah - $m->betul }} / {{ $m->jumlah }} dibetulkan</strong></li>
+                @endforeach
+            </ul>
+        @endif
+    @endif
+</div>
+
 @endsection
 
 @push('styles')
@@ -56,6 +91,14 @@
     .ss-teks strong { color: var(--dms-text); font-size: 13.5px; }
     .ss-teks span { color: var(--dms-muted); font-size: 12.5px; overflow-wrap: anywhere; }
     .ss-teks small { color: #8a5a0a; font-size: 12px; }
+    .ss-jadual { font-size: 13px; }
+    .ss-jadual thead th { color: var(--dms-muted); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .ss-teks-ok { color: var(--dms-mint); } .ss-teks-amaran { color: #b45309; } .ss-teks-ralat { color: var(--dms-danger); }
+    .ss-subtajuk { color: var(--dms-brand); font-size: 12.5px; font-weight: 800; border-top: 1px solid var(--dms-line); }
+    .ss-senarai { list-style: none; }
+    .ss-senarai li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--dms-line); font-size: 13px; }
+    .ss-senarai li:last-child { border-bottom: 0; }
+    .ss-senarai small { color: var(--dms-muted); }
     @media (max-width: 575.98px) { .ss-baris { padding: 12px 16px; } .ss-kad { padding: 12px; } }
 </style>
 @endpush

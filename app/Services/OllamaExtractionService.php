@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\PembetulanAi;
 use App\Support\JenisMedan;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 
 /**
@@ -146,6 +148,7 @@ class OllamaExtractionService
                 '- kod "' . self::PERKARA . '" (Perkara): tajuk utama dokumen seperti tertulis (perkara surat/memo, tajuk penuh minit mesyuarat, atau nama borang), maksimum 200 aksara'
             ))
             ->implode("\n");
+        $contoh = $this->blokPembetulan($medan);
 
         // JSON padat (satu baris) mengurangkan token jawapan, jadi jawapan lebih pantas
         return <<<PROMPT
@@ -169,7 +172,7 @@ Peraturan ketat:
 
 Senarai Medan:
 {$senaraiMedan}
-
+{$contoh}
 Teks OCR:
 \"\"\"
 {$teksOcr}
@@ -178,6 +181,46 @@ Teks OCR:
 Jawab dengan JSON padat dalam SATU baris (tanpa baris baharu atau ruang tambahan),
 contoh bentuk: {"kod_medan_1":"nilai","kod_medan_2":null}
 PROMPT;
+    }
+
+    /**
+     * P16 few-shot: pembetulan staf terkini bagi kategori ini (satu bagi setiap medan,
+     * maks PembetulanAi::HAD_CONTOH). Kosong jika tiada pembetulan, dimatikan
+     * (OLLAMA_FEW_SHOT=false) atau DB gagal: pengekstrakan tidak boleh gagal kerananya.
+     */
+    private function blokPembetulan(Collection $medan): string
+    {
+        if (! config('services.ollama.few_shot', true) || $medan->isEmpty()) {
+            return '';
+        }
+
+        try {
+            $contoh = PembetulanAi::contohTerkini((int) $medan->first()->jenis_dokumen_id, $medan->pluck('dokumen_field_id')->all());
+        } catch (\Throwable $e) {
+            Log::warning('Contoh pembetulan AI tidak dapat dibaca: ' . $e->getMessage());
+
+            return '';
+        }
+        if ($contoh->isEmpty()) {
+            return '';
+        }
+
+        // Hanya nilai SALAH yang disenaraikan, bukan nilai betul: ujian dengan borang 4-b
+        // menunjukkan model menyalin nilai betul dokumen lama ke dokumen baharu walaupun
+        // diarah tidak, jadi nilai sebenar satu dokumen tidak boleh masuk ke prompt lain.
+        $kod = $medan->pluck('kod_field', 'dokumen_field_id');
+        $baris = $contoh->filter(fn ($c) => trim((string) $c->nilai_ai) !== '')
+            ->map(fn ($c) => "- kod \"{$kod[$c->dokumen_field_id]}\": "
+                .json_encode(mb_substr($c->nilai_ai, 0, 80), JSON_UNESCAPED_UNICODE).' adalah SALAH'
+                .(trim((string) $c->nilai_disimpan) === '' ? ' (medan ini biasanya kosong; guna null jika tiada nilai jelas)' : ''));
+        if ($baris->isEmpty()) {
+            return '';
+        }
+
+        return "\nKesilapan lalu bagi jenis dokumen ini (dibetulkan oleh staf). Jangan ulang nilai ini;\n"
+            ."jika teks yang sama muncul, ia bukan nilai medan itu:\n"
+            .$baris->implode("\n")
+            ."\n";
     }
 
     /**

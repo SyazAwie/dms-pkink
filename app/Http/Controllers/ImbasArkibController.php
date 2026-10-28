@@ -9,6 +9,7 @@ use App\Models\DokumenOcr;
 use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
+use App\Models\PembetulanAi;
 use App\Services\OcrService;
 use App\Services\OllamaExtractionService;
 use App\Support\JenisMedan;
@@ -389,8 +390,16 @@ class ImbasArkibController extends DokumenController
                         ]);
                     }
 
+                    $nilaiAi = $meta['nilai_ekstrak'] ?? [];
                     foreach ($this->medanUntukMod($jenisDokumen) as $f) {
                         $nilai = JenisMedan::dariPermintaan($f, $request, $jenisDokumen->fields);
+
+                        // P16: nilai AI vs nilai akhir staf (medan auto-isi profil dalam mod hantar
+                        // ditimpa pelayan, jadi bukan pembetulan AI)
+                        if (array_key_exists($f->dokumen_field_id, $nilaiAi) && ! ($this->modHantar() && JenisMedan::autoIsi($f))) {
+                            PembetulanAi::rekod($dokumenBaharu, $f, $nilaiAi[$f->dokumen_field_id], $nilai, Auth::id());
+                        }
+
                         if ($nilai === null) {
                             continue;
                         }

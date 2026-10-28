@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DokumenScan;
+use App\Models\PembetulanAi;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,29 @@ class StatusSistemController extends Controller
         $ringkasan = ['ok' => $semua->where('status', 'ok')->count(), 'amaran' => $semua->where('status', 'amaran')->count(),
             'ralat' => $semua->where('status', 'ralat')->count()];
 
-        return view('status_sistem.index', compact('kumpulan', 'ringkasan'));
+        $ketepatanAi = $this->ketepatanAi();
+
+        return view('status_sistem.index', compact('kumpulan', 'ringkasan', 'ketepatanAi'));
+    }
+
+    /**
+     * P16: ketepatan cadangan AI berbanding nilai akhir staf (Imbas & Arkib/Hantar),
+     * ikut kategori, dan medan yang paling kerap dibetulkan.
+     */
+    private function ketepatanAi(): array
+    {
+        $betul = 'SUM(CASE WHEN sama = 1 THEN 1 ELSE 0 END)';
+
+        return [
+            'kategori' => PembetulanAi::with('jenisDokumen')
+                ->selectRaw("jenis_dokumen_id, COUNT(*) AS jumlah, {$betul} AS betul, COUNT(DISTINCT dokumen_id) AS dokumen")
+                ->groupBy('jenis_dokumen_id')->orderByDesc('jumlah')->get(),
+            'kerapDibetulkan' => PembetulanAi::with(['medan', 'jenisDokumen'])
+                ->selectRaw("dokumen_field_id, jenis_dokumen_id, COUNT(*) AS jumlah, {$betul} AS betul")
+                ->groupBy('dokumen_field_id', 'jenis_dokumen_id')
+                ->havingRaw("COUNT(*) > {$betul}")
+                ->orderByRaw("COUNT(*) - {$betul} DESC")->limit(8)->get(),
+        ];
     }
 
     private function semakan(string $nama, string $status, string $nilai, ?string $nota = null): array

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\DuaFaktorController;
 use App\Models\Bahagian;
 use App\Models\Borang;
 use App\Models\BorangSejarah;
@@ -315,7 +316,7 @@ class FasaPBakiTest extends TestCase
     public function test_daftar_2fa_dari_profil_dan_rahsia_disulitkan(): void
     {
         $this->actingAs($this->staf)->post(route('profil.dua-faktor.mula'))->assertRedirect();
-        $rahsia = session(\App\Http\Controllers\DuaFaktorController::SESI_RAHSIA_BAHARU);
+        $rahsia = session(DuaFaktorController::SESI_RAHSIA_BAHARU);
         $this->actingAs($this->staf)->get(route('profil.index'))->assertOk()->assertSee('<svg', false)->assertSee('Sahkan &amp; Aktifkan', false);
 
         $this->actingAs($this->staf)->post(route('profil.dua-faktor.sahkan'), ['kod' => '000000'])->assertSessionHasErrorsIn('duaFaktor', 'kod');
