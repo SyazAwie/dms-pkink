@@ -603,7 +603,7 @@ Sistem ada **8 peranan**; seorang pengguna boleh memegang beberapa peranan. Kawa
 
 "Pentadbiran" = Kategori Dokumen, Pengurusan Bahagian, Pengurusan Kakitangan dan Pengesahan Pendaftaran.
 
-**Tukar peranan:** pengguna berbilang peranan boleh klik nama/avatar di topbar dan memilih satu peranan (atau "Semua peranan", lalai) tanpa log masuk semula. Peranan aktif disimpan dalam sesi dan ditapis dalam `User::kodPeranan()`, jadi ketiga-tiga lapisan RBAC, menu dan papan pemuka ikut serentak. Peraturan pemohon tidak boleh meluluskan permohonan sendiri kekal.
+**Tukar peranan:** pengguna berbilang peranan boleh klik nama/avatar di topbar dan memilih satu peranan tanpa log masuk semula. Hanya **satu peranan aktif pada satu masa** (tiada mod "semua peranan"): selepas log masuk, peranan tertinggi dipilih automatik ikut `User::SUSUNAN_PERANAN` (SUPERADMIN, ADMIN, KERANI, PENGURUS, PELULUS, PENYOKONG, AUDIT, STAFF). Peranan delegasi aktif (P5) turut disenaraikan dengan tanda "(delegasi)". Peranan aktif disimpan dalam sesi dan ditapis dalam `User::kodPeranan()`, jadi ketiga-tiga lapisan RBAC, menu dan papan pemuka ikut serentak. Peraturan pemohon tidak boleh meluluskan permohonan sendiri kekal.
 
 Menu sidebar dan butang tindakan **disembunyikan** mengikut peranan pengguna. Akses terus melalui URL tanpa kebenaran memaparkan halaman **403 Akses Ditolak** dalam BM.
 

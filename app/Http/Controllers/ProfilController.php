@@ -106,31 +106,26 @@ class ProfilController extends Controller
     }
 
     /**
-     * Tukar peranan aktif (menu nama di topbar) tanpa log masuk semula. Kosong = "Semua
-     * peranan". Hanya peranan yang dimiliki boleh dipilih; disimpan dalam sesi dan ditapis
-     * oleh User::kodPeranan(). Dibawa ke papan pemuka kerana halaman semasa mungkin tidak
-     * dibenarkan bagi peranan baharu.
+     * Tukar peranan aktif (menu nama di topbar) tanpa log masuk semula. Satu peranan pada
+     * satu masa: hanya peranan yang dimiliki (termasuk delegasi aktif) boleh dipilih;
+     * disimpan dalam sesi dan ditapis oleh User::kodPeranan(). Dibawa ke papan pemuka
+     * kerana halaman semasa mungkin tidak dibenarkan bagi peranan baharu.
      */
     public function tukarPeranan(Request $request)
     {
         $user = Auth::user();
         $request->validate([
-            'peranan' => ['nullable', 'string', Rule::in($user->semuaKodPeranan())],
+            'peranan' => ['required', 'string', Rule::in($user->semuaKodPeranan())],
         ], [
+            'peranan.required' => 'Sila pilih satu peranan.',
             'peranan.in' => 'Anda tidak mempunyai peranan tersebut.',
         ]);
 
         $kod = $request->input('peranan');
-        if ($kod) {
-            $request->session()->put(\App\Models\User::SESI_PERANAN_AKTIF, $kod);
-            $nama = $user->roles->firstWhere('kod_roles', $kod)?->nama_roles ?? $kod;
-            $mesej = "Kini menggunakan peranan {$nama}.";
-        } else {
-            $request->session()->forget(\App\Models\User::SESI_PERANAN_AKTIF);
-            $mesej = 'Kini menggunakan semua peranan anda.';
-        }
+        $request->session()->put(\App\Models\User::SESI_PERANAN_AKTIF, $kod);
+        $nama = \App\Models\Role::where('kod_roles', $kod)->value('nama_roles') ?? $kod;
 
-        return redirect()->route('dashboard')->with('success', $mesej);
+        return redirect()->route('dashboard')->with('success', "Kini menggunakan peranan {$nama}.");
     }
 
     // Skrin wajib tukar kata laluan (selepas log masuk dengan kata laluan sementara)
