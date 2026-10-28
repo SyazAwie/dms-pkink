@@ -12,6 +12,7 @@ use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Services\OcrService;
+use App\Services\TeraAirService;
 use App\Support\Csv;
 use App\Support\JenisMedan;
 use Illuminate\Database\QueryException;
@@ -678,6 +679,48 @@ class DokumenController extends Controller
         }
 
         return Storage::disk('local')->response($scan->lokasi_fail, $scan->nama_fail);
+    }
+
+    /**
+     * Muat turun salinan bertera air (P11): nama pemuat turun, tarikh/masa dan no. rujukan
+     * dicetak pada setiap muka surat, dan setiap muat turun direkod dalam log audit.
+     * Fail asal tidak diubah (hash integriti kekal sah).
+     */
+    public function muatTurunScan(Request $request, $id)
+    {
+        $scan = DokumenScan::with('dokumen')->findOrFail($id);
+        Gate::authorize('view', $scan->dokumen);
+
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($scan->lokasi_fail), 404, 'Fail tidak dijumpai dalam storan.');
+
+        set_time_limit((int) config('services.ocr.had_masa', 300));
+        $pengguna = $request->user();
+        $masa = now()->format('d/m/Y H:i');
+
+        try {
+            $hasil = app(TeraAirService::class)->jana(
+                $disk->path($scan->lokasi_fail),
+                $scan->jenis_mime,
+                'SALINAN TERKAWAL PKINK',
+                "Dimuat turun oleh {$pengguna->nama_staff} pada {$masa} | {$scan->dokumen->no_rujukan} | Sistem Arkib Digital PKINK"
+            );
+        } catch (\Throwable $e) {
+            Log::warning("Tera air gagal untuk dokumen_scan_id {$scan->dokumen_scan_id}: ".$e->getMessage());
+
+            return back()->with('error', "Salinan \"{$scan->nama_fail}\" tidak dapat dijana. Sila hubungi Pentadbir Sistem.".$this->butiranRalat($e));
+        }
+
+        LogAudit::create([
+            'user_id' => $pengguna->user_id, 'tindakan' => 'Muat Turun Fail', 'nama_jadual' => 'dokumen_scan',
+            'rekod_id' => $scan->dokumen_scan_id, 'data_lama' => null,
+            'data_baharu' => ['dokumen' => $scan->dokumen->no_rujukan, 'nama_fail' => $scan->nama_fail, 'tera_air' => true],
+            'alamat_ip' => $request->ip(), 'peranti_pengguna' => $request->userAgent(), 'created_at' => now(),
+        ]);
+
+        $nama = pathinfo($scan->nama_fail, PATHINFO_FILENAME).'_salinan.'.$hasil['sambungan'];
+
+        return response()->streamDownload(fn () => print($hasil['kandungan']), $nama, ['Content-Type' => $hasil['mime']]);
     }
 
     /**

@@ -53,6 +53,12 @@ return [
         'vlm_ambang' => (float) env('OCR_VLM_AMBANG', 80),
     ],
 
+    // Tera air salinan muat turun (TeraAirService). Laluan penuh fon TrueType; kosong = cuba
+    // Arial Bold (Windows) / DejaVu Sans Bold (Linux), jika tiada guna fon bitmap GD
+    'tera_air' => [
+        'fon' => env('TERA_AIR_FON'),
+    ],
+
     'ollama' => [
         'url' => env('OLLAMA_URL', 'http://127.0.0.1:11434'),
         'model' => env('OLLAMA_MODEL', 'sea-lion-local'),

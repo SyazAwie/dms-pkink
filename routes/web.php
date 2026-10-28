@@ -100,6 +100,8 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/dokumen/eksport', [DokumenController::class, 'eksport'])->name('dokumen.eksport');
     Route::resource('dokumen', DokumenController::class);
     Route::get('/dokumen/scan/{id}/papar', [DokumenController::class, 'paparScan'])->name('dokumen.scan.papar');
+    // Salinan bertera air (P11): nama pemuat turun + tarikh pada setiap muka surat, direkod dalam log audit
+    Route::get('/dokumen/scan/{id}/muat-turun', [DokumenController::class, 'muatTurunScan'])->name('dokumen.scan.muat-turun');
     Route::post('/dokumen/scan/{id}/ocr', [DokumenController::class, 'jalankanOcr'])->name('dokumen.scan.ocr');
     // Semakan teks OCR oleh staf: tandakan disemak / betulkan teks (kebenaran edit dokumen)
     Route::post('/dokumen/scan/{id}/ocr/semak', [DokumenController::class, 'semakOcr'])->name('dokumen.scan.ocr.semak');

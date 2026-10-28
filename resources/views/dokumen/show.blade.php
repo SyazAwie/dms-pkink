@@ -192,10 +192,14 @@
                             default => 'ocr-pending',
                         };
                         $adaTeks = (bool) ($scan->ocr->teks_dibaca ?? null);
+                        $sambungan = strtolower(pathinfo($scan->nama_fail, PATHINFO_EXTENSION));
+                        $jenisPratonton = $scan->jenis_mime === 'application/pdf' || $sambungan === 'pdf' ? 'pdf'
+                            : (str_starts_with((string) $scan->jenis_mime, 'image/') || in_array($sambungan, ['jpg', 'jpeg', 'png']) ? 'imej' : null);
+                        $urlPapar = route('dokumen.scan.papar', $scan->dokumen_scan_id);
                     @endphp
                     <div class="fail-item">
                         <div class="fail-baris">
-                            <a href="{{ route('dokumen.scan.papar', $scan->dokumen_scan_id) }}" target="_blank" class="fail-link text-decoration-none">
+                            <a href="{{ $urlPapar }}" target="_blank" class="fail-link text-decoration-none">
                                 <i class="bi bi-file-earmark-text"></i>
                                 <span class="fail-nama">{{ $scan->nama_fail }}</span>
                             </a>
@@ -203,6 +207,16 @@
                                 <span class="fail-saiz" title="SHA-256: {{ $scan->hash_sha256 }}">{{ $scan->saizMudahDibaca() }}</span>
                             @endif
                             <span class="badge fail-status {{ $kelasOcr }}">{{ $scan->status_ocr }}</span>
+                            @if($jenisPratonton)
+                                <button type="button" class="btn-teks-ocr" data-bs-toggle="collapse" data-bs-target="#pratonton-{{ $scan->dokumen_scan_id }}"
+                                        aria-expanded="{{ $loop->first ? 'true' : 'false' }}" title="Pratonton fail" aria-label="Pratonton {{ $scan->nama_fail }}">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <a href="{{ route('dokumen.scan.muat-turun', $scan->dokumen_scan_id) }}" class="btn-teks-ocr"
+                                   title="Muat turun salinan bertera air (direkod dalam log audit)" aria-label="Muat turun {{ $scan->nama_fail }}">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            @endif
                             @if($adaTeks)
                                 <button type="button" class="btn-teks-ocr" data-bs-toggle="collapse" data-bs-target="#ocr-{{ $scan->dokumen_scan_id }}" title="Papar teks OCR">
                                     <i class="bi bi-text-paragraph"></i>
@@ -219,6 +233,21 @@
                                 @endif
                             @endcan
                         </div>
+                        @if($jenisPratonton)
+                            {{-- Fail pertama dipapar terus; yang lain dimuat hanya bila dibuka (data-src) --}}
+                            <div class="collapse {{ $loop->first ? 'show' : '' }} pratonton-fail" id="pratonton-{{ $scan->dokumen_scan_id }}">
+                                <div class="pratonton-wrap">
+                                    @if($jenisPratonton === 'pdf')
+                                        <iframe class="pratonton-pdf" title="Pratonton {{ $scan->nama_fail }}"
+                                                @if($loop->first) src="{{ $urlPapar }}#view=FitH" @else data-src="{{ $urlPapar }}#view=FitH" @endif></iframe>
+                                    @else
+                                        <img class="pratonton-imej" alt="Pratonton {{ $scan->nama_fail }}"
+                                             @if($loop->first) src="{{ $urlPapar }}" @else data-src="{{ $urlPapar }}" @endif>
+                                    @endif
+                                    <div class="dms-hint mt-1">Tidak dipaparkan? <a href="{{ $urlPapar }}" target="_blank">Buka dalam tab baharu</a>.</div>
+                                </div>
+                            </div>
+                        @endif
                         @if($adaTeks)
                             <div class="collapse" id="ocr-{{ $scan->dokumen_scan_id }}">
                                 <div class="ocr-teks-wrap">
@@ -376,5 +405,25 @@
     .kel-tolak { background: rgba(220,53,69,.1); color: var(--dms-danger); }
     .kel-ulasan { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--dms-line); border-radius: 10px; font-size: 12px; color: var(--dms-text); }
     .kel-form textarea { font-family: inherit; }
+
+    a.btn-teks-ocr { text-decoration: none; }
+    .pratonton-wrap { margin-top: 8px; }
+    .pratonton-pdf { display: block; width: 100%; height: 560px; border: 1px solid var(--dms-line); border-radius: 10px; background: #f3f5f8; }
+    .pratonton-imej { display: block; max-width: 100%; max-height: 640px; margin: 0 auto; border: 1px solid var(--dms-line); border-radius: 10px; }
+    @media (max-width: 576px) { .pratonton-pdf { height: 420px; } }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+    // Pratonton fail selain yang pertama dimuat hanya bila dibuka
+    document.querySelectorAll('.pratonton-fail').forEach(function (el) {
+        el.addEventListener('show.bs.collapse', function () {
+            el.querySelectorAll('[data-src]').forEach(function (m) {
+                m.src = m.dataset.src;
+                m.removeAttribute('data-src');
+            });
+        });
+    });
+</script>
 @endpush
