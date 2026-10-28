@@ -17,6 +17,7 @@ use App\Http\Controllers\LogMasukController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PelupusanController;
+use App\Http\Controllers\DemoController;
 use App\Http\Controllers\PendaftaranStafController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SlipKelulusanController;
@@ -30,6 +31,10 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Pengesahan slip kelulusan (P6): AWAM, dibuka oleh kod QR pada slip; kod HMAC + had kadar
 Route::get('/sahkan-slip/{borang}/{kod}', [SlipKelulusanController::class, 'sahkan'])
     ->whereNumber('borang')->where('kod', '[A-Za-z0-9]{1,32}')->middleware('throttle:30,1')->name('slip.sahkan');
+
+// Mod Demo (Fasa D): halaman tayangan QR + log masuk butang akaun demo; 404 bila mod demo mati
+Route::get('/demo', [DemoController::class, 'halaman'])->name('demo.halaman');
+Route::post('/demo/masuk', [DemoController::class, 'masuk'])->middleware(['guest', 'throttle:30,1'])->name('demo.masuk');
 
 // Laluan tetamu: pengguna yang sudah log masuk akan dibawa ke papan pemuka
 Route::middleware('guest')->group(function () {

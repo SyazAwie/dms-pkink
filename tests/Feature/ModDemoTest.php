@@ -1,0 +1,207 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Http\Controllers\ImbasArkibController;
+use App\Http\Middleware\ModDemo;
+use App\Models\DokumenField;
+use App\Models\JenisDokumen;
+use App\Models\LogMasuk;
+use App\Models\User;
+use App\Services\OcrService;
+use App\Services\OllamaExtractionService;
+use App\Support\Demo;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Mockery\MockInterface;
+use Tests\SkemaUjian;
+use Tests\TestCase;
+
+/**
+ * Fasa D: mod demo (log masuk butang, sekatan tindakan, URL terowong, halaman /demo)
+ * dan D4 (satu analisis OCR/AI pada satu masa).
+ */
+class ModDemoTest extends TestCase
+{
+    use SkemaUjian;
+
+    private User $admin;
+
+    private User $staf;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->sediakanSkema();
+        $bahagian = $this->buatBahagian();
+        $this->admin = $this->buatPengguna(['ADMIN'], ['ic_pekerja' => '990101010101', 'nama_staff' => 'Admin Demo', 'bahagian_id' => $bahagian->bahagian_id]);
+        $this->staf = $this->buatPengguna(['STAFF'], ['ic_pekerja' => '990101010104', 'nama_staff' => 'Staf Demo', 'bahagian_id' => $bahagian->bahagian_id]);
+        config(['demo.akaun' => ['990101010101', '990101010104']]);
+    }
+
+    private function hidupkan(): void
+    {
+        config(['demo.aktif' => true]);
+    }
+
+    public function test_mod_mati_tiada_kesan(): void
+    {
+        $this->get(route('login'))->assertOk()->assertSee('name="password"', false)->assertDontSee('Pilih peranan untuk mencuba');
+        $this->get(route('demo.halaman'))->assertNotFound();
+        $this->post(route('demo.masuk'), ['ic' => '990101010101'])->assertNotFound();
+        $this->assertGuest();
+    }
+
+    public function test_halaman_log_masuk_papar_butang_akaun_demo_tanpa_borang_kata_laluan(): void
+    {
+        $this->hidupkan();
+
+        $this->get(route('login'))->assertOk()
+            ->assertSee('Mod Demo')
+            ->assertSeeInOrder(['ADMIN', 'Admin Demo', 'STAFF', 'Staf Demo'])
+            ->assertDontSee('name="password"', false)
+            ->assertDontSee('id="modalDaftar"', false)
+            ->assertDontSee('id="passwordToggle"', false);
+    }
+
+    public function test_masuk_sebagai_akaun_demo(): void
+    {
+        $this->hidupkan();
+
+        $this->post(route('demo.masuk'), ['ic' => '990101010104'])->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($this->staf);
+        $this->assertSame('Mod demo', LogMasuk::latest('log_masuk_id')->value('sebab'));
+
+        $this->get(route('dashboard'))->assertOk()->assertSee('Mod Demo.');
+    }
+
+    public function test_akaun_bukan_demo_tidak_boleh_dimasuki(): void
+    {
+        $this->hidupkan();
+        $lain = $this->buatPengguna(['SUPERADMIN']);
+
+        $this->post(route('demo.masuk'), ['ic' => $lain->ic_pekerja])->assertSessionHasErrors('ic');
+        $this->assertGuest();
+    }
+
+    public function test_log_masuk_kata_laluan_dan_pendaftaran_disekat(): void
+    {
+        $this->hidupkan();
+
+        $this->from(route('login'))->post(route('login.proses'), ['ic_pekerja' => $this->admin->ic_pekerja, 'password' => 'Lama1234'])
+            ->assertRedirect(route('login'))->assertSessionHas('demo_disekat', ModDemo::MESEJ);
+        $this->assertGuest();
+
+        $this->post(route('password.email'), ['email' => $this->admin->email])->assertSessionHas('demo_disekat');
+        $this->post(route('pendaftaran.simpan'), [])->assertSessionHas('demo_disekat');
+    }
+
+    public function test_tindakan_berisiko_disekat_tetapi_halaman_boleh_dilihat(): void
+    {
+        $this->hidupkan();
+        $this->actingAs($this->admin);
+
+        $this->get(route('users.index'))->assertOk();
+        $this->from(route('users.index'))->delete(route('users.destroy', $this->staf->user_id))
+            ->assertRedirect(route('users.index'))->assertSessionHas('demo_disekat');
+        $this->assertNotSoftDeleted($this->staf);
+
+        $this->put(route('profil.kata-laluan'), ['kata_laluan_semasa' => 'Lama1234', 'password' => 'Baharu123', 'password_confirmation' => 'Baharu123'])
+            ->assertSessionHas('demo_disekat');
+        $this->postJson(route('keselamatan.kecemasan'))->assertForbidden()->assertJson(['message' => ModDemo::MESEJ]);
+    }
+
+    public function test_halaman_demo_papar_qr_dan_akaun(): void
+    {
+        $this->hidupkan();
+
+        $this->get(route('demo.halaman'))->assertOk()
+            ->assertSee('<svg', false)
+            ->assertSee('Cuba sistem di telefon anda')
+            ->assertSee('Admin Demo')
+            ->assertSee('Terowong belum berjalan');
+    }
+
+    public function test_url_ikut_alamat_terowong_bagi_permintaan_cloudflare(): void
+    {
+        $this->hidupkan();
+        $storan = sys_get_temp_dir().'/dms-demo-ujian-'.uniqid();
+        $this->app->useStoragePath($storan);
+        File::ensureDirectoryExists($storan.'/app/demo');
+        File::put($storan.'/app/demo/terowong.json', json_encode(['url' => 'https://contoh-ujian.trycloudflare.com']));
+
+        try {
+            // Tanpa header Cloudflare (akses di komputer sendiri): URL biasa
+            $this->get(route('login'))->assertDontSee('contoh-ujian.trycloudflare.com');
+            // Melalui terowong: URL dijana ikut alamat terowong (https)
+            $this->withHeader('CF-Connecting-IP', '203.0.113.9')->get(route('login'))
+                ->assertSee('https://contoh-ujian.trycloudflare.com/favicon.ico', false);
+        } finally {
+            File::deleteDirectory($storan);
+        }
+    }
+
+    public function test_nama_db_demo_tidak_boleh_sama_dengan_db_sebenar(): void
+    {
+        config(['demo.db' => config('database.connections.'.config('database.default').'.database')]);
+
+        $this->expectException(\RuntimeException::class);
+        Demo::namaDb();
+    }
+
+    // ---------- D4: satu analisis OCR/AI pada satu masa ----------
+
+    private function sediakanImbas(): JenisDokumen
+    {
+        Storage::fake('local');
+        $jenis = JenisDokumen::create(['kod_dokumen' => 'BPK', 'nama_dokumen' => 'Borang Pohon Komputer']);
+        DokumenField::create(['jenis_dokumen_id' => $jenis->jenis_dokumen_id, 'nama_field' => 'Nama',
+            'kod_field' => 'nama', 'jenis_data' => 'teks', 'is_required' => false, 'susunan' => 1]);
+
+        return $jenis;
+    }
+
+    private function analisis(JenisDokumen $jenis): array
+    {
+        $res = $this->actingAs($this->admin)->post(route('imbas-arkib.analisis'), [
+            'jenis_dokumen_id' => $jenis->jenis_dokumen_id,
+            'fail_scan' => UploadedFile::fake()->create('borang.pdf', 20, 'application/pdf'),
+        ])->assertRedirect();
+        $token = basename(parse_url($res->headers->get('Location'), PHP_URL_PATH));
+
+        return json_decode(Storage::disk('local')->get("ocr_sementara/{$token}/meta.json"), true);
+    }
+
+    public function test_analisis_menunggu_giliran_bila_analisis_lain_berjalan(): void
+    {
+        $jenis = $this->sediakanImbas();
+        $ocr = $this->spy(OcrService::class);
+        config(['services.ocr.tunggu_giliran' => 0]);
+
+        $kunci = Cache::lock(ImbasArkibController::KUNCI_ANALISIS, 60);
+        $this->assertTrue($kunci->get());
+        try {
+            $meta = $this->analisis($jenis);
+        } finally {
+            $kunci->release();
+        }
+
+        $this->assertStringContainsString('Sistem sedang sibuk menganalisis dokumen lain', $meta['mesej_amaran']);
+        $ocr->shouldNotHaveReceived('proses');
+    }
+
+    public function test_kunci_dilepaskan_selepas_analisis(): void
+    {
+        $jenis = $this->sediakanImbas();
+        $this->mock(OcrService::class, fn (MockInterface $m) => $m->shouldReceive('proses')->andThrow(new \RuntimeException('Tesseract mati')));
+        $this->mock(OllamaExtractionService::class);
+
+        $meta = $this->analisis($jenis);
+
+        $this->assertStringContainsString('OCR/AI gagal', $meta['mesej_amaran']);
+        // Kunci dilepaskan walaupun OCR gagal: analisis seterusnya tidak tersekat
+        $this->assertTrue(Cache::lock(ImbasArkibController::KUNCI_ANALISIS, 5)->get());
+    }
+}

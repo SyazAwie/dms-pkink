@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Http\Middleware\HeaderKeselamatan;
+use App\Http\Middleware\ModDemo;
 use App\Http\Middleware\PengawalKeselamatan;
 use App\Http\Middleware\SemakPeranan;
 use App\Http\Middleware\WajibDuaFaktor;
@@ -31,7 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
 
         // PengawalKeselamatan: sekatan IP, akaun dikunci, log keluar paksa, mod kecemasan (S3)
-        $middleware->web(append: [HeaderKeselamatan::class, PengawalKeselamatan::class]);
+        // ModDemo: URL terowong + sekat tindakan berisiko bila mod demo hidup (Fasa D3)
+        $middleware->web(append: [HeaderKeselamatan::class, PengawalKeselamatan::class, ModDemo::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
