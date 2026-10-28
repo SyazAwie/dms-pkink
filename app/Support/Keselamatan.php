@@ -193,7 +193,7 @@ class Keselamatan
 
         // Keputusan pengguna: sekat automatik 1 jam + maklumkan (localhost tidak pernah disekat)
         $disekat = false;
-        if (! in_array($ip, IpDisekat::LOCALHOST, true) && ! IpDisekat::aktif()->where('alamat_ip', $ip)->exists()) {
+        if (! IpDisekat::dipercayai($ip) && ! IpDisekat::aktif()->where('alamat_ip', $ip)->exists()) {
             IpDisekat::create(['alamat_ip' => $ip, 'automatik' => true, 'tamat_pada' => now()->addHour(),
                 'sebab' => "{$bil} log masuk gagal dalam ".self::MINIT_TETINGKAP.' minit']);
             $disekat = true;

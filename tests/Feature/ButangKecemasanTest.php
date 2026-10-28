@@ -112,6 +112,15 @@ class ButangKecemasanTest extends TestCase
         $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.9'])->get(route('login'))->assertForbidden();
         $this->assertStringContainsString('disekat automatik', $this->admin->fresh()->notifications->first()->data['mesej']);
 
+        // IP dipercayai (cth. NAT pejabat) tidak pernah disekat, automatik atau manual
+        config(['services.keselamatan.ip_dipercayai' => '198.51.100.50, 198.51.100.51']);
+        for ($i = 0; $i < Keselamatan::AMBANG_GAGAL_IP; $i++) {
+            $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.51'])->post(route('login.proses'), ['ic_pekerja' => '000', 'password' => 'x']);
+        }
+        $this->assertFalse(IpDisekat::where('alamat_ip', '198.51.100.51')->exists());
+        $this->actingAs($this->admin)->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])
+            ->post(route('keselamatan.sekat-ip'), ['alamat_ip' => '198.51.100.50', 'tempoh' => '1j'])->assertSessionHas('error');
+
         // Buka sekatan
         $this->actingAs($this->admin)->withServerVariables(['REMOTE_ADDR' => '10.0.0.1'])->post(route('keselamatan.buka-ip', $auto->ip_disekat_id))->assertSessionHas('success');
         $this->post(route('logout'));

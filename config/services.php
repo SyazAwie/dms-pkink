@@ -73,6 +73,8 @@ return [
         'maks_piksel' => (int) env('KESELAMATAN_MAKS_PIKSEL', 40_000_000),
         // OCR tidak dijalankan bila ruang cakera kurang daripada ini (MB)
         'min_ruang_cakera_mb' => (int) env('KESELAMATAN_MIN_RUANG_MB', 1024),
+        // IP yang tidak pernah disekat (dipisah koma), cth. IP awam pejabat PKINK (NAT dikongsi staf)
+        'ip_dipercayai' => env('KESELAMATAN_IP_DIPERCAYAI'),
         // Keadaan kecemasan (mod kecemasan, log keluar paksa); fail, bukan cache
         'fail_keadaan' => storage_path('app/private/keselamatan.json'),
     ],

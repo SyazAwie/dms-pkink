@@ -93,7 +93,7 @@
                     <input type="text" name="sebab" class="dms-input" maxlength="255" placeholder="Sebab (pilihan)" aria-label="Sebab sekatan">
                     <button type="submit" class="btn ks-butang-bahaya text-nowrap"><i class="bi bi-slash-circle" aria-hidden="true"></i> Sekat</button>
                 </div>
-                <div class="dms-hint mt-1">IP yang gagal log masuk {{ \App\Support\Keselamatan::AMBANG_GAGAL_IP }} kali dalam {{ \App\Support\Keselamatan::MINIT_TETINGKAP }} minit disekat automatik selama 1 jam. Pelayan sendiri (localhost) tidak pernah disekat.</div>
+                <div class="dms-hint mt-1">IP yang gagal log masuk {{ \App\Support\Keselamatan::AMBANG_GAGAL_IP }} kali dalam {{ \App\Support\Keselamatan::MINIT_TETINGKAP }} minit disekat automatik selama 1 jam. Pelayan sendiri (localhost) dan IP dalam KESELAMATAN_IP_DIPERCAYAI (cth. IP awam pejabat) tidak pernah disekat.</div>
             </form>
 
             @if($ipDisekat->isNotEmpty())
@@ -188,7 +188,7 @@
                                 <td class="text-end pe-4">
                                     @if($sudahDisekat)
                                         <span class="badge ks-tindakan">Disekat</span>
-                                    @elseif($ip->alamat_ip && ! in_array($ip->alamat_ip, \App\Models\IpDisekat::LOCALHOST, true) && $ip->alamat_ip !== request()->ip())
+                                    @elseif($ip->alamat_ip && ! \App\Models\IpDisekat::dipercayai($ip->alamat_ip) && $ip->alamat_ip !== request()->ip())
                                         <form method="POST" action="{{ route('keselamatan.sekat-ip') }}" class="d-inline">@csrf
                                             <input type="hidden" name="alamat_ip" value="{{ $ip->alamat_ip }}"><input type="hidden" name="tempoh" value="24j">
                                             <input type="hidden" name="sebab" value="{{ $ip->bil }} log masuk gagal (24 j)">

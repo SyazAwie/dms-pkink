@@ -38,10 +38,22 @@ class IpDisekat extends Model
         return $query->where(fn ($q) => $q->whereNull('tamat_pada')->orWhere('tamat_pada', '>', now()));
     }
 
+    /**
+     * IP yang tidak pernah disekat: localhost, dan KESELAMATAN_IP_DIPERCAYAI (cth. IP awam
+     * pejabat PKINK yang dikongsi ramai staf melalui NAT: beberapa salah taip kata laluan
+     * tidak boleh menyekat seluruh pejabat).
+     */
+    public static function dipercayai(?string $ip): bool
+    {
+        $senarai = array_filter(array_map('trim', explode(',', (string) config('services.keselamatan.ip_dipercayai'))));
+
+        return $ip !== null && (in_array($ip, self::LOCALHOST, true) || in_array($ip, $senarai, true));
+    }
+
     /** Disemak setiap permintaan: senarai disimpan 30 saat dalam cache. */
     public static function disekat(?string $ip): bool
     {
-        if (! $ip || in_array($ip, self::LOCALHOST, true)) {
+        if (! $ip || self::dipercayai($ip)) {
             return false;
         }
 

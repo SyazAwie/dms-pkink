@@ -97,8 +97,8 @@ class KeselamatanController extends Controller
             'sebab' => 'nullable|string|max:255',
         ], ['alamat_ip.ip' => 'Alamat IP tidak sah.']);
 
-        if (in_array($data['alamat_ip'], IpDisekat::LOCALHOST, true) || $data['alamat_ip'] === $request->ip()) {
-            return back()->with('error', 'Alamat IP ini tidak boleh disekat (pelayan sendiri, atau IP yang anda sedang gunakan).');
+        if (IpDisekat::dipercayai($data['alamat_ip']) || $data['alamat_ip'] === $request->ip()) {
+            return back()->with('error', 'Alamat IP ini tidak boleh disekat (pelayan sendiri, IP dipercayai dalam KESELAMATAN_IP_DIPERCAYAI, atau IP yang anda sedang gunakan).');
         }
 
         $sekatan = IpDisekat::create([
