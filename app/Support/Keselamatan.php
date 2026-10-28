@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\IpDisekat;
 use App\Models\LogAudit;
 use App\Models\LogMasuk;
 use App\Models\User;
@@ -167,9 +168,18 @@ class Keselamatan
             return;
         }
 
+        // Keputusan pengguna: sekat automatik 1 jam + maklumkan (localhost tidak pernah disekat)
+        $disekat = false;
+        if (! in_array($ip, IpDisekat::LOCALHOST, true) && ! IpDisekat::aktif()->where('alamat_ip', $ip)->exists()) {
+            IpDisekat::create(['alamat_ip' => $ip, 'automatik' => true, 'tamat_pada' => now()->addHour(),
+                'sebab' => "{$bil} log masuk gagal dalam ".self::MINIT_TETINGKAP.' minit']);
+            $disekat = true;
+        }
+
         if (Cache::add("keselamatan:amaran-ip:{$ip}", true, now()->addHour())) {
             self::maklumkan('Cubaan teka kata laluan dikesan',
-                "{$bil} log masuk gagal dari IP {$ip} dalam ".self::MINIT_TETINGKAP.' minit.', 'gagal-ip');
+                "{$bil} log masuk gagal dari IP {$ip} dalam ".self::MINIT_TETINGKAP.' minit.'
+                .($disekat ? ' IP itu disekat automatik selama 1 jam.' : ''), 'gagal-ip');
         }
     }
 

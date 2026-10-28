@@ -6,6 +6,7 @@ use App\Models\Bahagian;
 use App\Models\LogMasuk;
 use App\Models\User;
 use App\Support\DuaFaktor;
+use App\Support\KeadaanKeselamatan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -71,6 +72,13 @@ class AuthController extends Controller
                 ])->onlyInput('ic_pekerja');
             }
 
+            // Fasa Keselamatan S3: akaun dikunci pentadbir / mod kecemasan (bukan SUPERADMIN)
+            if ($sekatan = $this->sekatanAkaun($user)) {
+                LogMasuk::rekod($request, $user->user_id, false, $sekatan[0]);
+
+                return back()->withErrors(['ic_pekerja' => $sekatan[1]])->onlyInput('ic_pekerja');
+            }
+
             // Kaunter IP sengaja TIDAK direset: penyerang boleh log masuk ke akaun
             // sendiri untuk mengosongkannya.
             RateLimiter::clear($kunciHad);
@@ -86,6 +94,7 @@ class AuthController extends Controller
             }
 
             Auth::login($user);
+            $request->session()->put('masa_log_masuk', now()->timestamp);
             LogMasuk::rekod($request, $user->user_id, true);
 
             // Bawa ke dashboard selepas berjaya
@@ -146,6 +155,7 @@ class AuthController extends Controller
         $request->session()->forget(self::SESI_DUA_FAKTOR);
         Auth::login($user);
         $request->session()->regenerate();
+        $request->session()->put('masa_log_masuk', now()->timestamp);
         LogMasuk::rekod($request, $user->user_id, true, $sebab);
 
         $redirect = redirect()->intended('dashboard');
@@ -166,7 +176,24 @@ class AuthController extends Controller
 
         $user = User::find($menunggu['user_id'] ?? null);
 
-        return $user?->duaFaktorAktif() ? $user : null;
+        return $user?->duaFaktorAktif() && ! $this->sekatanAkaun($user) ? $user : null;
+    }
+
+    /**
+     * Sebab log masuk ditolak walaupun kata laluan betul (Fasa Keselamatan S3).
+     *
+     * @return array{0: string, 1: string}|null [sebab log, mesej pengguna]
+     */
+    private function sekatanAkaun(User $user): ?array
+    {
+        if ($user->dikunci()) {
+            return ['Akaun dikunci', 'Akaun anda telah dikunci oleh pentadbir sistem. Sila hubungi Pentadbir Sistem.'];
+        }
+        if (KeadaanKeselamatan::kecemasan() && ! in_array('SUPERADMIN', $user->kodPerananSendiri(), true)) {
+            return ['Mod kecemasan', 'Sistem kini dalam mod kecemasan. Hanya Super Admin boleh log masuk buat sementara waktu.'];
+        }
+
+        return null;
     }
 
     private function idIkutIc(string $ic): ?int

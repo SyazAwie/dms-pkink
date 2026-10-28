@@ -707,6 +707,13 @@
 
             <div class="content-wrap">
                 <main class="content-panel">
+                    @if($modKecemasan = \App\Support\KeadaanKeselamatan::kecemasan())
+                        <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
+                            <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+                            <strong>MOD KECEMASAN AKTIF.</strong> Hanya Super Admin boleh log masuk dan sistem baca sahaja.
+                            <a href="{{ route('keselamatan.index') }}" class="alert-link ms-auto">Pusat Keselamatan →</a>
+                        </div>
+                    @endif
                     @yield('content')
                 </main>
             </div>

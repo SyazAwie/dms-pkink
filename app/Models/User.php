@@ -45,7 +45,15 @@ class User extends Authenticatable
         'dua_faktor_rahsia' => 'encrypted',
         'dua_faktor_kod_pemulihan' => 'encrypted:array',
         'dua_faktor_disahkan_pada' => 'datetime',
+        // Kunci akaun sementara oleh pentadbir (Fasa Keselamatan S3)
+        'dikunci_hingga' => 'datetime',
     ];
+
+    /** Akaun dikunci oleh pentadbir dan belum tamat tempoh. */
+    public function dikunci(): bool
+    {
+        return $this->dikunci_hingga !== null && $this->dikunci_hingga->isFuture();
+    }
 
     /** 2FA (TOTP) sudah didaftar dan disahkan oleh pengguna. */
     public function duaFaktorAktif(): bool
