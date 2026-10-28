@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\Notification;
  *
  * | Peristiwa                        | Penerima                         | peranan            |
  * |----------------------------------|----------------------------------|--------------------|
- * | Permohonan dihantar (Dalam Proses)| PENYOKONG (kecuali pemohon)     | PENYOKONG          |
- * | Disokong                          | Pemohon; PELULUS (kecuali pemohon)| null; PELULUS     |
+ * | Permohonan dihantar (Dalam Proses)| PENYOKONG bahagian dokumen + delegasi (kecuali pemohon) | PENYOKONG |
+ * | Disokong                          | Pemohon; PELULUS + delegasi (kecuali pemohon)| null; PELULUS |
  * | Diluluskan / Ditolak              | Pemohon                          | null (peribadi)    |
  * | Pendaftaran staf baharu           | SUPERADMIN, ADMIN                | SUPERADMIN, ADMIN  |
  * | Amaran sistem (sandaran/integriti)| SUPERADMIN, ADMIN                | SUPERADMIN, ADMIN  |
@@ -33,9 +33,9 @@ class Notifikasi
     {
         [$rujukan, $nama, $url] = self::maklumatDokumen($borang);
 
-        self::kepadaPeranan(['PENYOKONG'], new NotifikasiDms('permohonan_baharu', 'Permohonan menunggu sokongan',
+        self::kepadaGiliran('PENYOKONG', $borang, new NotifikasiDms('permohonan_baharu', 'Permohonan menunggu sokongan',
             "{$rujukan} ({$nama}) daripada " . ($borang->pemohon?->nama_staff ?? 'pemohon') . '.',
-            $url, 'bi-inbox', 'kuning', ['PENYOKONG']), $borang->pemohon_id);
+            $url, 'bi-inbox', 'kuning', ['PENYOKONG']));
     }
 
     public static function permohonanDisokong(Borang $borang): void
@@ -47,9 +47,9 @@ class Notifikasi
             "{$rujukan} ({$nama}) telah disokong" . ($oleh ? " oleh {$oleh}" : '') . ' dan kini menunggu kelulusan.',
             $url, 'bi-hand-thumbs-up', 'biru'));
 
-        self::kepadaPeranan(['PELULUS'], new NotifikasiDms('menunggu_kelulusan', 'Permohonan menunggu kelulusan',
+        self::kepadaGiliran('PELULUS', $borang, new NotifikasiDms('menunggu_kelulusan', 'Permohonan menunggu kelulusan',
             "{$rujukan} ({$nama}) telah disokong dan menunggu kelulusan anda.",
-            $url, 'bi-patch-check', 'kuning', ['PELULUS']), $borang->pemohon_id);
+            $url, 'bi-patch-check', 'kuning', ['PELULUS']));
     }
 
     public static function permohonanDiluluskan(Borang $borang): void
@@ -116,6 +116,13 @@ class Notifikasi
     private static function kepadaPemohon(Borang $borang, NotifikasiDms $notifikasi): void
     {
         self::hantar(fn () => $borang->pemohon ? collect([$borang->pemohon]) : collect(), $notifikasi);
+    }
+
+    /** Pegawai giliran ikut skop bahagian & delegasi (P5), kecuali pemohon sendiri. */
+    private static function kepadaGiliran(string $peranan, Borang $borang, NotifikasiDms $notifikasi): void
+    {
+        self::hantar(fn () => SkopKelulusan::penerimaGiliran($peranan, $borang)
+            ->reject(fn ($u) => (int) $u->user_id === (int) $borang->pemohon_id)->values(), $notifikasi);
     }
 
     private static function kepadaPeranan(array $peranan, NotifikasiDms $notifikasi, $kecuali = null): void

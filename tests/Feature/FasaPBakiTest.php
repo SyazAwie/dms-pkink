@@ -1,0 +1,203 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Bahagian;
+use App\Models\Borang;
+use App\Models\BorangSejarah;
+use App\Models\DelegasiKelulusan;
+use App\Models\Dokumen;
+use App\Models\JenisDokumen;
+use App\Models\User;
+use Tests\SkemaUjian;
+use Tests\TestCase;
+
+/**
+ * Fasa P baki: sejarah borang (P4), skop bahagian & delegasi kelulusan (P5).
+ */
+class FasaPBakiTest extends TestCase
+{
+    use SkemaUjian;
+
+    private Bahagian $digital;
+
+    private Bahagian $kewangan;
+
+    private User $staf;
+
+    private User $penyokongDigital;
+
+    private User $pelulus;
+
+    private JenisDokumen $jenis;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->sediakanSkema();
+        $this->digital = $this->buatBahagian('DIG', 'Bahagian Digital');
+        $this->kewangan = $this->buatBahagian('KEW', 'Bahagian Kewangan');
+        $this->staf = $this->buatPengguna(['STAFF'], ['bahagian_id' => $this->digital->bahagian_id]);
+        $this->penyokongDigital = $this->buatPengguna(['PENYOKONG'], ['nama_staff' => 'Nor Hidayah', 'bahagian_id' => $this->digital->bahagian_id]);
+        $this->pelulus = $this->buatPengguna(['PELULUS'], ['bahagian_id' => $this->kewangan->bahagian_id]);
+        $this->jenis = JenisDokumen::create(['kod_dokumen' => 'BPK', 'nama_dokumen' => 'Borang Pohon Komputer']);
+    }
+
+    private function dokumen(?Bahagian $bahagian, string $rujukan = 'BPK/2026/0001', ?User $pemohon = null): Dokumen
+    {
+        return Dokumen::create(['jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'no_rujukan' => $rujukan,
+            'tarikh_dokumen' => '2026-10-27', 'bahagian_id' => $bahagian?->bahagian_id, 'created_by' => ($pemohon ?? $this->staf)->user_id]);
+    }
+
+    private function hantar(Dokumen $d, ?User $pemohon = null): void
+    {
+        $this->actingAs($pemohon ?? $this->staf)->post(route('kelulusan.hantar', $d->dokumen_id))->assertRedirect();
+    }
+
+    // ---------------- P4: sejarah ----------------
+
+    public function test_sejarah_merekod_setiap_tindakan_termasuk_hantar_semula(): void
+    {
+        $d = $this->dokumen($this->digital);
+        $this->hantar($d);
+        $this->actingAs($this->penyokongDigital)->post(route('kelulusan.sokong', $d->dokumen_id), ['ulasan_penyokong' => 'Disokong.']);
+        $this->actingAs($this->pelulus)->post(route('kelulusan.tolak', $d->dokumen_id), ['ulasan_pelulus' => 'Tiada bajet.']);
+        $this->hantar($d);
+        $this->actingAs($this->penyokongDigital)->post(route('kelulusan.sokong', $d->dokumen_id));
+        $this->actingAs($this->pelulus)->post(route('kelulusan.lulus', $d->dokumen_id), ['ulasan_pelulus' => 'Lulus.']);
+
+        $sejarah = Borang::firstWhere('dokumen_id', $d->dokumen_id)->sejarah;
+        $this->assertSame(['Hantar', 'Sokong', 'Tolak', 'Hantar Semula', 'Sokong', 'Lulus'], $sejarah->pluck('tindakan')->all());
+        $this->assertSame([null, 'Disokong.', 'Tiada bajet.', null, null, 'Lulus.'], $sejarah->pluck('ulasan')->all());
+        $this->assertSame($this->pelulus->user_id, $sejarah[2]->user_id);
+        $this->assertSame('Ditolak', $sejarah[2]->status_selepas);
+
+        // Ulasan penolakan lama hilang dari `borang` tetapi kekal dalam sejarah & Butiran
+        $this->actingAs($this->staf)->get(route('dokumen.show', $d->dokumen_id))->assertOk()
+            ->assertSee('Sejarah Permohonan (6)')->assertSee('"Tiada bajet."', false);
+    }
+
+    public function test_arkib_terus_direkod_dan_status_lain_tidak_menambah_sejarah(): void
+    {
+        $d = $this->dokumen($this->digital);
+        $this->actingAs($this->staf);
+        $borang = Borang::create(['dokumen_id' => $d->dokumen_id, 'pemohon_id' => $this->staf->user_id, 'status_permohonan' => 'Diluluskan',
+            'tarikh_permohonan' => now(), 'tarikh_kelulusan' => now(), 'ulasan_pelulus' => 'Diarkibkan terus.']);
+        $borang->update(['ulasan_pelulus' => 'Diubah tanpa tukar status']);
+
+        $this->assertSame([['Arkib Terus', 'Diarkibkan terus.']],
+            BorangSejarah::all()->map(fn ($s) => [$s->tindakan, $s->ulasan])->all());
+    }
+
+    // ---------------- P5: skop bahagian ----------------
+
+    public function test_penyokong_hanya_bahagian_sendiri_jika_bahagian_lain_ada_penyokong(): void
+    {
+        $penyokongKewangan = $this->buatPengguna(['PENYOKONG'], ['bahagian_id' => $this->kewangan->bahagian_id]);
+        $stafKewangan = $this->buatPengguna(['STAFF'], ['bahagian_id' => $this->kewangan->bahagian_id]);
+        $dDigital = $this->dokumen($this->digital, 'BPK/2026/0001');
+        $dKewangan = $this->dokumen($this->kewangan, 'BPK/2026/0002', $stafKewangan);
+        $this->hantar($dDigital);
+        $this->hantar($dKewangan, $stafKewangan);
+
+        $this->actingAs($this->penyokongDigital)->get(route('kelulusan.index'))->assertOk()
+            ->assertSee('BPK/2026/0001')->assertDontSee('BPK/2026/0002');
+        $this->actingAs($this->penyokongDigital)->get(route('dokumen.show', $dKewangan->dokumen_id))->assertOk()
+            ->assertDontSee(route('kelulusan.sokong', $dKewangan->dokumen_id));
+        $this->actingAs($this->penyokongDigital)->get(route('dokumen.show', $dDigital->dokumen_id))
+            ->assertSee(route('kelulusan.sokong', $dDigital->dokumen_id));
+        $this->actingAs($this->penyokongDigital)->post(route('kelulusan.sokong', $dKewangan->dokumen_id))->assertForbidden();
+        $this->actingAs($this->penyokongDigital)->post(route('kelulusan.tolak', $dKewangan->dokumen_id), ['ulasan_penyokong' => 'x'])->assertForbidden();
+        $this->actingAs($penyokongKewangan)->post(route('kelulusan.sokong', $dKewangan->dokumen_id))->assertRedirect();
+
+        // Notifikasi "menunggu sokongan" hanya kepada PENYOKONG bahagian dokumen
+        $this->assertSame(1, $this->penyokongDigital->fresh()->notifications->where('data.jenis', 'permohonan_baharu')->count());
+        $this->assertSame(1, $penyokongKewangan->fresh()->notifications->where('data.jenis', 'permohonan_baharu')->count());
+    }
+
+    public function test_bahagian_tanpa_penyokong_disokong_oleh_semua_penyokong(): void
+    {
+        $stafKewangan = $this->buatPengguna(['STAFF'], ['bahagian_id' => $this->kewangan->bahagian_id]);
+        $d = $this->dokumen($this->kewangan, 'BPK/2026/0002', $stafKewangan);
+        $this->hantar($d, $stafKewangan);
+
+        $this->assertSame(1, $this->penyokongDigital->fresh()->notifications->count());
+        $this->actingAs($this->penyokongDigital)->get(route('kelulusan.index'))->assertSee('BPK/2026/0002');
+        $this->actingAs($this->penyokongDigital)->post(route('kelulusan.sokong', $d->dokumen_id))->assertRedirect();
+        $this->assertSame('Disokong', Borang::firstWhere('dokumen_id', $d->dokumen_id)->status_permohonan);
+    }
+
+    // ---------------- P5: delegasi ----------------
+
+    public function test_delegasi_beri_peranan_sementara_dan_rekod_bagi_pihak(): void
+    {
+        $pengganti = $this->buatPengguna(['STAFF'], ['nama_staff' => 'Pengganti Cuti', 'bahagian_id' => $this->kewangan->bahagian_id]);
+        $this->assertFalse($pengganti->hasRole('PENYOKONG'));
+
+        $this->actingAs($this->penyokongDigital)->post(route('delegasi.store'), [
+            'pemberi_id' => $this->penyokongDigital->user_id, 'kod_peranan' => 'PENYOKONG', 'penerima_id' => $pengganti->user_id,
+            'tarikh_mula' => today()->toDateString(), 'tarikh_tamat' => today()->addDays(5)->toDateString(), 'sebab' => 'Cuti tahunan',
+        ])->assertRedirect(route('delegasi.index'))->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('log_audit', ['tindakan' => 'Cipta Delegasi']);
+        $this->assertSame(['delegasi'], $pengganti->fresh()->notifications->pluck('data.jenis')->all());
+
+        $pengganti = $pengganti->fresh();
+        $this->assertTrue($pengganti->hasRole('PENYOKONG'));
+        $this->assertSame(['STAFF'], $pengganti->kodPerananSendiri());
+
+        // Pengganti bertindak dengan skop bahagian pemberi (Digital), bukan bahagiannya sendiri
+        $d = $this->dokumen($this->digital);
+        $this->hantar($d);
+        $this->actingAs($pengganti)->get(route('kelulusan.index'))->assertOk()->assertSee('BPK/2026/0001');
+        $this->actingAs($pengganti)->post(route('kelulusan.sokong', $d->dokumen_id))->assertRedirect();
+
+        $sokong = BorangSejarah::where('tindakan', 'Sokong')->first();
+        $this->assertSame($pengganti->user_id, $sokong->user_id);
+        $this->assertSame($this->penyokongDigital->user_id, $sokong->bagi_pihak_id);
+        $this->actingAs($this->staf)->get(route('dokumen.show', $d->dokumen_id))->assertSee('bagi pihak Nor Hidayah');
+    }
+
+    public function test_delegasi_tamat_atau_dibatalkan_tidak_beri_peranan(): void
+    {
+        $pengganti = $this->buatPengguna(['STAFF']);
+        $buat = fn ($mula, $tamat) => DelegasiKelulusan::create(['pemberi_id' => $this->penyokongDigital->user_id, 'penerima_id' => $pengganti->user_id,
+            'kod_peranan' => 'PENYOKONG', 'tarikh_mula' => $mula, 'tarikh_tamat' => $tamat]);
+
+        $buat(today()->subDays(10), today()->subDay());
+        $buat(today()->addDay(), today()->addDays(3));
+        $this->assertFalse($pengganti->fresh()->hasRole('PENYOKONG'));
+
+        $aktif = $buat(today(), today()->addDay());
+        $this->assertTrue($pengganti->fresh()->hasRole('PENYOKONG'));
+
+        $this->actingAs($this->penyokongDigital)->post(route('delegasi.batal', $aktif->delegasi_id))->assertRedirect();
+        $this->assertNotNull($aktif->fresh()->dibatalkan_pada);
+        $this->assertFalse($pengganti->fresh()->hasRole('PENYOKONG'));
+    }
+
+    public function test_validasi_dan_kebenaran_delegasi(): void
+    {
+        $lain = $this->buatPengguna(['STAFF']);
+        $sah = ['kod_peranan' => 'PENYOKONG', 'penerima_id' => $lain->user_id,
+            'tarikh_mula' => today()->toDateString(), 'tarikh_tamat' => today()->addDays(2)->toDateString()];
+
+        // Bukan pentadbir: hanya untuk diri sendiri
+        $this->actingAs($this->penyokongDigital)->post(route('delegasi.store'), $sah + ['pemberi_id' => $this->pelulus->user_id])->assertForbidden();
+        // Peranan yang tidak dipegang
+        $this->actingAs($this->penyokongDigital)->post(route('delegasi.store'), ['kod_peranan' => 'PELULUS', 'pemberi_id' => $this->penyokongDigital->user_id] + $sah)
+            ->assertSessionHasErrors('kod_peranan');
+        // Diri sendiri sebagai pengganti
+        $this->actingAs($this->penyokongDigital)->post(route('delegasi.store'), ['penerima_id' => $this->penyokongDigital->user_id, 'pemberi_id' => $this->penyokongDigital->user_id] + $sah)
+            ->assertSessionHasErrors('penerima_id');
+        // Bertindih
+        $this->actingAs($this->penyokongDigital)->post(route('delegasi.store'), $sah + ['pemberi_id' => $this->penyokongDigital->user_id])->assertSessionHasNoErrors();
+        $this->actingAs($this->penyokongDigital)->post(route('delegasi.store'), $sah + ['pemberi_id' => $this->penyokongDigital->user_id])
+            ->assertSessionHasErrors('tarikh_mula');
+        // STAFF tiada akses halaman; pentadbir boleh untuk sesiapa
+        $this->actingAs($this->staf)->get(route('delegasi.index'))->assertForbidden();
+        $admin = $this->buatPengguna(['ADMIN']);
+        $this->actingAs($admin)->post(route('delegasi.store'), ['kod_peranan' => 'PELULUS', 'pemberi_id' => $this->pelulus->user_id] + $sah)
+            ->assertSessionHasNoErrors();
+        $this->actingAs($admin)->get(route('delegasi.index'))->assertOk()->assertSee('Nor Hidayah')->assertSee('Pelulus');
+    }
+}

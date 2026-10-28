@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BahagianController;
 use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DelegasiController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
@@ -153,6 +154,13 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::post('/dokumen/{id}/kelulusan/lulus', [BorangController::class, 'lulus'])->name('kelulusan.lulus');
     Route::post('/dokumen/{id}/kelulusan/tolak', [BorangController::class, 'tolak'])->name('kelulusan.tolak');
     Route::get('/dokumen/{id}/kelulusan/slip', [SlipKelulusanController::class, 'muatTurun'])->name('kelulusan.slip');
+
+    // Delegasi kelulusan semasa cuti (P5): pegawai lantik pengganti; pentadbir urus semua
+    Route::middleware('peranan:SUPERADMIN,ADMIN,PENYOKONG,PELULUS')->group(function () {
+        Route::get('/delegasi', [DelegasiController::class, 'index'])->name('delegasi.index');
+        Route::post('/delegasi', [DelegasiController::class, 'store'])->name('delegasi.store');
+        Route::post('/delegasi/{delegasi}/batal', [DelegasiController::class, 'batal'])->name('delegasi.batal');
+    });
     Route::get('/kelulusan', [BorangController::class, 'index'])
         ->middleware('peranan:SUPERADMIN,ADMIN,PENYOKONG,PELULUS')
         ->name('kelulusan.index');

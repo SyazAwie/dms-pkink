@@ -10,6 +10,7 @@ use App\Models\JenisDokumen;
 use App\Models\User;
 use App\Observers\BahagianObserver;
 use App\Observers\BorangNotifikasiObserver;
+use App\Observers\BorangSejarahObserver;
 use App\Observers\DokumenFieldObserver;
 use App\Observers\DokumenObserver;
 use App\Observers\JenisDokumenObserver;
@@ -47,7 +48,7 @@ class AppServiceProvider extends ServiceProvider
         DokumenField::observe(DokumenFieldObserver::class);
 
         // Notifikasi aliran kelulusan (selepas commit), bukan log audit
-        Borang::observe(BorangNotifikasiObserver::class);
+        Borang::observe([BorangSejarahObserver::class, BorangNotifikasiObserver::class]);
 
         // Kebenaran dokumen ikut peranan (lihat, muat naik, edit, padam)
         Gate::policy(Dokumen::class, DokumenPolicy::class);

@@ -391,7 +391,9 @@
             $bolehPendaftaran = $penggunaSemasa->hasAnyRole('SUPERADMIN', 'ADMIN');
             $bilKelulusan = 0;
             if ($penggunaSemasa->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN')) {
-                $bilKelulusan += \App\Models\Borang::dokumenAktif()->bukanMilik($penggunaSemasa->user_id)->where('status_permohonan', 'Dalam Proses')->count();
+                $bilKelulusan += \App\Support\SkopKelulusan::hadkanGiliranSokongan(
+                    \App\Models\Borang::dokumenAktif()->bukanMilik($penggunaSemasa->user_id)->where('status_permohonan', 'Dalam Proses'), $penggunaSemasa
+                )->count();
             }
             if ($penggunaSemasa->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN')) {
                 $bilKelulusan += \App\Models\Borang::dokumenAktif()->bukanMilik($penggunaSemasa->user_id)->where('status_permohonan', 'Disokong')->count();
@@ -528,6 +530,13 @@
                             <i class="bi bi-patch-check" aria-hidden="true"></i>
                             <span>Kelulusan</span>
                             @if(request()->routeIs('kelulusan.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('delegasi.index') }}" class="nav-link {{ request()->routeIs('delegasi.*') ? 'active' : '' }}">
+                            <i class="bi bi-person-check" aria-hidden="true"></i>
+                            <span>Delegasi</span>
+                            @if(request()->routeIs('delegasi.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
                     @endif

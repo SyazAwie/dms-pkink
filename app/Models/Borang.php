@@ -32,6 +32,12 @@ class Borang extends Model
         'ulasan_pelulus',
     ];
 
+    /**
+     * Pegawai asal bila tindakan seterusnya dibuat melalui delegasi (P5). Bukan lajur
+     * jadual: dibaca oleh BorangSejarahObserver dan dikosongkan selepas itu.
+     */
+    public ?int $bagiPihakId = null;
+
     protected $casts = [
         'tarikh_permohonan' => 'datetime',
         'tarikh_sokongan' => 'datetime',
@@ -78,6 +84,12 @@ class Borang extends Model
         $data = "slip|{$this->borang_id}|{$this->dokumen_id}|{$this->tarikh_kelulusan->timestamp}";
 
         return strtoupper(substr(hash_hmac('sha256', $data, (string) config('app.key')), 0, 12));
+    }
+
+    /** Sejarah tindakan (P4), terdahulu dahulu. */
+    public function sejarah()
+    {
+        return $this->hasMany(BorangSejarah::class, 'borang_id', 'borang_id')->orderBy('created_at')->orderBy('borang_sejarah_id');
     }
 
     public function dokumen()
