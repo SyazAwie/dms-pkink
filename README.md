@@ -747,6 +747,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `php artisan sandaran:luar-talian {destinasi}` | `app/Console/Commands/SandaranLuarTalian.php` (manual, mingguan) |
 | `php artisan sandaran:pulih [zip] [--pangkalan-data] [--fail-imbasan] [--ke-db=] [--ya]` | `app/Console/Commands/SandaranPulih.php` |
 | `php artisan ocr:nilai [folder] [--jana-label=KOD] [--tanpa-few-shot] [--simpan=laporan.json]` | `app/Console/Commands/OcrNilai.php` (P15; lalai `../Ujian_Borang_Diisi`) |
+| `php artisan demo:sedia\|hidup\|mati\|set-semula\|terowong\|semak` | `app/Console/Commands/Demo*.php` (Fasa D, lihat 10.3) |
 
 ### Views (`resources/views/`)
 | Folder | Kandungan |
@@ -839,6 +840,38 @@ Keputusan terakhir ditulis ke `{folder}/terakhir.json` (berjaya/gagal, saiz, bil
 3. Fail imbasan: salin kandungan folder `fail/` ke `storage/app/private/`
 4. `php artisan config:clear`, kemudian log masuk dan buka beberapa dokumen untuk memastikan fail imbasan boleh dipaparkan
 
+### 10.3 Hari Demo (peserta cuba di telefon melalui pautan)
+
+OCR (Tesseract) dan AI (Ollama + GPU) hanya ada pada komputer riba ini, jadi komputer riba menjadi pelayan dan dibuka ke Internet melalui **Cloudflare Quick Tunnel**: percuma, HTTPS automatik, tiada port router dibuka, dan berfungsi melalui data telefon peserta.
+
+**Persediaan sekali sahaja**
+1. Laman Herd: `herd link dms-pkink` dalam folder projek → `http://dms-pkink.test` (nginx + PHP-FPM, ramai pengguna serentak; `php artisan serve` hanya satu permintaan pada satu masa).
+2. Had masa nginx: fail `%USERPROFILE%\.config\herd\config\valet\Nginx\dms-pkink-masa-tamat.conf` mengandungi `fastcgi_read_timeout 300s;` (lalai 60 s memberi 504 kepada analisis OCR/AI yang menunggu giliran). Kemudian `herd restart`.
+3. `winget install --id Cloudflare.cloudflared`
+
+**Sebelum demo**
+```
+php artisan demo:sedia        # salin DB & fail sebenar ke dms_pkink_demo + storage/app/demo (DB sebenar hanya dibaca)
+php artisan demo:hidup        # laman web guna DB/fail demo
+php artisan demo:terowong     # tetingkap BERASINGAN, biarkan terbuka: cetak pautan https://….trycloudflare.com
+php artisan demo:semak --panaskan   # senarai semak + muat model AI ke GPU
+```
+Tayang `https://….trycloudflare.com/demo` (atau `http://dms-pkink.test/demo`) pada projektor: kod QR + senarai akaun demo.
+
+**Semasa mod demo**
+- Log masuk hanya melalui butang "Masuk sebagai ADMIN/KERANI/…" (akaun `DEMO_AKAUN`); borang kata laluan, lupa kata laluan dan pendaftaran ditutup. Kata laluan semua akaun lain dalam salinan demo dirawakkan oleh `demo:sedia`.
+- Tindakan yang menjejaskan peserta lain disekat dengan mesej "Tindakan ini dimatikan dalam mod demo" (urus kakitangan, sahkan pendaftaran, tindakan Pusat Keselamatan, 2FA, tukar kata laluan/profil; senarai dalam `config/demo.php`).
+- `APP_DEBUG` dimatikan, emel ditulis ke log, banner "Mod Demo" dipaparkan.
+- Analisis OCR/AI berjalan satu pada satu masa; peserta lain menunggu giliran hingga `OCR_TUNGGU_GILIRAN` (120 s).
+- Mod demo hanya mempengaruhi permintaan web: penjadual (sandaran harian, semakan keselamatan) kekal pada DB sebenar.
+
+**Selepas demo / antara sesi**
+```
+php artisan demo:set-semula   # buang semua perubahan peserta (DB + fail demo), ~1 s
+php artisan demo:mati         # laman kembali kepada DB sebenar
+```
+Tutup tetingkap `demo:terowong` (Ctrl+C) untuk menutup pautan awam. Pautan `trycloudflare.com` berubah setiap kali terowong dimulakan, jadi cetak kod QR dari halaman `/demo` pada hari demo, bukan lebih awal.
+
 ---
 
 ## 11. Isu Yang Telah Dibaiki Sepanjang Pembangunan
@@ -880,7 +913,7 @@ Dibina ringkas kerana sistem baru digunakan oleh Bahagian Digital untuk mengarki
 - Kebenaran disemak dalam controller, bukan melalui `BorangPolicy`
 
 ### OCR: Segerak (Synchronous)
-OCR diproses dalam permintaan HTTP yang sama (tiada queue). Sesuai untuk volum rendah semasa; perlu dipindah ke `php artisan queue:work` jika penggunaan meningkat.
+OCR diproses dalam permintaan HTTP yang sama (tiada queue). Analisis Imbas & Arkib/Hantar dijalankan satu pada satu masa (kunci cache, `OCR_TUNGGU_GILIRAN`), jadi permintaan serentak menunggu giliran dan tidak berebut GPU. Sesuai untuk volum rendah semasa; perlu dipindah ke `php artisan queue:work` (T2) jika penggunaan meningkat.
 
 ### Ketepatan OCR/AI
 Tanda ✓ tulisan tangan, medan kosong yang diisi teks lain oleh AI, tulisan sambung dan Jawi (lihat 5.11). Cadangan seterusnya: templat zon setiap medan.
