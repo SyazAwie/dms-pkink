@@ -109,10 +109,15 @@ class User extends Authenticatable
             ->where('kod_peranan', $kodPeranan)->get();
     }
 
+    /** Susunan keutamaan peranan: yang pertama dimiliki menjadi peranan aktif lalai. */
+    public const SUSUNAN_PERANAN = ['SUPERADMIN', 'ADMIN', 'KERANI', 'PENGURUS', 'PELULUS', 'PENYOKONG', 'AUDIT', 'STAFF'];
+
     /**
-     * Peranan aktif pengguna yang sedang log masuk (null = "Semua peranan").
-     * Hanya bagi pengguna sesi semasa; pengguna lain yang dimuat (cth. dalam senarai
-     * kakitangan atau penerima notifikasi) sentiasa dinilai dengan semua perananya.
+     * Peranan aktif pengguna berbilang peranan yang sedang log masuk: satu peranan pada
+     * satu masa (tiada mod "semua peranan"). Pilihan dalam sesi; jika tiada atau tidak lagi
+     * sah (cth. delegasi tamat), peranan tertinggi ikut SUSUNAN_PERANAN.
+     * Null bagi pengguna satu peranan, dan bagi pengguna lain yang dimuat (cth. senarai
+     * kakitangan atau penerima notifikasi), yang sentiasa dinilai dengan semua perananya.
      */
     public function perananAktif(): ?string
     {
@@ -120,9 +125,20 @@ class User extends Authenticatable
             return null;
         }
 
+        $semua = $this->semuaKodPeranan();
+        if (count($semua) < 2) {
+            return null;
+        }
+
         $kod = session(self::SESI_PERANAN_AKTIF);
 
-        return is_string($kod) && in_array($kod, $this->semuaKodPeranan(), true) ? $kod : null;
+        return is_string($kod) && in_array($kod, $semua, true) ? $kod : self::perananLalai($semua);
+    }
+
+    /** Peranan tertinggi daripada senarai kod (ikut SUSUNAN_PERANAN). */
+    public static function perananLalai(array $kod): ?string
+    {
+        return collect(self::SUSUNAN_PERANAN)->first(fn ($k) => in_array($k, $kod, true)) ?? ($kod[0] ?? null);
     }
 
     /**

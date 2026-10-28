@@ -108,7 +108,7 @@ class DelegasiController extends Controller
     {
         try {
             $d->penerima->notify(new NotifikasiDms('delegasi', 'Anda dilantik sebagai pengganti',
-                "{$d->pemberi->nama_staff} melantik anda sebagai {$d->kod_peranan} pengganti dari {$d->tarikh_mula->format('d/m/Y')} hingga {$d->tarikh_tamat->format('d/m/Y')}.",
+                "{$d->pemberi->nama_staff} melantik anda sebagai {$d->kod_peranan} pengganti dari {$d->tarikh_mula->format('d/m/Y')} hingga {$d->tarikh_tamat->format('d/m/Y')}. Tukar ke peranan ini melalui menu nama anda di bahagian atas.",
                 route('delegasi.index'), 'bi-person-check', 'biru'));
         } catch (\Throwable $e) {
             Log::warning('Notifikasi delegasi gagal: '.$e->getMessage());

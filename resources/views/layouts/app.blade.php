@@ -570,12 +570,14 @@
                     <div class="user-copy">
                         <div class="user-name">{{ Auth::user()->nama_staff }}</div>
                         @php
-                            // Peranan dimiliki & peranan aktif (tukar dari menu nama di topbar)
-                            $senaraiPeranan = Auth::user()->roles->sortBy('nama_roles');
+                            // Peranan dimiliki (termasuk delegasi aktif) & peranan aktif: satu peranan
+                            // pada satu masa, tukar dari menu nama di topbar
+                            $kodDimiliki = Auth::user()->semuaKodPeranan();
+                            $kodDelegasi = array_diff(Auth::user()->kodPerananDelegasi(), Auth::user()->kodPerananSendiri());
+                            $senaraiPeranan = \App\Models\Role::whereIn('kod_roles', $kodDimiliki)->get()
+                                ->sortBy(fn ($r) => array_search($r->kod_roles, \App\Models\User::SUSUNAN_PERANAN, true) === false ? 99 : array_search($r->kod_roles, \App\Models\User::SUSUNAN_PERANAN, true))->values();
                             $kodAktif = Auth::user()->perananAktif();
-                            $labelPeranan = $kodAktif
-                                ? $senaraiPeranan->firstWhere('kod_roles', $kodAktif)?->nama_roles
-                                : ($senaraiPeranan->count() > 1 ? 'Semua peranan (' . $senaraiPeranan->count() . ')' : ($senaraiPeranan->first()?->nama_roles ?? 'Tiada peranan'));
+                            $labelPeranan = $senaraiPeranan->firstWhere('kod_roles', $kodAktif ?? $senaraiPeranan->first()?->kod_roles)?->nama_roles ?? 'Tiada peranan';
                         @endphp
                         <div class="user-role">{{ $labelPeranan }}</div>
                     </div>
@@ -667,18 +669,11 @@
                             @if($senaraiPeranan->count() > 1)
                                 <li><hr class="dropdown-divider"></li>
                                 <li class="dropdown-header">Tukar peranan</li>
-                                <li>
-                                    <button type="submit" form="formTukarPeranan" name="peranan" value="" class="dropdown-item {{ $kodAktif ? '' : 'active' }}" @if(!$kodAktif) aria-current="true" @endif>
-                                        <i class="bi bi-layers" aria-hidden="true"></i>
-                                        <span>Semua peranan</span>
-                                        @if(!$kodAktif)<i class="bi bi-check2" aria-hidden="true"></i>@endif
-                                    </button>
-                                </li>
                                 @foreach($senaraiPeranan as $peranan)
                                     <li>
                                         <button type="submit" form="formTukarPeranan" name="peranan" value="{{ $peranan->kod_roles }}" class="dropdown-item {{ $kodAktif === $peranan->kod_roles ? 'active' : '' }}" @if($kodAktif === $peranan->kod_roles) aria-current="true" @endif>
                                             <i class="bi bi-person-badge" aria-hidden="true"></i>
-                                            <span>{{ $peranan->nama_roles }}</span>
+                                            <span>{{ $peranan->nama_roles }}@if(in_array($peranan->kod_roles, $kodDelegasi, true)) <small class="text-muted">(delegasi)</small>@endif</span>
                                             @if($kodAktif === $peranan->kod_roles)<i class="bi bi-check2" aria-hidden="true"></i>@endif
                                         </button>
                                     </li>
