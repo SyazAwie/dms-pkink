@@ -747,6 +747,21 @@
                             <a href="{{ route('keselamatan.index') }}" class="alert-link ms-auto">Pusat Keselamatan →</a>
                         </div>
                     @endif
+                    @if(\App\Support\Demo::percubaan())
+                        <div class="alert alert-info d-flex align-items-start gap-2 py-2" role="note">
+                            <i class="bi bi-mortarboard mt-1" aria-hidden="true"></i>
+                            <span><strong>Mod Percubaan.</strong> Sistem sebenar untuk latihan; akaun dan data peserta akan dipadam selepas sesi.</span>
+                        </div>
+                    @endif
+                    @if(\App\Support\Demo::aktif())
+                        <div class="alert alert-warning d-flex align-items-start gap-2 py-2" role="note">
+                            <i class="bi bi-easel mt-1" aria-hidden="true"></i>
+                            <span><strong>Mod Demo.</strong> Data rekaan sahaja; semua perubahan dipadam selepas demo.</span>
+                        </div>
+                        @if(session('demo_disekat'))
+                            <div class="alert alert-danger py-2" role="alert">{{ session('demo_disekat') }}</div>
+                        @endif
+                    @endif
                     @yield('content')
                 </main>
             </div>

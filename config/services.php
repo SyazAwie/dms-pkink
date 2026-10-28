@@ -42,6 +42,9 @@ return [
         // Had masa (saat) bagi permintaan yang menjalankan OCR/AI secara segerak;
         // php.ini lalai (30 saat) tidak cukup untuk PDF besar atau borang banyak medan.
         'had_masa' => (int) env('OCR_HAD_MASA', 300),
+        // Satu analisis OCR/AI pada satu masa (GPU 6GB, Tesseract guna semua teras): pengguna
+        // lain menunggu giliran hingga N saat (Fasa D4 ringkas; queue penuh = T2)
+        'tunggu_giliran' => (int) env('OCR_TUNGGU_GILIRAN', 120),
         // Buang garisan kotak/jadual sebelum OCR (App\Support\BuangGarisan); hasil terbaik
         // antara imej asal dan imej bersih dipilih bagi setiap muka surat
         'buang_garisan' => (bool) env('OCR_BUANG_GARISAN', true),

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Bahagian;
 use App\Models\LogMasuk;
 use App\Models\User;
+use App\Support\Demo;
 use App\Support\DuaFaktor;
 use App\Support\KeadaanKeselamatan;
 use Illuminate\Http\Request;
@@ -24,8 +25,10 @@ class AuthController extends Controller
     public function paparkanLogin()
     {
         $senaraiBahagian = Bahagian::orderBy('nama_bahagian')->get(['bahagian_id', 'kod_bahagian', 'nama_bahagian']);
+        // Mod demo: butang "Masuk sebagai..." menggantikan borang kata laluan (Fasa D3)
+        $akaunDemo = Demo::aktif() ? DemoController::senaraiAkaun() : collect();
 
-        return view('auth.login', compact('senaraiBahagian'));
+        return view('auth.login', compact('senaraiBahagian', 'akaunDemo'));
     }
 
     // Proses semakan data login menggunakan IC

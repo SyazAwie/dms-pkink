@@ -16,6 +16,7 @@ use App\Observers\DokumenObserver;
 use App\Observers\JenisDokumenObserver;
 use App\Observers\UserObserver;
 use App\Policies\DokumenPolicy;
+use App\Support\Demo;
 use App\Support\TeksEmel;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Console\ServeCommand;
@@ -28,7 +29,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Mod Demo (Fasa D): permintaan web sahaja. Konsol & penjadual (sandaran harian,
+        // semakan keselamatan) kekal pada DB sebenar walaupun demo sedang berjalan.
+        if (! $this->app->runningInConsole() && ($mod = Demo::modPenanda())) {
+            Demo::terapkan($mod);
+        }
     }
 
     public function boot(): void

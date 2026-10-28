@@ -233,12 +233,23 @@
             .login-header { padding: 1.75rem 1.5rem 1.5rem; }
             .login-body { padding: 1.6rem 1.5rem; }
         }
+        /* Mod Demo (Fasa D3) */
+        .demo-kotak { margin-bottom: 14px; padding: 12px 14px; border: 1px solid #f3d38a; border-left: 4px solid #d99a00; border-radius: 10px; background: #fff8e6; color: #5c4400; font-size: 13.5px; line-height: 1.5; }
+        .demo-akaun { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .demo-akaun form { margin: 0; }
+        .btn-demo { display: flex; width: 100%; min-height: 64px; flex-direction: column; justify-content: center; gap: 2px; padding: 10px 12px; border: 1px solid #d5e1ee; border-radius: 12px; background: #fff; text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .15s; }
+        .btn-demo:hover, .btn-demo:focus-visible { border-color: #1769d2; box-shadow: 0 6px 16px rgba(23, 105, 210, .15); transform: translateY(-1px); outline: none; }
+        .btn-demo-peranan { color: #183f68; font-size: 14px; font-weight: 800; }
+        .btn-demo-nama { overflow: hidden; color: #68798d; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 360px) { .demo-akaun { grid-template-columns: 1fr; } }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
         }
     </style>
 </head>
 <body>
+    @php $modDemo = ($akaunDemo ?? collect())->isNotEmpty(); @endphp
     <main class="login-page">
         <div class="ambient ambient-one" aria-hidden="true"></div>
         <div class="ambient ambient-two" aria-hidden="true"></div>
@@ -254,7 +265,7 @@
                         </div>
                     </div>
                     <h1 class="login-title" id="login-title">Log Masuk</h1>
-                    <p class="login-copy">Sila masukkan maklumat anda untuk meneruskan.</p>
+                    <p class="login-copy">{{ $modDemo ? 'Pilih satu peranan di bawah. Tiada kata laluan diperlukan.' : 'Sila masukkan maklumat anda untuk meneruskan.' }}</p>
                 </header>
 
                 <div class="login-body">
@@ -276,6 +287,33 @@
                         </div>
                     @endif
 
+                    @if(session('demo_disekat'))
+                        <div class="alert alert-custom" role="alert" aria-live="polite">{{ session('demo_disekat') }}</div>
+                    @endif
+                    @if(\App\Support\Demo::percubaan())
+                        <div class="demo-kotak" role="note">
+                            <strong>Mod Percubaan.</strong> Sistem sebenar untuk latihan. Belum ada akaun? Tekan <strong>Daftar Akaun Baharu</strong> di bawah dan tunggu kelulusan pentadbir.
+                        </div>
+                    @endif
+
+                    @if($modDemo)
+                    {{-- Mod Demo (Fasa D3): satu ketikan untuk masuk; borang kata laluan & pendaftaran ditutup --}}
+                    <div class="demo-kotak" role="note">
+                        <strong>Mod Demo.</strong> Data rekaan sahaja; semua perubahan akan dipadam selepas demo. Pilih peranan untuk mencuba sistem:
+                    </div>
+                    <div class="demo-akaun">
+                        @foreach($akaunDemo as $akaun)
+                            <form method="POST" action="{{ route('demo.masuk') }}">
+                                @csrf
+                                <input type="hidden" name="ic" value="{{ $akaun['ic'] }}">
+                                <button type="submit" class="btn-demo">
+                                    <span class="btn-demo-peranan">{{ $akaun['peranan'] }}</span>
+                                    <span class="btn-demo-nama">{{ $akaun['nama'] }}</span>
+                                </button>
+                            </form>
+                        @endforeach
+                    </div>
+                    @else
                     <form method="POST" action="{{ route('login.proses') }}">
                         @csrf
 
@@ -347,6 +385,7 @@
                             Daftar Akaun Baharu
                         </button>
                     </div>
+                    @endif
                 </div>
             </section>
 
@@ -354,6 +393,7 @@
         </div>
     </main>
 
+    @unless($modDemo)
     {{-- Modal: Daftar Akaun Baharu (ralat validasi dalam error bag 'pendaftaran') --}}
     @php $ralatDaftar = $errors->pendaftaran; @endphp
     <div class="modal fade modal-daftar" id="modalDaftar" tabindex="-1" aria-labelledby="modalDaftarTajuk" aria-hidden="true">
@@ -367,6 +407,9 @@
                     </div>
                     <div class="modal-body">
                         <p class="nota mb-3">Permohonan anda akan disemak oleh pentadbir sistem. Jika diluluskan, kata laluan sementara akan dihantar ke emel anda.</p>
+                        @if(\App\Support\Demo::percubaan())
+                            <div class="demo-kotak">Sesi latihan: akaun dan semua maklumat yang anda isi (termasuk No. KP dan emel) akan dipadam selepas sesi tamat.</div>
+                        @endif
 
                         @if($ralatDaftar->has('pendaftaran'))
                             <div class="alert alert-custom" role="alert">{{ $ralatDaftar->first('pendaftaran') }}</div>
@@ -420,7 +463,10 @@
         </div>
     </div>
 
+    @endunless
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    @unless($modDemo)
     @if($ralatDaftar->any())
     <script>
         // Buka semula modal pendaftaran jika permohonan ditolak oleh validasi
@@ -443,5 +489,6 @@
                 : '<path d="m2 2 20 20"></path><path d="M6.7 6.7A10.7 10.7 0 0 0 2.1 12a10 10 0 0 0 16.3 3.3"></path><path d="M10.7 10.7a2 2 0 0 0 2.6 2.6"></path><path d="M14.2 4.2A10.5 10.5 0 0 1 21.9 12a10.8 10.8 0 0 1-2.2 3.2"></path>';
         });
     </script>
+    @endunless
 </body>
 </html>

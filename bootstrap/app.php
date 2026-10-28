@@ -5,6 +5,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Http\Middleware\HeaderKeselamatan;
+use App\Http\Middleware\IpTerowong;
+use App\Http\Middleware\ModDemo;
 use App\Http\Middleware\PengawalKeselamatan;
 use App\Http\Middleware\SemakPeranan;
 use App\Http\Middleware\WajibDuaFaktor;
@@ -29,9 +31,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // menghantar X-Forwarded-*: percayai localhost sahaja supaya URL https dan IP sebenar
         // pengguna (had kadar log masuk) betul, tanpa membenarkan IP lain memalsukan header itu.
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+        // cloudflared: IP sebenar peserta daripada CF-Connecting-IP (had kadar & sekatan ikut peranti)
+        $middleware->prepend(IpTerowong::class);
 
         // PengawalKeselamatan: sekatan IP, akaun dikunci, log keluar paksa, mod kecemasan (S3)
-        $middleware->web(append: [HeaderKeselamatan::class, PengawalKeselamatan::class]);
+        // ModDemo: URL terowong + sekat tindakan berisiko bila mod demo hidup (Fasa D3)
+        $middleware->web(append: [HeaderKeselamatan::class, PengawalKeselamatan::class, ModDemo::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
