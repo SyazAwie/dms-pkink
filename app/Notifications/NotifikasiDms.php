@@ -55,7 +55,6 @@ class NotifikasiDms extends Notification
             ->line('**'.TeksEmel::selamat($this->tajuk).'**')
             ->line(TeksEmel::selamat($this->mesej))
             ->action('Buka dalam Sistem', $this->url)
-            ->line('Emel ini dijana secara automatik oleh Sistem Arkib Digital PKINK. Sila jangan balas emel ini.')
             ->salutation('Sekian, terima kasih.');
     }
 
