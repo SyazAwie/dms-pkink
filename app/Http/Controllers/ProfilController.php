@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\LogAudit;
+use App\Models\LogMasuk;
+use App\Support\DuaFaktor;
 use App\Support\PeraturanNama;
 use App\Support\PeraturanProfil;
 use App\Support\PolisiKataLaluan;
@@ -20,12 +22,18 @@ use Illuminate\Validation\Rule;
  */
 class ProfilController extends Controller
 {
-    // Halaman profil: maklumat akaun + borang tukar kata laluan
+    // Halaman profil: maklumat akaun, tukar kata laluan, 2FA & log masuk terkini (P13)
     public function index()
     {
         $user = Auth::user()->load(['bahagian', 'roles']);
 
-        return view('profil.index', compact('user'));
+        // Pendaftaran 2FA yang sedang berjalan: rahsia dalam sesi, QR untuk diimbas
+        $rahsiaBaharu = $user->duaFaktorAktif() ? null : session(DuaFaktorController::SESI_RAHSIA_BAHARU);
+        $qrDuaFaktor = $rahsiaBaharu ? DuaFaktor::qrSvg($user, $rahsiaBaharu) : null;
+        $duaFaktorWajib = DuaFaktorController::wajib($user);
+        $logMasukTerkini = LogMasuk::where('user_id', $user->user_id)->latest('log_masuk_id')->limit(5)->get();
+
+        return view('profil.index', compact('user', 'rahsiaBaharu', 'qrDuaFaktor', 'duaFaktorWajib', 'logMasukTerkini'));
     }
 
     /**

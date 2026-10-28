@@ -39,6 +39,9 @@ trait SkemaUjian
             $t->string('password');
             $t->boolean('perlu_tukar_kata_laluan')->default(false);
             $t->timestamp('kata_laluan_tamat_pada')->nullable();
+            $t->text('dua_faktor_rahsia')->nullable();
+            $t->text('dua_faktor_kod_pemulihan')->nullable();
+            $t->timestamp('dua_faktor_disahkan_pada')->nullable();
             $t->unsignedBigInteger('bahagian_id')->nullable();
             $t->rememberToken();
             $t->timestamps();
@@ -100,10 +103,63 @@ trait SkemaUjian
             $t->date('tarikh_dokumen')->nullable();
             $t->string('perkara')->nullable();
             $t->string('status', 50)->nullable();
+            $t->date('tarikh_tamat_simpanan')->nullable();
+            $t->string('status_pelupusan', 30)->nullable();
+            $t->dateTime('tarikh_pelupusan')->nullable();
+            $t->unsignedBigInteger('pelupusan_oleh')->nullable();
+            $t->string('catatan_pelupusan')->nullable();
             $t->unsignedBigInteger('bahagian_id')->nullable();
             $t->unsignedBigInteger('created_by')->nullable();
             $t->timestamps();
             $t->softDeletes();
+        });
+
+        // Fasa P baki: sejarah borang (P4), delegasi (P5), log masuk (P13), pembetulan AI (P16)
+        Schema::create('borang_sejarah', function (Blueprint $t) {
+            $t->id('borang_sejarah_id');
+            $t->unsignedBigInteger('borang_id');
+            $t->string('tindakan', 30);
+            $t->string('status_selepas', 50);
+            $t->unsignedBigInteger('user_id')->nullable();
+            $t->unsignedBigInteger('bagi_pihak_id')->nullable();
+            $t->text('ulasan')->nullable();
+            $t->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('delegasi_kelulusan', function (Blueprint $t) {
+            $t->id('delegasi_id');
+            $t->unsignedBigInteger('pemberi_id');
+            $t->unsignedBigInteger('penerima_id');
+            $t->string('kod_peranan', 20);
+            $t->date('tarikh_mula');
+            $t->date('tarikh_tamat');
+            $t->string('sebab')->nullable();
+            $t->unsignedBigInteger('dicipta_oleh')->nullable();
+            $t->timestamp('dibatalkan_pada')->nullable();
+            $t->timestamps();
+        });
+
+        Schema::create('log_masuk', function (Blueprint $t) {
+            $t->id('log_masuk_id');
+            $t->unsignedBigInteger('user_id')->nullable();
+            $t->boolean('berjaya')->default(false);
+            $t->string('sebab', 50)->nullable();
+            $t->string('alamat_ip', 45)->nullable();
+            $t->text('peranti_pengguna')->nullable();
+            $t->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('pembetulan_ai', function (Blueprint $t) {
+            $t->id('pembetulan_ai_id');
+            $t->unsignedBigInteger('dokumen_id');
+            $t->unsignedBigInteger('jenis_dokumen_id');
+            $t->unsignedBigInteger('dokumen_field_id');
+            $t->text('nilai_ai')->nullable();
+            $t->text('nilai_disimpan')->nullable();
+            $t->boolean('sama')->default(false);
+            $t->string('model_ai', 100)->nullable();
+            $t->unsignedBigInteger('user_id')->nullable();
+            $t->timestamp('created_at')->nullable();
         });
 
         // Notifikasi dalam sistem (loceng topbar)
@@ -181,6 +237,8 @@ trait SkemaUjian
             $t->string('kod_dokumen', 50);
             $t->string('nama_dokumen');
             $t->string('kategori')->nullable();
+            $t->unsignedSmallInteger('tempoh_simpanan_tahun')->nullable();
+            $t->string('tindakan_tamat_tempoh', 30)->default('Semak Semula');
             $t->timestamps();
             $t->softDeletes();
         });

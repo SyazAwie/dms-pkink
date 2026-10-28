@@ -74,6 +74,10 @@
                 <li><span>Bahagian</span><strong>{{ $dokumen->bahagian->nama_bahagian ?? '-' }}</strong></li>
                 <li><span>Dimuat Naik Oleh</span><strong>{{ $dokumen->pemuatNaik->nama_staff ?? '-' }}</strong></li>
                 <li><span>Tarikh Dimuat Naik</span><strong>{{ $dokumen->created_at?->translatedFormat('d M Y, h:i A') }}</strong></li>
+                <li><span>Tamat Simpanan</span><strong>
+                    {{ $dokumen->tarikh_tamat_simpanan?->translatedFormat('d M Y') ?? 'Kekal' }}
+                    @if($dokumen->status_pelupusan === 'Dikekalkan') <span class="dms-hint">(dilanjutkan)</span> @endif
+                </strong></li>
             </ul>
         </div>
 
@@ -117,6 +121,37 @@
                     @if($dokumen->borang->ulasan_pelulus)
                         <div class="kel-ulasan"><i class="bi bi-chat-left-text"></i> <strong>Pelulus:</strong> {{ $dokumen->borang->ulasan_pelulus }}</div>
                     @endif
+                    @php $sejarah = $dokumen->borang->sejarah()->with(['pengguna', 'bagiPihak'])->get(); @endphp
+                    @if($sejarah->isNotEmpty())
+                        <button type="button" class="kel-sejarah-togol mt-3" data-bs-toggle="collapse" data-bs-target="#sejarah-kelulusan" aria-expanded="false">
+                            <i class="bi bi-clock-history"></i> Sejarah Permohonan ({{ $sejarah->count() }})
+                        </button>
+                        <div class="collapse" id="sejarah-kelulusan">
+                            <ol class="kel-sejarah">
+                                @foreach($sejarah as $s)
+                                    @php
+                                        $kelasSejarah = match ($s->tindakan) {
+                                            'Lulus', 'Arkib Terus' => 'kel-lulus', 'Sokong' => 'kel-sokong',
+                                            'Tolak' => 'kel-tolak', default => 'kel-proses',
+                                        };
+                                    @endphp
+                                    <li>
+                                        <span class="badge kel-badge {{ $kelasSejarah }}">{{ $s->tindakan }}</span>
+                                        <div class="kel-sejarah-isi">
+                                            <strong>{{ $s->pengguna->nama_staff ?? 'Sistem' }}</strong>
+                                            @if($s->bagiPihak)
+                                                <span class="dms-hint">bagi pihak {{ $s->bagiPihak->nama_staff }}</span>
+                                            @endif
+                                            <div class="dms-hint">{{ $s->created_at?->translatedFormat('d M Y, h:i A') }}</div>
+                                            @if($s->ulasan)
+                                                <div class="kel-sejarah-ulasan">"{{ $s->ulasan }}"</div>
+                                            @endif
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ol>
+                        </div>
+                    @endif
                     @if($dokumen->borang->kodPengesahan())
                         <a href="{{ route('kelulusan.slip', $dokumen->dokumen_id) }}" class="outline-button w-100 justify-content-center mt-3 text-decoration-none">
                             <i class="bi bi-qr-code"></i> Muat Turun Slip Kelulusan (PDF)
@@ -139,7 +174,7 @@
                 @php
                     // Pemohon tidak boleh bertindak ke atas permohonan sendiri (termasuk Admin)
                     $pemohonSendiri = $dokumen->borang?->dipohonOleh(Auth::id());
-                    $bolehSokong = $statusSemasa === 'Dalam Proses' && Auth::user()->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN');
+                    $bolehSokong = $statusSemasa === 'Dalam Proses' && \App\Support\SkopKelulusan::bolehSokong(Auth::user(), $dokumen->borang);
                     $bolehLulus = $statusSemasa === 'Disokong' && Auth::user()->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN');
                 @endphp
 
@@ -410,6 +445,19 @@
     .kel-tolak { background: rgba(220,53,69,.1); color: var(--dms-danger); }
     .kel-ulasan { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--dms-line); border-radius: 10px; font-size: 12px; color: var(--dms-text); }
     .kel-form textarea { font-family: inherit; }
+    .kel-sejarah-togol {
+        display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none;
+        color: var(--dms-primary); font-size: 12.5px; font-weight: 700; cursor: pointer;
+    }
+    .kel-sejarah { list-style: none; margin: 10px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--dms-line); }
+    .kel-sejarah li { position: relative; display: flex; gap: 10px; align-items: flex-start; padding: 6px 0 10px; font-size: 12.5px; }
+    .kel-sejarah li::before {
+        content: ""; position: absolute; left: -20px; top: 12px; width: 10px; height: 10px;
+        border-radius: 50%; background: var(--dms-surface-strong); border: 2px solid var(--dms-primary);
+    }
+    .kel-sejarah .kel-badge { flex: 0 0 auto; min-width: 92px; text-align: center; font-size: 10.5px; padding: 5px 8px; }
+    .kel-sejarah-isi { min-width: 0; }
+    .kel-sejarah-ulasan { margin-top: 3px; color: var(--dms-text); font-style: italic; overflow-wrap: anywhere; }
 
     a.btn-teks-ocr { text-decoration: none; }
     .pratonton-wrap { margin-top: 8px; }

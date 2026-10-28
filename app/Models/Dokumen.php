@@ -31,7 +31,35 @@ class Dokumen extends Model
 
     protected $casts = [
         'tarikh_dokumen' => 'date',
+        'tarikh_tamat_simpanan' => 'date',
+        'tarikh_pelupusan' => 'datetime',
     ];
+
+    /** Status pelupusan yang mengeluarkan dokumen daripada arkib aktif (soft delete). */
+    public const STATUS_DILUPUS = ['Dilupuskan', 'Diserah Arkib Negara'];
+
+    /**
+     * Tarikh tamat simpanan (P12) dikira automatik daripada tarikh dokumen + tempoh
+     * kategori bila dokumen dicipta, atau bila tarikh/kategori berubah. Dokumen yang
+     * sudah dikekalkan secara manual (status_pelupusan) tidak disentuh.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Dokumen $dokumen) {
+            if ($dokumen->status_pelupusan === null
+                && (! $dokumen->exists || $dokumen->isDirty(['tarikh_dokumen', 'jenis_dokumen_id']))) {
+                $tempoh = JenisDokumen::withTrashed()->whereKey($dokumen->jenis_dokumen_id)->value('tempoh_simpanan_tahun');
+                $dokumen->tarikh_tamat_simpanan = self::kiraTamatSimpanan($dokumen->tarikh_dokumen, $tempoh);
+            }
+        });
+    }
+
+    public static function kiraTamatSimpanan($tarikhDokumen, $tempohTahun): ?string
+    {
+        return $tarikhDokumen && $tempohTahun
+            ? \Illuminate\Support\Carbon::parse($tarikhDokumen)->addYears((int) $tempohTahun)->toDateString()
+            : null;
+    }
 
     /**
      * Hadkan senarai dokumen kepada yang dibenarkan dilihat oleh pengguna.
@@ -101,6 +129,12 @@ class Dokumen extends Model
      * (lihat nota had dalam BorangController). hasOne ambil rekod PERTAMA
      * jika lebih daripada satu wujud secara tak sengaja di luar aplikasi ini.
      */
+    /** Pentadbir yang membuat keputusan pelupusan/kekalkan (P12). */
+    public function pelupus()
+    {
+        return $this->belongsTo(User::class, 'pelupusan_oleh', 'user_id')->withTrashed();
+    }
+
     public function borang()
     {
         return $this->hasOne(Borang::class, 'dokumen_id', 'dokumen_id');

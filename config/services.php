@@ -53,6 +53,12 @@ return [
         'vlm_ambang' => (float) env('OCR_VLM_AMBANG', 80),
     ],
 
+    // 2FA (P13): wajib bagi SUPERADMIN/ADMIN bila true. Kekal false hingga serahan (Fasa H)
+    // supaya akaun demo tidak memerlukan telefon authenticator.
+    'dua_faktor' => [
+        'wajib' => (bool) env('DUA_FAKTOR_WAJIB', false),
+    ],
+
     // Tera air salinan muat turun (TeraAirService). Laluan penuh fon TrueType; kosong = cuba
     // Arial Bold (Windows) / DejaVu Sans Bold (Linux), jika tiada guna fon bitmap GD
     'tera_air' => [
@@ -73,6 +79,8 @@ return [
         // Model kekal dalam memori selepas digunakan (lalai Ollama 5 minit → muat semula lambat)
         'keep_alive' => env('OLLAMA_KEEP_ALIVE', '30m'),
         'had_masa' => (int) env('OLLAMA_HAD_MASA', 180),
+        // P16: pembetulan staf terkini bagi kategori dimasukkan ke prompt sebagai contoh
+        'few_shot' => (bool) env('OLLAMA_FEW_SHOT', true),
     ],
 
     // Notifikasi emel (P2): mati secara lalai kerana akaun ujian guna domain @pkink.com yang

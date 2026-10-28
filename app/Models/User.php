@@ -32,6 +32,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'dua_faktor_rahsia',
+        'dua_faktor_kod_pemulihan',
     ];
 
     // perlu_tukar_kata_laluan & kata_laluan_tamat_pada sengaja TIDAK dalam $fillable:
@@ -39,7 +41,17 @@ class User extends Authenticatable
     protected $casts = [
         'perlu_tukar_kata_laluan' => 'boolean',
         'kata_laluan_tamat_pada' => 'datetime',
+        // 2FA (P13): rahsia TOTP & kod pemulihan disulitkan dengan APP_KEY dalam DB
+        'dua_faktor_rahsia' => 'encrypted',
+        'dua_faktor_kod_pemulihan' => 'encrypted:array',
+        'dua_faktor_disahkan_pada' => 'datetime',
     ];
+
+    /** 2FA (TOTP) sudah didaftar dan disahkan oleh pengguna. */
+    public function duaFaktorAktif(): bool
+    {
+        return $this->dua_faktor_disahkan_pada !== null && $this->dua_faktor_rahsia !== null;
+    }
 
     // Hubungan dengan jadual bahagian
     public function bahagian()
@@ -61,10 +73,40 @@ class User extends Authenticatable
     /** Kunci sesi bagi peranan aktif (tukar peranan dari menu nama di topbar). */
     public const SESI_PERANAN_AKTIF = 'peranan_aktif';
 
-    /** Semua kod peranan yang dimiliki pengguna, tanpa mengira peranan aktif. */
+    /** Cache peranan delegasi bagi permintaan semasa (lihat kodPerananDelegasi). */
+    private ?array $kodDelegasi = null;
+
+    /**
+     * Semua kod peranan pengguna, tanpa mengira peranan aktif: peranan sendiri + peranan
+     * yang diterima melalui delegasi kelulusan yang aktif hari ini (P5).
+     */
     public function semuaKodPeranan(): array
     {
+        return array_values(array_unique(array_merge($this->kodPerananSendiri(), $this->kodPerananDelegasi())));
+    }
+
+    /** Peranan yang diberi terus kepada pengguna (user_roles), tanpa delegasi. */
+    public function kodPerananSendiri(): array
+    {
         return $this->roles->pluck('kod_roles')->all();
+    }
+
+    /** Peranan PENYOKONG/PELULUS yang dipegang sementara melalui delegasi aktif. */
+    public function kodPerananDelegasi(): array
+    {
+        if (! $this->exists) {
+            return [];
+        }
+
+        return $this->kodDelegasi ??= DelegasiKelulusan::aktif()->where('penerima_id', $this->user_id)
+            ->distinct()->pluck('kod_peranan')->all();
+    }
+
+    /** Delegasi aktif yang diterima pengguna ini bagi satu peranan. */
+    public function delegasiAktif(string $kodPeranan)
+    {
+        return DelegasiKelulusan::aktif()->with('pemberi')->where('penerima_id', $this->user_id)
+            ->where('kod_peranan', $kodPeranan)->get();
     }
 
     /**

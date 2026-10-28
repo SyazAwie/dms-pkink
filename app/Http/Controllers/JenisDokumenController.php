@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Dokumen;
 use App\Models\JenisDokumen;
 use App\Models\DokumenData;
 use App\Models\DokumenField;
@@ -47,7 +48,7 @@ class JenisDokumenController extends Controller
                 'kod_dokumen' => $validated['kod_dokumen'],
                 'nama_dokumen' => $validated['nama_dokumen'],
                 'kategori' => $validated['kategori'] ?? null,
-            ]);
+            ] + $this->tetapanSimpanan($validated));
 
             $this->simpanMedan($dokumen, $request->input('medan', []));
         });
@@ -91,7 +92,11 @@ class JenisDokumenController extends Controller
                 'kod_dokumen' => $validated['kod_dokumen'],
                 'nama_dokumen' => $validated['nama_dokumen'],
                 'kategori' => $validated['kategori'] ?? null,
-            ]);
+            ] + $this->tetapanSimpanan($validated));
+
+            if ($dokumen->wasChanged('tempoh_simpanan_tahun')) {
+                $this->kiraSemulaTamatSimpanan($dokumen);
+            }
 
             // Padam (soft delete) medan yang dibuang di UI. Satu per satu melalui model
             // supaya DokumenFieldObserver merekod setiap medan dalam log audit.
@@ -142,6 +147,32 @@ class JenisDokumenController extends Controller
                          ->with('success', 'Kategori Dokumen telah dipadam.' . $nota);
     }
 
+    /** Tempoh simpanan & tindakan tamat tempoh (P12); kosong = simpan kekal. */
+    private function tetapanSimpanan(array $validated): array
+    {
+        return [
+            'tempoh_simpanan_tahun' => $validated['tempoh_simpanan_tahun'] ?? null,
+            'tindakan_tamat_tempoh' => $validated['tindakan_tamat_tempoh'] ?? 'Semak Semula',
+        ];
+    }
+
+    /**
+     * Tempoh kategori berubah: kira semula tarikh tamat simpanan dokumen aktif yang belum
+     * dikekalkan secara manual. Kemas kini terus (tanpa observer) supaya log audit tidak
+     * dibanjiri satu baris bagi setiap dokumen; perubahan kategori sendiri sudah dilog.
+     */
+    private function kiraSemulaTamatSimpanan(JenisDokumen $jenis): void
+    {
+        Dokumen::where('jenis_dokumen_id', $jenis->jenis_dokumen_id)->whereNull('status_pelupusan')
+            ->select(['dokumen_id', 'tarikh_dokumen'])->chunkById(200, function ($senarai) use ($jenis) {
+                foreach ($senarai as $d) {
+                    Dokumen::whereKey($d->dokumen_id)->toBase()->update([
+                        'tarikh_tamat_simpanan' => Dokumen::kiraTamatSimpanan($d->tarikh_dokumen, $jenis->tempoh_simpanan_tahun),
+                    ]);
+                }
+            }, 'dokumen_id');
+    }
+
     /**
      * Validasi medan utama Jenis Dokumen (dikongsi antara store & update).
      */
@@ -154,6 +185,8 @@ class JenisDokumenController extends Controller
             ],
             'nama_dokumen' => 'required|max:150',
             'kategori' => 'nullable|max:100',
+            'tempoh_simpanan_tahun' => 'nullable|integer|min:1|max:100',
+            'tindakan_tamat_tempoh' => ['nullable', Rule::in(JenisDokumen::TINDAKAN_TAMAT)],
             'medan' => 'nullable|array',
             'medan.*.nama_field' => 'nullable|max:100',
             'medan.*.kod_field' => 'nullable|max:100',

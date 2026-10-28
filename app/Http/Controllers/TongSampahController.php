@@ -76,6 +76,13 @@ class TongSampahController extends Controller
                 // Senyap: observer akan melog "Kemaskini"; log "Pulihkan" di bawah sudah mencukupi
                 $rekod->restoreQuietly();
 
+                // Dokumen yang dilupuskan (P12) kembali aktif: kosongkan keputusan pelupusan
+                // (jejaknya kekal dalam log audit "Lupus Dokumen") supaya ia disemak semula
+                if ($rekod instanceof Dokumen && in_array($rekod->status_pelupusan, Dokumen::STATUS_DILUPUS, true)) {
+                    $rekod->forceFill(['status_pelupusan' => null, 'tarikh_pelupusan' => null, 'pelupusan_oleh' => null, 'catatan_pelupusan' => null])
+                        ->saveQuietly();
+                }
+
                 // Medan kategori dipadam serentak dengan kategorinya (JenisDokumenObserver): pulihkan bersama
                 if ($rekod instanceof JenisDokumen && $dipadamPada) {
                     DokumenField::onlyTrashed()->where('jenis_dokumen_id', $rekod->jenis_dokumen_id)

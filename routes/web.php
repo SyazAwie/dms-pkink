@@ -4,14 +4,18 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BahagianController;
 use App\Http\Controllers\BorangController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DelegasiController;
+use App\Http\Controllers\DuaFaktorController;
 use App\Http\Controllers\DokumenController;
 use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
 use App\Http\Controllers\IsiBorangController;
 use App\Http\Controllers\JenisDokumenController;
 use App\Http\Controllers\LogAuditController;
+use App\Http\Controllers\LogMasukController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\PelupusanController;
 use App\Http\Controllers\PendaftaranStafController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SlipKelulusanController;
@@ -39,13 +43,17 @@ Route::middleware('guest')->group(function () {
     Route::get('/reset-kata-laluan/{token}', [PasswordResetController::class, 'paparBorangReset'])->name('password.reset');
     Route::post('/reset-kata-laluan', [PasswordResetController::class, 'kemaskiniKataLaluan'])->name('password.update');
 
+    // Kod 2FA selepas kata laluan betul (P13); sesi "menunggu" sah 5 minit
+    Route::get('/log-masuk/dua-faktor', [AuthController::class, 'cabaranDuaFaktor'])->name('dua-faktor.cabaran');
+    Route::post('/log-masuk/dua-faktor', [AuthController::class, 'sahkanDuaFaktor'])->name('dua-faktor.sahkan');
+
     // Permohonan pendaftaran staf baharu (modal "Daftar Akaun Baharu" di halaman log masuk)
     Route::post('/daftar', [PendaftaranStafController::class, 'simpan'])->name('pendaftaran.simpan');
 });
 
 // Kumpulan laluan yang dilindungi (Hanya boleh diakses jika dah login).
 // 'wajib.tukar': pengguna dengan kata laluan sementara dibawa ke skrin tukar kata laluan dahulu.
-Route::middleware(['auth', 'wajib.tukar'])->group(function () {
+Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ---- Tukar kata laluan sementara (dikecualikan oleh middleware wajib.tukar) ----
@@ -56,6 +64,11 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/profil', [ProfilController::class, 'index'])->name('profil.index');
     Route::put('/profil', [ProfilController::class, 'kemaskiniMaklumat'])->name('profil.kemaskini');
     Route::put('/profil/kata-laluan', [ProfilController::class, 'kemaskiniKataLaluan'])->name('profil.kata-laluan');
+    // Pengesahan dua faktor (P13)
+    Route::post('/profil/dua-faktor/mula', [DuaFaktorController::class, 'mula'])->name('profil.dua-faktor.mula');
+    Route::post('/profil/dua-faktor/sahkan', [DuaFaktorController::class, 'sahkan'])->name('profil.dua-faktor.sahkan');
+    Route::post('/profil/dua-faktor/matikan', [DuaFaktorController::class, 'matikan'])->name('profil.dua-faktor.matikan');
+    Route::post('/profil/dua-faktor/kod-pemulihan', [DuaFaktorController::class, 'janaKodPemulihan'])->name('profil.dua-faktor.kod');
     // ---- Notifikasi dalam sistem (loceng topbar), semua peranan ----
     Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
     Route::get('/notifikasi/ringkasan', [NotifikasiController::class, 'ringkasan'])->name('notifikasi.ringkasan');
@@ -95,6 +108,11 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
         Route::get('/tong-sampah', [TongSampahController::class, 'index'])->name('tong-sampah.index');
         Route::post('/tong-sampah/{jenis}/{id}/pulih', [TongSampahController::class, 'pulih'])
             ->whereIn('jenis', ['dokumen', 'kategori', 'bahagian', 'kakitangan'])->whereNumber('id')->name('tong-sampah.pulih');
+
+        // Tempoh simpanan & pelupusan (P12)
+        Route::get('/pelupusan', [PelupusanController::class, 'index'])->name('pelupusan.index');
+        Route::post('/pelupusan/{id}/kekalkan', [PelupusanController::class, 'kekalkan'])->whereNumber('id')->name('pelupusan.kekalkan');
+        Route::post('/pelupusan/{id}/lupus', [PelupusanController::class, 'lupus'])->whereNumber('id')->name('pelupusan.lupus');
 
         // Status Sistem: semakan OCR/AI, sandaran, penjadual, storan
         Route::get('/status-sistem', [StatusSistemController::class, 'index'])->name('status-sistem.index');
@@ -153,6 +171,13 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::post('/dokumen/{id}/kelulusan/lulus', [BorangController::class, 'lulus'])->name('kelulusan.lulus');
     Route::post('/dokumen/{id}/kelulusan/tolak', [BorangController::class, 'tolak'])->name('kelulusan.tolak');
     Route::get('/dokumen/{id}/kelulusan/slip', [SlipKelulusanController::class, 'muatTurun'])->name('kelulusan.slip');
+
+    // Delegasi kelulusan semasa cuti (P5): pegawai lantik pengganti; pentadbir urus semua
+    Route::middleware('peranan:SUPERADMIN,ADMIN,PENYOKONG,PELULUS')->group(function () {
+        Route::get('/delegasi', [DelegasiController::class, 'index'])->name('delegasi.index');
+        Route::post('/delegasi', [DelegasiController::class, 'store'])->name('delegasi.store');
+        Route::post('/delegasi/{delegasi}/batal', [DelegasiController::class, 'batal'])->name('delegasi.batal');
+    });
     Route::get('/kelulusan', [BorangController::class, 'index'])
         ->middleware('peranan:SUPERADMIN,ADMIN,PENYOKONG,PELULUS')
         ->name('kelulusan.index');
@@ -164,5 +189,9 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
     Route::get('/log-audit/eksport', [LogAuditController::class, 'eksport'])
         ->middleware('peranan:SUPERADMIN,AUDIT')
         ->name('log-audit.eksport');
+    // Sejarah log masuk (P13)
+    Route::get('/log-masuk', [LogMasukController::class, 'index'])
+        ->middleware('peranan:SUPERADMIN,AUDIT')
+        ->name('log-masuk.index');
 
 });

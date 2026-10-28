@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\LogAudit;
+use App\Support\SkopKelulusan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,13 +22,13 @@ use Illuminate\Validation\Rule;
  * lengkap. Bila sistem sedia digunakan secara menyeluruh, sila semak dan
  * lengkapkan perkara berikut (lihat juga README.md > "Aliran Kelulusan"):
  *
- *   1. SATU rekod borang sahaja bagi setiap dokumen (updateOrCreate dalam
- *      hantar()) — hantar semula TIMPA ulasan/tarikh lama. Tiada sejarah
- *      berbilang penghantaran. Jika diperlukan kelak, tambah jadual
- *      `borang_sejarah` atau buang constraint 1:1 yang diandaikan di sini.
- *   2. Penyokong & Pelulus TIDAK diskop ikut bahagian — mana-mana pengguna
- *      berperanan PENYOKONG/PELULUS boleh bertindak ke atas borang
- *      mana-mana bahagian. Tiada carta organisasi/hierarki kelulusan.
+ *   1. SATU rekod borang bagi setiap dokumen (updateOrCreate dalam hantar());
+ *      hantar semula menimpa ulasan/tarikh dalam `borang`, tetapi setiap
+ *      tindakan kekal dalam `borang_sejarah` (P4, BorangSejarahObserver).
+ *   2. Skop (P5, App\Support\SkopKelulusan): PENYOKONG ikut bahagian dokumen
+ *      (semua PENYOKONG jika bahagian itu tiada PENYOKONG); PELULUS semua
+ *      bahagian. Delegasi semasa cuti melalui `delegasi_kelulusan`; tindakan
+ *      penerima direkod "bagi pihak" pemberi. Tiada carta organisasi penuh.
  *   3. Notifikasi loceng + peranti dihantar oleh BorangNotifikasiObserver;
  *      emel hanya bila NOTIFIKASI_EMEL=true (mati secara lalai).
  *   4. Kebenaran disemak terus dalam controller (hasAnyRole), bukan
@@ -61,6 +62,7 @@ class BorangController extends Controller
             $query->when($request->filled('status'), fn ($q) => $q->where('status_permohonan', $request->status));
         } elseif ($user->hasRole('PENYOKONG')) {
             $query->where('status_permohonan', 'Dalam Proses')->bukanMilik($user->user_id);
+            SkopKelulusan::hadkanGiliranSokongan($query, $user);
         } elseif ($user->hasRole('PELULUS')) {
             $query->where('status_permohonan', 'Disokong')->bukanMilik($user->user_id);
         } else {
@@ -130,10 +132,12 @@ class BorangController extends Controller
         $borang = $this->borangAktif($dokumenId);
         $this->pastikanBukanPemohon($borang);
         $this->pastikanStatus($borang, 'Dalam Proses');
+        $this->pastikanSkopSokongan($borang);
 
         $request->validate(['ulasan_penyokong' => 'nullable|string|max:500']);
 
         DB::transaction(function () use ($request, $borang) {
+            $borang->bagiPihakId = SkopKelulusan::bagiPihak(Auth::user(), 'PENYOKONG', $borang);
             $borang->update([
                 'pegawai_penyokong_id' => Auth::id(),
                 'status_permohonan' => 'Disokong',
@@ -158,6 +162,7 @@ class BorangController extends Controller
         $request->validate(['ulasan_pelulus' => 'nullable|string|max:500']);
 
         DB::transaction(function () use ($request, $borang) {
+            $borang->bagiPihakId = SkopKelulusan::bagiPihak(Auth::user(), 'PELULUS', $borang);
             $borang->update([
                 'pegawai_pelulus_id' => Auth::id(),
                 'status_permohonan' => 'Diluluskan',
@@ -179,16 +184,18 @@ class BorangController extends Controller
         $user = Auth::user();
 
         if ($borang->status_permohonan === 'Dalam Proses' && $user->hasAnyRole('PENYOKONG', 'SUPERADMIN', 'ADMIN')) {
-            $lajurUlasan = 'ulasan_penyokong';
+            $this->pastikanSkopSokongan($borang);
+            [$lajurUlasan, $peranan] = ['ulasan_penyokong', 'PENYOKONG'];
         } elseif ($borang->status_permohonan === 'Disokong' && $user->hasAnyRole('PELULUS', 'SUPERADMIN', 'ADMIN')) {
-            $lajurUlasan = 'ulasan_pelulus';
+            [$lajurUlasan, $peranan] = ['ulasan_pelulus', 'PELULUS'];
         } else {
             abort(403, 'Anda tidak boleh menolak permohonan pada peringkat ini.');
         }
 
         $request->validate([$lajurUlasan => 'required|string|max:500']);
 
-        DB::transaction(function () use ($request, $borang, $lajurUlasan) {
+        DB::transaction(function () use ($request, $borang, $lajurUlasan, $peranan, $user) {
+            $borang->bagiPihakId = SkopKelulusan::bagiPihak($user, $peranan, $borang);
             $borang->update([
                 'status_permohonan' => 'Ditolak',
                 $lajurUlasan => $request->input($lajurUlasan),
@@ -226,6 +233,14 @@ class BorangController extends Controller
     {
         if ($borang->dipohonOleh(Auth::id())) {
             abort(403, 'Anda tidak boleh menyokong, meluluskan atau menolak permohonan anda sendiri.');
+        }
+    }
+
+    /** PENYOKONG hanya bertindak dalam skop bahagiannya (P5). */
+    private function pastikanSkopSokongan(Borang $borang): void
+    {
+        if (! SkopKelulusan::bolehSokong(Auth::user(), $borang)) {
+            abort(403, 'Permohonan ini di luar bahagian anda. Ia akan disokong oleh Penyokong bahagian berkenaan.');
         }
     }
 

@@ -170,7 +170,9 @@ class DashboardController extends Controller
      */
     private function dataGiliran(User $user, string $status, string $lajurMasuk, string $lajurPegawai, string $lajurSelesai): array
     {
-        $giliran = fn () => Borang::dokumenAktif()->bukanMilik($user->user_id)->where('status_permohonan', $status);
+        // Giliran sokongan ikut skop bahagian PENYOKONG (P5); kelulusan semua bahagian
+        $giliran = fn () => tap(Borang::dokumenAktif()->bukanMilik($user->user_id)->where('status_permohonan', $status),
+            fn ($q) => $status === 'Dalam Proses' ? \App\Support\SkopKelulusan::hadkanGiliranSokongan($q, $user) : null);
         $tertua = $giliran()->min($lajurMasuk);
 
         return [
