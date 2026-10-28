@@ -8,7 +8,11 @@ use App\Models\BorangSejarah;
 use App\Models\DelegasiKelulusan;
 use App\Models\Dokumen;
 use App\Models\JenisDokumen;
+use App\Models\LogMasuk;
 use App\Models\User;
+use App\Support\DuaFaktor;
+use Illuminate\Support\Facades\DB;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\SkemaUjian;
 use Tests\TestCase;
 
@@ -276,5 +280,106 @@ class FasaPBakiTest extends TestCase
         $this->assertFalse($dilupus->trashed());
         $this->assertNull($dilupus->status_pelupusan);
         $this->actingAs($admin)->get(route('pelupusan.index'))->assertSee('BPK/2020/0002');
+    }
+
+    // ---------------- P13: 2FA & sejarah log masuk ----------------
+
+    private function aktifkan2fa(User $user): string
+    {
+        $rahsia = DuaFaktor::rahsiaBaharu();
+        $user->forceFill(['dua_faktor_rahsia' => $rahsia, 'dua_faktor_kod_pemulihan' => ['AAAA-BBBB', 'CCCC-DDDD'],
+            'dua_faktor_disahkan_pada' => now()])->saveQuietly();
+
+        return $rahsia;
+    }
+
+    public function test_log_masuk_direkod_berjaya_dan_gagal_tanpa_simpan_no_kp(): void
+    {
+        $this->post(route('login.proses'), ['ic_pekerja' => $this->staf->ic_pekerja, 'password' => 'Salah123']);
+        $this->post(route('login.proses'), ['ic_pekerja' => '000000000000', 'password' => 'Salah123']);
+        $this->post(route('login.proses'), ['ic_pekerja' => $this->staf->ic_pekerja, 'password' => 'Lama1234'])->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($this->staf);
+
+        $this->assertSame([
+            [$this->staf->user_id, false, 'Kata laluan salah'],
+            [null, false, 'No. KP tidak berdaftar'],
+            [$this->staf->user_id, true, null],
+        ], LogMasuk::orderBy('log_masuk_id')->get()->map(fn ($l) => [$l->user_id, $l->berjaya, $l->sebab])->all());
+
+        $audit = $this->buatPengguna(['AUDIT']);
+        $this->actingAs($audit)->get(route('log-masuk.index', ['status' => 'gagal']))->assertOk()
+            ->assertSee('No. KP tidak berdaftar')->assertDontSee('000000000000');
+        $this->actingAs($this->staf)->get(route('log-masuk.index'))->assertForbidden();
+    }
+
+    public function test_daftar_2fa_dari_profil_dan_rahsia_disulitkan(): void
+    {
+        $this->actingAs($this->staf)->post(route('profil.dua-faktor.mula'))->assertRedirect();
+        $rahsia = session(\App\Http\Controllers\DuaFaktorController::SESI_RAHSIA_BAHARU);
+        $this->actingAs($this->staf)->get(route('profil.index'))->assertOk()->assertSee('<svg', false)->assertSee('Sahkan &amp; Aktifkan', false);
+
+        $this->actingAs($this->staf)->post(route('profil.dua-faktor.sahkan'), ['kod' => '000000'])->assertSessionHasErrorsIn('duaFaktor', 'kod');
+        $this->assertFalse($this->staf->fresh()->duaFaktorAktif());
+
+        $this->actingAs($this->staf)->post(route('profil.dua-faktor.sahkan'), ['kod' => (new Google2FA)->getCurrentOtp($rahsia)])
+            ->assertSessionHas('kod_pemulihan', fn ($k) => count($k) === DuaFaktor::BIL_KOD_PEMULIHAN);
+        $user = $this->staf->fresh();
+        $this->assertTrue($user->duaFaktorAktif());
+        $this->assertSame($rahsia, $user->dua_faktor_rahsia);
+        $this->assertNotSame($rahsia, DB::table('users')->where('user_id', $user->user_id)->value('dua_faktor_rahsia'));
+        $this->assertDatabaseHas('log_audit', ['tindakan' => 'Hidupkan 2FA', 'rekod_id' => $user->user_id]);
+        $this->assertDatabaseMissing('log_audit', ['nama_jadual' => 'users', 'tindakan' => 'Kemaskini', 'rekod_id' => $user->user_id]);
+
+        // Matikan perlu kata laluan betul
+        $this->actingAs($user)->post(route('profil.dua-faktor.matikan'), ['kata_laluan' => 'Salah'])->assertSessionHasErrorsIn('duaFaktor', 'kata_laluan');
+        $this->actingAs($user)->post(route('profil.dua-faktor.matikan'), ['kata_laluan' => 'Lama1234'])->assertSessionHasNoErrors();
+        $this->assertFalse($user->fresh()->duaFaktorAktif());
+    }
+
+    public function test_log_masuk_ber_2fa_perlu_kod_dan_kod_pemulihan_sekali_guna(): void
+    {
+        $rahsia = $this->aktifkan2fa($this->staf);
+        $masuk = fn () => $this->post(route('login.proses'), ['ic_pekerja' => $this->staf->ic_pekerja, 'password' => 'Lama1234']);
+
+        $masuk()->assertRedirect(route('dua-faktor.cabaran'));
+        $this->assertGuest();
+        $this->get(route('dua-faktor.cabaran'))->assertOk()->assertSee('Pengesahan Dua Faktor');
+        $this->post(route('dua-faktor.sahkan'), ['kod' => '000000'])->assertSessionHasErrors('kod');
+        $this->assertGuest();
+        $this->post(route('dua-faktor.sahkan'), ['kod' => (new Google2FA)->getCurrentOtp($rahsia)])->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($this->staf);
+        $this->post(route('logout'));
+
+        // Kod pemulihan: sah sekali sahaja (huruf kecil diterima)
+        $masuk();
+        $this->post(route('dua-faktor.sahkan'), ['kod' => 'aaaa-bbbb'])->assertRedirect(route('dashboard'))->assertSessionHas('warning');
+        $this->assertSame(['CCCC-DDDD'], $this->staf->fresh()->dua_faktor_kod_pemulihan);
+        $this->post(route('logout'));
+        $masuk();
+        $this->post(route('dua-faktor.sahkan'), ['kod' => 'AAAA-BBBB'])->assertSessionHasErrors('kod');
+        $this->assertGuest();
+
+        $this->assertSame(['Kod 2FA salah', 'Kod pemulihan digunakan'], LogMasuk::where('sebab', '!=', null)->orderBy('log_masuk_id')->pluck('sebab')->unique()->values()->all());
+
+        // Sesi menunggu tamat selepas 5 minit
+        $this->travel(6)->minutes();
+        $this->get(route('dua-faktor.cabaran'))->assertRedirect(route('login'));
+    }
+
+    public function test_2fa_wajib_untuk_pentadbir_bila_dihidupkan(): void
+    {
+        $admin = $this->buatPengguna(['ADMIN']);
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk();
+
+        config(['services.dua_faktor.wajib' => true]);
+        $this->actingAs($admin)->get(route('dashboard'))->assertRedirect(route('profil.index').'#dua-faktor');
+        $this->actingAs($admin)->get(route('profil.index'))->assertOk()->assertSee('2FA wajib bagi akaun pentadbir');
+        $this->actingAs($this->staf)->get(route('dashboard'))->assertOk();
+
+        $this->aktifkan2fa($admin);
+        $this->actingAs($admin->fresh())->get(route('dashboard'))->assertOk();
+        $this->actingAs($admin->fresh())->post(route('profil.dua-faktor.matikan'), ['kata_laluan' => 'Lama1234'])
+            ->assertSessionHas('error');
+        $this->assertTrue($admin->fresh()->duaFaktorAktif());
     }
 }

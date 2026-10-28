@@ -14,7 +14,7 @@ class UserObserver
      * sama ada kerana sensitif (password, remember_token) atau
      * tidak bermakna untuk audit (updated_at berubah setiap simpan).
      */
-    private array $lajurDikecualikan = ['password', 'remember_token', 'updated_at'];
+    private array $lajurDikecualikan = ['password', 'remember_token', 'updated_at', 'dua_faktor_rahsia', 'dua_faktor_kod_pemulihan'];
 
     public function created(User $user): void
     {

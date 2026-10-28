@@ -18,6 +18,9 @@
 @if(session('success'))
     <div class="alert alert-success" role="status">{{ session('success') }}</div>
 @endif
+@if(session('error'))
+    <div class="alert alert-danger" role="alert">{{ session('error') }}</div>
+@endif
 
 <div class="row g-4">
     <div class="col-lg-8">
@@ -144,6 +147,104 @@
                 </div>
             </form>
         </div>
+
+        {{-- Pengesahan dua faktor (P13) --}}
+        @php $ralat2fa = $errors->duaFaktor; @endphp
+        <div class="glass-panel form-panel mt-4" id="dua-faktor">
+            <div class="section-header px-4 pt-4 pb-3 d-flex justify-content-between align-items-start gap-2">
+                <div>
+                    <h3>Pengesahan Dua Faktor (2FA)</h3>
+                    <p>Selain kata laluan, log masuk memerlukan kod 6 digit daripada aplikasi Google atau Microsoft Authenticator di telefon anda.</p>
+                </div>
+                <span class="badge fa-status {{ $user->duaFaktorAktif() ? 'fa-aktif' : 'fa-mati' }}">{{ $user->duaFaktorAktif() ? 'Aktif' : 'Tidak aktif' }}</span>
+            </div>
+            <div class="px-4 pb-4 pt-3">
+                @if(session('kod_pemulihan'))
+                    <div class="fa-kod-pemulihan mb-3">
+                        <strong><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i> Simpan kod pemulihan ini sekarang.</strong>
+                        Setiap kod boleh digunakan sekali jika telefon anda hilang. Kod ini tidak akan dipaparkan lagi.
+                        <div class="fa-kod-grid">
+                            @foreach(session('kod_pemulihan') as $kod)<code>{{ $kod }}</code>@endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @if($user->duaFaktorAktif())
+                    <p class="dms-hint mb-3">Diaktifkan pada {{ $user->dua_faktor_disahkan_pada->translatedFormat('d M Y, h:i A') }} · Baki kod pemulihan: {{ count($user->dua_faktor_kod_pemulihan ?? []) }}</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <form method="POST" action="{{ route('profil.dua-faktor.kod') }}">
+                                @csrf
+                                <label class="dms-label" for="kata_laluan_kod">Jana semula kod pemulihan</label>
+                                <input type="password" name="kata_laluan" id="kata_laluan_kod" class="dms-input" placeholder="Kata laluan semasa" required autocomplete="current-password">
+                                <button type="submit" class="outline-button w-100 mt-2"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Jana Kod Baharu</button>
+                            </form>
+                        </div>
+                        @unless($duaFaktorWajib)
+                            <div class="col-md-6">
+                                <form method="POST" action="{{ route('profil.dua-faktor.matikan') }}">
+                                    @csrf
+                                    <label class="dms-label" for="kata_laluan_matikan">Matikan 2FA</label>
+                                    <input type="password" name="kata_laluan" id="kata_laluan_matikan" class="dms-input" placeholder="Kata laluan semasa" required autocomplete="current-password">
+                                    <button type="submit" class="outline-button fa-matikan w-100 mt-2"><i class="bi bi-shield-x" aria-hidden="true"></i> Matikan 2FA</button>
+                                </form>
+                            </div>
+                        @endunless
+                    </div>
+                    @if($ralat2fa->has('kata_laluan'))<div class="dms-error">{{ $ralat2fa->first('kata_laluan') }}</div>@endif
+                @elseif($rahsiaBaharu)
+                    <div class="row g-4 align-items-center">
+                        <div class="col-md-5 text-center">
+                            <div class="fa-qr">{!! $qrDuaFaktor !!}</div>
+                            <div class="dms-hint">Tidak boleh imbas? Masukkan kunci ini secara manual:</div>
+                            <code class="fa-rahsia">{{ trim(chunk_split($rahsiaBaharu, 4, ' ')) }}</code>
+                        </div>
+                        <div class="col-md-7">
+                            <ol class="fa-langkah">
+                                <li>Pasang <strong>Google Authenticator</strong> atau <strong>Microsoft Authenticator</strong> di telefon.</li>
+                                <li>Dalam aplikasi, pilih tambah akaun dan imbas kod QR ini.</li>
+                                <li>Masukkan kod 6 digit yang dipaparkan untuk mengesahkan.</li>
+                            </ol>
+                            <form method="POST" action="{{ route('profil.dua-faktor.sahkan') }}">
+                                @csrf
+                                <label class="dms-label" for="kod_2fa">Kod daripada aplikasi</label>
+                                <input type="text" name="kod" id="kod_2fa" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required
+                                       class="dms-input fa-kod-input @if($ralat2fa->has('kod')) is-invalid @endif" placeholder="123456">
+                                @if($ralat2fa->has('kod'))<div class="dms-error">{{ $ralat2fa->first('kod') }}</div>@endif
+                                <button type="submit" class="btn text-white save-btn w-100 mt-3"><i class="bi bi-shield-check me-2"></i> Sahkan &amp; Aktifkan</button>
+                            </form>
+                        </div>
+                    </div>
+                @else
+                    <form method="POST" action="{{ route('profil.dua-faktor.mula') }}" class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        @csrf
+                        <div class="dms-hint m-0">{{ $duaFaktorWajib ? '2FA wajib bagi akaun pentadbir. Sila hidupkan sekarang.' : 'Disyorkan untuk akaun pentadbir dan pegawai kelulusan.' }}</div>
+                        <button type="submit" class="btn text-white save-btn"><i class="bi bi-shield-plus me-2"></i> Hidupkan 2FA</button>
+                    </form>
+                @endif
+            </div>
+        </div>
+
+        {{-- Aktiviti log masuk terkini (P13) --}}
+        <div class="glass-panel form-panel mt-4">
+            <div class="section-header px-4 pt-4 pb-3">
+                <div>
+                    <h3>Log Masuk Terkini</h3>
+                    <p>Jika ada cubaan yang tidak anda kenali, tukar kata laluan dan hubungi pentadbir sistem.</p>
+                </div>
+            </div>
+            <ul class="fa-log px-4 pb-3 pt-2 mb-0">
+                @forelse($logMasukTerkini as $l)
+                    <li>
+                        <span class="badge fa-status {{ $l->berjaya ? 'fa-aktif' : 'fa-gagal' }}">{{ $l->berjaya ? 'Berjaya' : 'Gagal' }}</span>
+                        <span>{{ $l->created_at?->translatedFormat('d M Y, h:i A') }}</span>
+                        <span class="dms-hint m-0">{{ $l->alamat_ip }}{{ $l->sebab ? ' · '.$l->sebab : '' }}</span>
+                    </li>
+                @empty
+                    <li class="dms-hint">Belum ada rekod.</li>
+                @endforelse
+            </ul>
+        </div>
     </div>
 
     <div class="col-lg-4">
@@ -195,6 +296,23 @@
     .dms-hint { font-size: 11px; color: var(--dms-muted); margin-top: 6px; }
     .dms-error { font-size: 11.5px; color: var(--dms-danger); font-weight: 600; margin-top: 6px; }
     .dms-divider { border-top: 1px solid var(--dms-line); opacity: 1; margin: 8px 0; }
+
+    .fa-status { font-weight: 700; padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; }
+    .fa-aktif { background: rgba(37, 169, 121, .12); color: var(--dms-mint); }
+    .fa-mati { background: rgba(107, 122, 144, .12); color: var(--dms-muted); }
+    .fa-gagal { background: rgba(220, 53, 69, .1); color: var(--dms-danger); }
+    .fa-qr { display: inline-block; padding: 10px; border: 1px solid var(--dms-line); border-radius: 12px; background: #fff; }
+    .fa-qr svg { display: block; width: 180px; height: 180px; }
+    .fa-rahsia { display: inline-block; margin-top: 4px; font-size: 12px; word-break: break-all; }
+    .fa-langkah { padding-left: 18px; font-size: 13px; line-height: 1.7; }
+    .fa-kod-input { font-size: 18px; font-weight: 700; letter-spacing: .3em; }
+    .fa-kod-pemulihan { padding: 14px; border: 1px solid rgba(245, 158, 11, .45); border-radius: 10px; background: rgba(245, 158, 11, .08); font-size: 13px; }
+    .fa-kod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; margin-top: 10px; }
+    .fa-kod-grid code { padding: 6px; border-radius: 6px; background: #fff; color: var(--dms-text); font-size: 13px; text-align: center; }
+    .fa-matikan { color: var(--dms-danger); border-color: rgba(220, 53, 69, .4); }
+    .fa-log { list-style: none; }
+    .fa-log li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--dms-line); font-size: 13px; }
+    .fa-log li:last-child { border-bottom: 0; }
 
     .save-btn {
         background: linear-gradient(90deg, var(--dms-brand), var(--dms-primary));

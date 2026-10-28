@@ -535,6 +535,13 @@
                             @if(request()->routeIs('log-audit.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('log-masuk.index') }}" class="nav-link {{ request()->routeIs('log-masuk.*') ? 'active' : '' }}">
+                            <i class="bi bi-door-open" aria-hidden="true"></i>
+                            <span>Sejarah Log Masuk</span>
+                            @if(request()->routeIs('log-masuk.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
                     @endif
                     @if(Auth::user()->hasAnyRole('SUPERADMIN', 'ADMIN', 'PENYOKONG', 'PELULUS'))
                     <li>

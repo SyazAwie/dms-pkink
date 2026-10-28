@@ -32,6 +32,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'dua_faktor_rahsia',
+        'dua_faktor_kod_pemulihan',
     ];
 
     // perlu_tukar_kata_laluan & kata_laluan_tamat_pada sengaja TIDAK dalam $fillable:
@@ -39,7 +41,17 @@ class User extends Authenticatable
     protected $casts = [
         'perlu_tukar_kata_laluan' => 'boolean',
         'kata_laluan_tamat_pada' => 'datetime',
+        // 2FA (P13): rahsia TOTP & kod pemulihan disulitkan dengan APP_KEY dalam DB
+        'dua_faktor_rahsia' => 'encrypted',
+        'dua_faktor_kod_pemulihan' => 'encrypted:array',
+        'dua_faktor_disahkan_pada' => 'datetime',
     ];
+
+    /** 2FA (TOTP) sudah didaftar dan disahkan oleh pengguna. */
+    public function duaFaktorAktif(): bool
+    {
+        return $this->dua_faktor_disahkan_pada !== null && $this->dua_faktor_rahsia !== null;
+    }
 
     // Hubungan dengan jadual bahagian
     public function bahagian()
