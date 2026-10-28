@@ -16,7 +16,7 @@ class DemoMati extends Command
     public function handle(): int
     {
         $mod = Demo::modPenanda();
-        File::delete(Demo::folder('aktif'));
+        File::delete([Demo::folder('aktif'), Demo::folder('kod.txt')]);
         $this->info('Mod '.($mod ?? 'demo').' MATI: laman web kembali menggunakan pangkalan data & fail sebenar.');
         if ($mod === Demo::PERCUBAAN) {
             $this->line('Padam akaun & data peribadi peserta dengan: php artisan demo:set-semula --percubaan');

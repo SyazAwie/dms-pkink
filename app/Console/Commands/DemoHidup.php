@@ -27,7 +27,9 @@ class DemoHidup extends Command
 
         File::ensureDirectoryExists(Demo::folder());
         File::put(Demo::folder('aktif'), $mod);
+        $kod = Demo::janaKod();
         $this->info("Mod {$mod} HIDUP: laman web kini menggunakan `{$modDb}` dan storage/app/{$mod}/fail.");
+        $this->line("Kod akses peserta (melalui terowong): {$kod}  (terkandung dalam QR halaman /demo)");
         if ($mod === Demo::PERCUBAAN) {
             $this->line('Emel SEBENAR akan dihantar ('.config('mail.default').', daripada '.config('mail.from.address').').');
             $this->line('Semasa terowong hidup, buka sistem melalui pautan terowong (dms-pkink.test akan dialihkan ke situ).');

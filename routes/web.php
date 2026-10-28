@@ -35,6 +35,7 @@ Route::get('/sahkan-slip/{borang}/{kod}', [SlipKelulusanController::class, 'sahk
 // Mod Demo (Fasa D): halaman tayangan QR + log masuk butang akaun demo; 404 bila mod demo mati
 Route::get('/demo', [DemoController::class, 'halaman'])->name('demo.halaman');
 Route::post('/demo/masuk', [DemoController::class, 'masuk'])->middleware(['guest', 'throttle:30,1'])->name('demo.masuk');
+Route::post('/demo/kod', [DemoController::class, 'kod'])->middleware('throttle:10,1')->name('demo.kod');
 
 // Laluan tetamu: pengguna yang sudah log masuk akan dibawa ke papan pemuka
 Route::middleware('guest')->group(function () {

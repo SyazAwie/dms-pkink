@@ -56,17 +56,39 @@ class DemoController extends Controller
         return redirect()->route('dashboard');
     }
 
+    /** Borang kod akses (ModDemo::pintuKod): buka akses sesi ini, kemudian kembali ke halaman asal. */
+    public function kod(Request $request)
+    {
+        abort_unless(Demo::mod() !== null, 404);
+
+        $ke = (string) $request->input('ke', '/');
+        // Hanya laluan dalaman (elak pengalihan ke laman luar)
+        if (! str_starts_with($ke, '/') || str_starts_with($ke, '//')) {
+            $ke = '/';
+        }
+
+        if (! Demo::kodSah((string) $request->input('kod'))) {
+            return response()->view('demo.kod', ['ke' => $ke, 'salah' => true], 403);
+        }
+
+        $request->session()->put(Demo::SESI_KOD, Demo::kodAkses());
+
+        return redirect()->to($ke);
+    }
+
     /** Halaman tayangan: kod QR pautan + senarai akaun demo (mod demo) atau langkah daftar (mod percubaan). */
     public function halaman()
     {
         abort_unless(Demo::mod() !== null, 404);
 
         $url = Demo::urlTerowong() ?? url('/');
-        $qr = (new Writer(new ImageRenderer(new RendererStyle(320, 1), new SvgImageBackEnd)))->writeString($url);
+        // QR mengandungi kod akses: imbas sahaja sudah membuka akses
+        $qr = (new Writer(new ImageRenderer(new RendererStyle(320, 1), new SvgImageBackEnd)))->writeString(Demo::pautanBerkod($url));
 
         return view('demo.index', [
             'url' => $url,
             'qr' => $qr,
+            'kod' => Demo::kodAkses(),
             'percubaan' => Demo::percubaan(),
             'akaun' => Demo::aktif() ? self::senaraiAkaun() : collect(),
             'adaTerowong' => Demo::urlTerowong() !== null,

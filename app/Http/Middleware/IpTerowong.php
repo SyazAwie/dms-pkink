@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Demo;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,6 +24,14 @@ class IpTerowong
         if ($ip && in_array($request->server('REMOTE_ADDR'), ['127.0.0.1', '::1'], true) && filter_var($ip, FILTER_VALIDATE_IP)) {
             $request->attributes->set('melalui_terowong', true);
             $request->server->set('REMOTE_ADDR', $ip);
+
+            // cloudflared menulis semula Host kepada laman Herd (dms-pkink.test). Pulihkan alamat
+            // terowong pada permintaan itu sendiri supaya fullUrl(), url.intended, paginasi dan
+            // isSecure() betul untuk telefon peserta (bukan hanya URL yang dijana).
+            if ($host = parse_url((string) Demo::urlTerowong(), PHP_URL_HOST)) {
+                $request->headers->set('HOST', $host);
+                $request->server->add(['HTTP_HOST' => $host, 'SERVER_NAME' => $host, 'HTTPS' => 'on', 'SERVER_PORT' => 443, 'REQUEST_SCHEME' => 'https']);
+            }
         }
 
         return $next($request);

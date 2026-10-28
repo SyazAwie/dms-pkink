@@ -747,7 +747,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `php artisan sandaran:luar-talian {destinasi}` | `app/Console/Commands/SandaranLuarTalian.php` (manual, mingguan) |
 | `php artisan sandaran:pulih [zip] [--pangkalan-data] [--fail-imbasan] [--ke-db=] [--ya]` | `app/Console/Commands/SandaranPulih.php` |
 | `php artisan ocr:nilai [folder] [--jana-label=KOD] [--tanpa-few-shot] [--simpan=laporan.json]` | `app/Console/Commands/OcrNilai.php` (P15; lalai `../Ujian_Borang_Diisi`) |
-| `php artisan demo:sedia\|hidup\|mati\|set-semula\|terowong\|semak [--percubaan]` | `app/Console/Commands/Demo*.php` (Fasa D: mod demo & mod percubaan, lihat 10.3) |
+| `php artisan demo:sedia\|hidup\|mati\|set-semula\|terowong\|semak\|kod [--percubaan]` | `app/Console/Commands/Demo*.php` (Fasa D: mod demo & mod percubaan, lihat 10.3) |
 
 ### Views (`resources/views/`)
 | Folder | Kandungan |
@@ -857,6 +857,11 @@ php artisan demo:terowong     # tetingkap BERASINGAN, biarkan terbuka: cetak pau
 php artisan demo:semak --panaskan   # senarai semak + muat model AI ke GPU
 ```
 Tayang `https://….trycloudflare.com/demo` (atau `http://dms-pkink.test/demo`) pada projektor: kod QR + senarai akaun demo.
+
+**Kod akses (kedua-dua mod)**
+- `demo:hidup` menjana kod 6 aksara (dicetak di terminal, dipaparkan pada `/demo`). Setiap permintaan **melalui terowong** mesti membuka akses dengan kod ini sekali; akses di komputer ini (`dms-pkink.test`) dikecualikan.
+- Kod QR pada `/demo` mengandungi kod (`…/?kod=XXXXXX`), jadi peserta hanya perlu imbas. Pautan tanpa kod memaparkan halaman "Masukkan kod akses" (had 10 cubaan seminit).
+- `php artisan demo:kod` memaparkan kod semasa; `--baharu` menukarnya (semua peserta perlu masukkan semula), cth. jika gambar QR tersebar di luar dewan.
 
 **Semasa mod demo**
 - Log masuk hanya melalui butang "Masuk sebagai ADMIN/KERANI/…" (akaun `DEMO_AKAUN`); borang kata laluan, lupa kata laluan dan pendaftaran ditutup. Kata laluan semua akaun lain dalam salinan demo dirawakkan oleh `demo:sedia`.

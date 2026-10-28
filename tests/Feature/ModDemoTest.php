@@ -15,6 +15,7 @@ use App\Support\Demo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Mockery\MockInterface;
 use Tests\SkemaUjian;
@@ -233,6 +234,99 @@ class ModDemoTest extends TestCase
         $this->terowong(Demo::DEGUPAN_SAAT + 60); // terowong ditutup (Ctrl+C), fail lama tertinggal
 
         $this->get(route('login'))->assertOk()->assertDontSee('contoh-ujian.trycloudflare.com');
+    }
+
+    // ---------- Kod akses (permintaan melalui terowong) ----------
+
+    private function sediakanKod(): string
+    {
+        $this->hidupkan();
+        $this->terowong();
+
+        return Demo::janaKod();
+    }
+
+    private function melaluiTerowong(): static
+    {
+        return $this->withHeader('CF-Connecting-IP', '203.0.113.9');
+    }
+
+    public function test_kod_akses_diperlukan_melalui_terowong_tetapi_bukan_tempatan(): void
+    {
+        $this->sediakanKod();
+
+        $this->melaluiTerowong()->get(route('login'))->assertForbidden()->assertSee('Masukkan kod akses');
+        $this->melaluiTerowong()->post(route('demo.masuk'), ['ic' => '990101010101'])->assertForbidden();
+        $this->assertGuest();
+
+        // Di komputer sendiri (tanpa header Cloudflare): tiada kod
+        $this->flushHeaders()->get(route('login'))->assertOk()->assertSee('Pilih peranan untuk mencuba');
+    }
+
+    public function test_kod_dalam_pautan_qr_membuka_akses_dan_dibuang_dari_alamat(): void
+    {
+        $kod = $this->sediakanKod();
+
+        $this->melaluiTerowong()->get('/demo?kod='.strtolower($kod))
+            ->assertRedirect('https://contoh-ujian.trycloudflare.com/demo');
+        $this->melaluiTerowong()->get(route('demo.halaman'))->assertOk()->assertSee($kod);
+        $this->melaluiTerowong()->post(route('demo.masuk'), ['ic' => '990101010104'])->assertRedirect();
+        $this->assertAuthenticatedAs($this->staf);
+    }
+
+    public function test_url_permintaan_terowong_guna_alamat_terowong_untuk_intended(): void
+    {
+        $kod = $this->sediakanKod();
+        $this->melaluiTerowong()->post(route('demo.kod'), ['kod' => $kod, 'ke' => '/']);
+
+        // Pautan emel ke halaman dilindungi sebelum log masuk: selepas log masuk mesti kembali
+        // ke alamat terowong, bukan Host Herd yang ditulis semula oleh cloudflared
+        // URL mutlak dengan Host Herd: seperti yang dihantar oleh cloudflared (--http-host-header)
+        $this->melaluiTerowong()->get('http://dms-pkink.test/dokumen?carian=a')->assertRedirect();
+        $this->assertSame('https://contoh-ujian.trycloudflare.com/dokumen?carian=a', session('url.intended'));
+    }
+
+    public function test_permintaan_terowong_sendiri_beralamat_terowong(): void
+    {
+        // request()->url()/fullUrl() digunakan oleh paginasi & pengalihan: mesti alamat terowong (https)
+        Route::middleware('web')->get('/_ujian-alamat', fn () => request()->fullUrl().'|'.(request()->isSecure() ? 'https' : 'http'));
+        $kod = $this->sediakanKod();
+        $this->melaluiTerowong()->post(route('demo.kod'), ['kod' => $kod, 'ke' => '/']);
+
+        $this->melaluiTerowong()->get('http://dms-pkink.test/_ujian-alamat?halaman=2')->assertOk()
+            ->assertSeeText('https://contoh-ujian.trycloudflare.com/_ujian-alamat?halaman=2|https', false);
+    }
+
+    public function test_kod_salah_ditolak(): void
+    {
+        $this->sediakanKod();
+
+        $this->melaluiTerowong()->get('/?kod=SALAH1')->assertForbidden()->assertSee('Kod akses tidak sah');
+        $this->melaluiTerowong()->post(route('demo.kod'), ['kod' => 'SALAH1', 'ke' => '/demo'])
+            ->assertForbidden()->assertSee('Kod akses tidak sah');
+        $this->melaluiTerowong()->get(route('login'))->assertForbidden();
+    }
+
+    public function test_borang_kod_kembali_ke_halaman_asal_dalaman_sahaja(): void
+    {
+        $kod = $this->sediakanKod();
+
+        $this->melaluiTerowong()->post(route('demo.kod'), ['kod' => $kod, 'ke' => '/demo'])
+            ->assertRedirect('https://contoh-ujian.trycloudflare.com/demo');
+        $this->melaluiTerowong()->get(route('login'))->assertOk();
+
+        $this->melaluiTerowong()->post(route('demo.kod'), ['kod' => $kod, 'ke' => '//laman-jahat.test/x'])
+            ->assertRedirect('https://contoh-ujian.trycloudflare.com');
+    }
+
+    public function test_kod_baharu_membatalkan_akses_lama(): void
+    {
+        $kod = $this->sediakanKod();
+        $this->melaluiTerowong()->post(route('demo.kod'), ['kod' => $kod, 'ke' => '/']);
+        $this->melaluiTerowong()->get(route('login'))->assertOk();
+
+        Demo::janaKod();
+        $this->melaluiTerowong()->get(route('login'))->assertForbidden();
     }
 
     public function test_akaun_dikunci_tidak_diemel_notifikasi(): void

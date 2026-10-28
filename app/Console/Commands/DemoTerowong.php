@@ -60,8 +60,9 @@ class DemoTerowong extends Command
             if (! $url && preg_match('#https://[a-z0-9-]+\.trycloudflare\.com#i', $output, $m)) {
                 $url = $m[0];
                 $this->newLine();
-                $this->info("Pautan demo: {$url}");
-                $this->line("Tayang kod QR: {$url}/demo  (atau http://{$host}/demo di komputer ini)");
+                $kod = Demo::kodAkses();
+                $this->info("Pautan demo: {$url}".($kod ? "  (kod akses: {$kod})" : ''));
+                $this->line("Tayang kod QR: {$url}/demo".($kod ? "?kod={$kod}" : '')."  (atau http://{$host}/demo di komputer ini)");
                 $this->line('Biarkan tetingkap ini terbuka. Tekan Ctrl+C untuk menutup terowong.');
             }
             // Degupan: jika arahan ini terhenti (Ctrl+C), alamat lama tamat sendiri dalam

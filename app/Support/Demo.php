@@ -19,7 +19,10 @@ use Illuminate\Support\Facades\URL;
  *
  * Kedua-dua mod: DB salinan & folder fail sendiri (dicipta oleh demo:sedia), APP_DEBUG mati.
  *
- * storage/app/demo        aktif, terowong.json, fail/, asas.sql, asas-fail/   (mod demo)
+ * Kod akses: permintaan melalui terowong mesti membuka akses dengan kod 6 aksara (dijana oleh
+ * demo:hidup, terkandung dalam QR /demo), supaya pautan yang tersebar sahaja tidak mencukupi.
+ *
+ * storage/app/demo        aktif, kod.txt, terowong.json, fail/, asas.sql, asas-fail/   (mod demo)
  * storage/app/percubaan   fail/, asas.sql, asas-fail/                         (mod percubaan)
  */
 class Demo
@@ -151,6 +154,54 @@ class Demo
         }
 
         return is_string($data['url']) && preg_match('#^https://[a-z0-9.-]+$#i', $data['url']) ? $data['url'] : null;
+    }
+
+    // ---- Kod akses (permintaan melalui terowong mesti membuka akses dengan kod ini) ----
+
+    public const SESI_KOD = 'kod_akses_demo';
+
+    /** Aksara kod: tanpa O/0, I/1/L yang mudah tersilap baca pada projektor. */
+    private const AKSARA_KOD = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+    public static function kodAkses(): ?string
+    {
+        $kod = trim((string) @file_get_contents(self::folder('kod.txt')));
+
+        return preg_match('/^[A-Z0-9]{6}$/', $kod) ? $kod : null;
+    }
+
+    /** Jana kod baharu; akses yang dibuka dengan kod lama tidak lagi sah. */
+    public static function janaKod(): string
+    {
+        $kod = '';
+        for ($i = 0; $i < 6; $i++) {
+            $kod .= self::AKSARA_KOD[random_int(0, strlen(self::AKSARA_KOD) - 1)];
+        }
+        File::ensureDirectoryExists(self::folder());
+        File::put(self::folder('kod.txt'), $kod);
+
+        return $kod;
+    }
+
+    public static function kodSah(?string $cubaan): bool
+    {
+        $kod = self::kodAkses();
+
+        return $kod !== null && is_string($cubaan) && hash_equals($kod, strtoupper(trim($cubaan)));
+    }
+
+    /** Sesi ini sudah membuka akses dengan kod semasa. */
+    public static function aksesDibuka(Request $request): bool
+    {
+        return self::kodSah($request->session()->get(self::SESI_KOD));
+    }
+
+    /** Pautan halaman/QR yang terus membuka akses (kod dalam pautan). */
+    public static function pautanBerkod(string $url): string
+    {
+        $kod = self::kodAkses();
+
+        return $kod ? rtrim($url, '/').'/?kod='.$kod : $url;
     }
 
     /** No. KP akaun demo (config demo.akaun). */

@@ -29,6 +29,8 @@
         .qr { width: 100%; padding: 10px; border: 1px solid var(--dms-line); border-radius: 16px; background: #fff; }
         .qr svg { display: block; width: 100%; height: auto; }
         .url { margin-top: 12px; color: var(--dms-primary); font-size: 15px; font-weight: 700; text-align: center; word-break: break-all; }
+        .kod { margin-top: 8px; color: var(--dms-muted); font-size: 15px; text-align: center; }
+        .kod strong { color: var(--dms-brand); font-size: 26px; letter-spacing: 4px; }
         .amaran { margin-top: 10px; padding: 8px 12px; border-radius: 8px; background: #fff8e6; color: #5c4400; font-size: 13px; text-align: center; }
         .akaun { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
         .akaun li { padding: 10px 12px; border: 1px solid var(--dms-line); border-radius: 10px; }
@@ -44,6 +46,9 @@
         <div>
             <div class="qr" role="img" aria-label="Kod QR pautan demo">{!! $qr !!}</div>
             <div class="url">{{ $url }}</div>
+            @if($kod)
+                <div class="kod">Kod akses: <strong>{{ $kod }}</strong></div>
+            @endif
             @unless($adaTerowong)
                 <div class="amaran">Terowong belum berjalan: pautan ini hanya boleh dibuka di komputer ini. Jalankan <code>php artisan demo:terowong</code>.</div>
             @endunless
