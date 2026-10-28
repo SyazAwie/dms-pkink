@@ -15,10 +15,12 @@ use App\Rules\FailSelamat;
 use App\Services\OcrService;
 use App\Services\OllamaExtractionService;
 use App\Support\JenisMedan;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -60,6 +62,7 @@ class ImbasArkibController extends DokumenController
 {
     private const FOLDER_SEMENTARA = 'ocr_sementara';
     private const MINIT_TAMAT = 120;
+    public const KUNCI_ANALISIS = 'ocr-ai:analisis';
 
     /** 'arkib' atau 'hantar' (ImbasHantarController). */
     protected function mod(): string
@@ -182,6 +185,17 @@ class ImbasArkibController extends DokumenController
             // Masa setiap langkah (saat), dipaparkan di skrin semak
             'masa' => ['ocr' => null, 'ai' => null]];
 
+        // Satu analisis pada satu masa (Fasa D4): permintaan serentak (cth. peserta demo) menunggu
+        // giliran. Kunci tamat sendiri selepas had masa OCR jika proses mati di tengah jalan.
+        $kunci = Cache::lock(self::KUNCI_ANALISIS, (int) config('services.ocr.had_masa', 300) + 30);
+        try {
+            $kunci->block((int) config('services.ocr.tunggu_giliran', 120));
+        } catch (LockTimeoutException) {
+            $hasil['mesej_amaran'] = 'Sistem sedang sibuk menganalisis dokumen lain. Sila isi medan secara manual, atau cuba semula sebentar lagi.';
+
+            return $hasil;
+        }
+
         try {
             $mula = microtime(true);
             $ocr = app(OcrService::class)->proses($laluanFail, $paksaVlm);
@@ -201,6 +215,8 @@ class ImbasArkibController extends DokumenController
         } catch (\Throwable $e) {
             Log::warning('Imbas & Arkib: OCR/AI gagal: ' . $e->getMessage());
             $hasil['mesej_amaran'] = 'OCR/AI gagal diproses automatik' . $this->butiranRalat($e) . ' — sila isi semua medan secara manual.';
+        } finally {
+            $kunci->release();
         }
 
         return $hasil;
