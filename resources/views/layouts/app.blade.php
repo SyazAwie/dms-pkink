@@ -10,6 +10,8 @@
     <link rel="apple-touch-icon" href="{{ asset('ikon/dms-192.png') }}">
     <meta name="vapid-public-key" content="{{ config('webpush.vapid.public_key') }}">
     <title>DMS PKINK - @yield('title', 'Papan Pemuka')</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}?v=2" sizes="any">
+    <link rel="icon" href="{{ asset('ikon/favicon-32.png') }}?v=2" type="image/png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
