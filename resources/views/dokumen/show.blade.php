@@ -74,6 +74,10 @@
                 <li><span>Bahagian</span><strong>{{ $dokumen->bahagian->nama_bahagian ?? '-' }}</strong></li>
                 <li><span>Dimuat Naik Oleh</span><strong>{{ $dokumen->pemuatNaik->nama_staff ?? '-' }}</strong></li>
                 <li><span>Tarikh Dimuat Naik</span><strong>{{ $dokumen->created_at?->translatedFormat('d M Y, h:i A') }}</strong></li>
+                <li><span>Tamat Simpanan</span><strong>
+                    {{ $dokumen->tarikh_tamat_simpanan?->translatedFormat('d M Y') ?? 'Kekal' }}
+                    @if($dokumen->status_pelupusan === 'Dikekalkan') <span class="dms-hint">(dilanjutkan)</span> @endif
+                </strong></li>
             </ul>
         </div>
 

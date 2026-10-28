@@ -75,6 +75,24 @@
                     <div class="dms-hint">Kumpulan umum untuk memudahkan carian dan penapisan</div>
                 </div>
 
+                <div class="row g-2 mt-2 mb-2">
+                    <div class="col-sm-5">
+                        <label class="dms-label" for="tempoh_simpanan_tahun">Tempoh Simpanan <span class="dms-optional">(tahun)</span></label>
+                        <input type="number" name="tempoh_simpanan_tahun" id="tempoh_simpanan_tahun" class="dms-input" min="1" max="100"
+                               value="{{ old('tempoh_simpanan_tahun') }}" placeholder="Kekal">
+                        @error('tempoh_simpanan_tahun') <div class="dms-error">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-sm-7">
+                        <label class="dms-label" for="tindakan_tamat_tempoh">Tindakan Bila Tamat Tempoh</label>
+                        <select name="tindakan_tamat_tempoh" id="tindakan_tamat_tempoh" class="dms-input">
+                            @foreach(\App\Models\JenisDokumen::TINDAKAN_TAMAT as $t)
+                                <option value="{{ $t }}" @selected(old('tindakan_tamat_tempoh', 'Semak Semula') === $t)>{{ $t }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="dms-hint mt-1">Kira dari Tarikh Dokumen. Kosongkan untuk simpan kekal. Dokumen tamat tempoh disenaraikan di halaman Pelupusan untuk keputusan pentadbir.</div>
+                </div>
+
                 <hr class="dms-divider">
 
                 <!-- ============ Mula daripada templat / salinan kategori ============ -->

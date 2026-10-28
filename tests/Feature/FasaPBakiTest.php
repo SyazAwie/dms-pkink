@@ -200,4 +200,81 @@ class FasaPBakiTest extends TestCase
             ->assertSessionHasNoErrors();
         $this->actingAs($admin)->get(route('delegasi.index'))->assertOk()->assertSee('Nor Hidayah')->assertSee('Pelulus');
     }
+
+    // ---------------- P12: tempoh simpanan & pelupusan ----------------
+
+    private function dokumenBertarikh(string $rujukan, string $tarikh): Dokumen
+    {
+        return Dokumen::create(['jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'no_rujukan' => $rujukan,
+            'tarikh_dokumen' => $tarikh, 'created_by' => $this->staf->user_id]);
+    }
+
+    public function test_tarikh_tamat_simpanan_dikira_dan_dikira_semula_ikut_kategori(): void
+    {
+        $tanpaTempoh = $this->dokumenBertarikh('BPK/2020/0001', '2020-01-15');
+        $this->assertNull($tanpaTempoh->tarikh_tamat_simpanan);
+
+        $this->jenis->update(['tempoh_simpanan_tahun' => 5]);
+        $d = $this->dokumenBertarikh('BPK/2020/0002', '2020-01-15');
+        $this->assertSame('2025-01-15', $d->fresh()->tarikh_tamat_simpanan->toDateString());
+        $d->update(['tarikh_dokumen' => '2021-03-01']);
+        $this->assertSame('2026-03-01', $d->fresh()->tarikh_tamat_simpanan->toDateString());
+
+        // Dokumen yang dikekalkan secara manual tidak disentuh bila tempoh kategori berubah
+        $kekal = $this->dokumenBertarikh('BPK/2020/0003', '2020-01-15');
+        $kekal->forceFill(['status_pelupusan' => 'Dikekalkan', 'tarikh_tamat_simpanan' => '2040-01-01'])->saveQuietly();
+
+        $admin = $this->buatPengguna(['ADMIN']);
+        $this->actingAs($admin)->put(route('jenis-dokumen.update', $this->jenis->jenis_dokumen_id), [
+            'kod_dokumen' => 'BPK', 'nama_dokumen' => 'Borang Pohon Komputer',
+            'tempoh_simpanan_tahun' => 10, 'tindakan_tamat_tempoh' => 'Serah Arkib Negara',
+        ])->assertRedirect(route('jenis-dokumen.index'))->assertSessionHasNoErrors();
+
+        $this->assertSame('Serah Arkib Negara', $this->jenis->fresh()->tindakan_tamat_tempoh);
+        $this->assertSame('2031-03-01', $d->fresh()->tarikh_tamat_simpanan->toDateString());
+        $this->assertSame('2030-01-15', $tanpaTempoh->fresh()->tarikh_tamat_simpanan->toDateString());
+        $this->assertSame('2040-01-01', $kekal->fresh()->tarikh_tamat_simpanan->toDateString());
+    }
+
+    public function test_pelupusan_kekalkan_lupus_dan_pulihkan(): void
+    {
+        $this->jenis->update(['tempoh_simpanan_tahun' => 1]);
+        $tamat = $this->dokumenBertarikh('BPK/2020/0001', '2020-01-15');
+        $tamatJuga = $this->dokumenBertarikh('BPK/2020/0002', '2020-06-01');
+        $aktif = $this->dokumenBertarikh('BPK/2026/0009', today()->toDateString());
+        $admin = $this->buatPengguna(['ADMIN'], ['nama_staff' => 'Pentadbir Arkib']);
+
+        $this->actingAs($this->staf)->get(route('pelupusan.index'))->assertForbidden();
+        $this->actingAs($admin)->get(route('pelupusan.index'))->assertOk()
+            ->assertSee('BPK/2020/0001')->assertSee('BPK/2020/0002')->assertDontSee('BPK/2026/0009');
+
+        // Kekalkan 2 tahun dari hari ini (tarikh tamat sudah lepas)
+        $this->actingAs($admin)->post(route('pelupusan.kekalkan', $tamat->dokumen_id), ['tahun' => 2, 'catatan' => 'Kes audit berjalan'])
+            ->assertSessionHasNoErrors();
+        $tamat = $tamat->fresh();
+        $this->assertSame('Dikekalkan', $tamat->status_pelupusan);
+        $this->assertSame(today()->addYears(2)->toDateString(), $tamat->tarikh_tamat_simpanan->toDateString());
+        $this->assertDatabaseHas('log_audit', ['tindakan' => 'Kekalkan Dokumen', 'rekod_id' => $tamat->dokumen_id]);
+
+        // Lupus: catatan wajib; tidak boleh bagi dokumen belum tamat
+        $this->actingAs($admin)->post(route('pelupusan.lupus', $tamatJuga->dokumen_id), ['kaedah' => 'Dilupuskan'])->assertSessionHasErrors('catatan');
+        $this->actingAs($admin)->post(route('pelupusan.lupus', $aktif->dokumen_id), ['kaedah' => 'Dilupuskan', 'catatan' => 'x'])->assertNotFound();
+        $this->actingAs($admin)->post(route('pelupusan.lupus', $tamatJuga->dokumen_id), ['kaedah' => 'Diserah Arkib Negara', 'catatan' => 'Surat ANM 12/2026'])
+            ->assertSessionHasNoErrors();
+
+        $dilupus = Dokumen::withTrashed()->find($tamatJuga->dokumen_id);
+        $this->assertTrue($dilupus->trashed());
+        $this->assertSame('Diserah Arkib Negara', $dilupus->status_pelupusan);
+        $this->assertSame($admin->user_id, $dilupus->pelupusan_oleh);
+        $this->assertDatabaseHas('log_audit', ['tindakan' => 'Lupus Dokumen', 'rekod_id' => $dilupus->dokumen_id]);
+        $this->actingAs($admin)->get(route('pelupusan.index', ['tab' => 'selesai']))
+            ->assertSee('BPK/2020/0002')->assertSee('Surat ANM 12/2026')->assertSee('Pentadbir Arkib');
+
+        // Dipulihkan dari Tong Sampah: kembali aktif dan perlu keputusan semula
+        $this->actingAs($admin)->post(route('tong-sampah.pulih', ['dokumen', $dilupus->dokumen_id]))->assertRedirect();
+        $dilupus = $dilupus->fresh();
+        $this->assertFalse($dilupus->trashed());
+        $this->assertNull($dilupus->status_pelupusan);
+        $this->actingAs($admin)->get(route('pelupusan.index'))->assertSee('BPK/2020/0002');
+    }
 }

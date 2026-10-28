@@ -501,6 +501,18 @@
                         </a>
                     </li>
                     <li>
+                        @php $bilTamatSimpanan = \App\Http\Controllers\PelupusanController::bilanganTamat(); @endphp
+                        <a href="{{ route('pelupusan.index') }}" class="nav-link {{ request()->routeIs('pelupusan.*') ? 'active' : '' }}">
+                            <i class="bi bi-archive" aria-hidden="true"></i>
+                            <span>Pelupusan</span>
+                            @if($bilTamatSimpanan > 0)
+                                <span class="nav-bil" title="{{ $bilTamatSimpanan }} dokumen tamat tempoh simpanan">{{ $bilTamatSimpanan > 99 ? '99+' : $bilTamatSimpanan }}</span>
+                            @elseif(request()->routeIs('pelupusan.*'))
+                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                            @endif
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ route('tong-sampah.index') }}" class="nav-link {{ request()->routeIs('tong-sampah.*') ? 'active' : '' }}">
                             <i class="bi bi-trash3" aria-hidden="true"></i>
                             <span>Tong Sampah</span>
@@ -534,7 +546,7 @@
                     </li>
                     <li>
                         <a href="{{ route('delegasi.index') }}" class="nav-link {{ request()->routeIs('delegasi.*') ? 'active' : '' }}">
-                            <i class="bi bi-person-check" aria-hidden="true"></i>
+                            <i class="bi bi-people" aria-hidden="true"></i>
                             <span>Delegasi</span>
                             @if(request()->routeIs('delegasi.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>

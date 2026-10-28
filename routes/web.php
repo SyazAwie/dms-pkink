@@ -13,6 +13,7 @@ use App\Http\Controllers\JenisDokumenController;
 use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\PelupusanController;
 use App\Http\Controllers\PendaftaranStafController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SlipKelulusanController;
@@ -96,6 +97,11 @@ Route::middleware(['auth', 'wajib.tukar'])->group(function () {
         Route::get('/tong-sampah', [TongSampahController::class, 'index'])->name('tong-sampah.index');
         Route::post('/tong-sampah/{jenis}/{id}/pulih', [TongSampahController::class, 'pulih'])
             ->whereIn('jenis', ['dokumen', 'kategori', 'bahagian', 'kakitangan'])->whereNumber('id')->name('tong-sampah.pulih');
+
+        // Tempoh simpanan & pelupusan (P12)
+        Route::get('/pelupusan', [PelupusanController::class, 'index'])->name('pelupusan.index');
+        Route::post('/pelupusan/{id}/kekalkan', [PelupusanController::class, 'kekalkan'])->whereNumber('id')->name('pelupusan.kekalkan');
+        Route::post('/pelupusan/{id}/lupus', [PelupusanController::class, 'lupus'])->whereNumber('id')->name('pelupusan.lupus');
 
         // Status Sistem: semakan OCR/AI, sandaran, penjadual, storan
         Route::get('/status-sistem', [StatusSistemController::class, 'index'])->name('status-sistem.index');

@@ -19,8 +19,16 @@ class JenisDokumen extends Model
     protected $fillable = [
         'kod_dokumen',
         'nama_dokumen',
-        'kategori'
+        'kategori',
+        'tempoh_simpanan_tahun',
+        'tindakan_tamat_tempoh',
     ];
+
+    /**
+     * Tindakan yang disyorkan bila dokumen kategori ini tamat tempoh simpanan (P12),
+     * ikut amalan pengurusan rekod Arkib Negara: semak semula, musnah, atau serah.
+     */
+    public const TINDAKAN_TAMAT = ['Semak Semula', 'Musnah', 'Serah Arkib Negara'];
 
     /**
      * Medan dinamik (EAV) yang ditakrifkan untuk kategori dokumen ini,
