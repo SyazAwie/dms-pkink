@@ -625,6 +625,11 @@ Menu sidebar dan butang tindakan **disembunyikan** mengikut peranan pengguna. Ak
 - **Perlindungan CSRF** pada setiap borang POST/PUT/DELETE; halaman 419 BM bila sesi tamat
 - **Subresource Integrity (SRI)** pada semua skrip/gaya CDN jsDelivr; `SriCdnTest` gagal jika tag CDN baharu tiada SRI
 - **Mesej ralat teknikal tidak didedahkan dalam produksi:** butiran OCR/AI hanya bila `APP_DEBUG=true`; halaman 500 BM tanpa butiran
+- **Fail muat naik selamat (Fasa Keselamatan S1, `PemeriksaFail` + peraturan `FailSelamat`):** imbasan Windows Defender (`MpCmdRun`) / ClamAV; had "bom" 50 muka surat PDF (pdfinfo) & 40 juta piksel imej; PDF `/Launch` atau fail terbenam ditolak (JavaScript dibenarkan); fail berbahaya dilog "Fail Berbahaya Ditolak" + amaran pentadbir; OCR maksimum 50 muka surat dan tidak berjalan bila ruang cakera < 1 GB; pratonton fail dengan CSP `sandbox`. Tiada antivirus = diterima + amaran, kecuali `ANTIVIRUS_WAJIB=true`
+- **Pusat Keselamatan** (`/keselamatan`, SUPERADMIN/ADMIN, S2–S3): ringkasan log masuk gagal/IP/akaun disasarkan, semakan pengerasan (akaun DB root/tanpa kata laluan, MySQL terbuka pada rangkaian, debug, antivirus, 2FA & kata laluan lalai pentadbir, sandaran disulitkan, uji pemulihan, salinan luar talian, integriti), tindakan sensitif terkini. **Amaran automatik** ke loceng & telefon: 10 log masuk gagal dari satu IP dalam 10 minit (IP **disekat automatik 1 jam**), pentadbir log masuk dari IP baharu (30 hari), sandaran tertunggak 26 jam
+- **Butang kecemasan** (middleware `PengawalKeselamatan`): kunci akaun (log masuk ditolak, sesi ditamatkan), log keluar paksa seorang/semua pengguna, sekat IP (localhost tidak pernah disekat), **mod kecemasan** (hanya SUPERADMIN log masuk, baca sahaja, laluan awam ditutup). Keadaan disimpan dalam `storage/app/private/keselamatan.json` (bukan cache). Jika Super Admin terkunci di luar: `php artisan keselamatan:kecemasan off|status|buka-ip`
+- **Sandaran tahan ransomware (S4):** zip disulitkan AES-256 (`SANDARAN_KATA_LALUAN`), simpanan bertingkat (14 harian, 8 mingguan, 6 bulanan), `sandaran:uji` mingguan ke DB sementara, `sandaran:luar-talian` ke cakera luaran yang dicabut, `sandaran:pulih` berpandu
+- **Pelan Tindak Balas Insiden (S5):** `docs/PELAN_TINDAK_BALAS_INSIDEN.md`, dibuka & dicetak dari Pusat Keselamatan: hubungan kecemasan, peraturan (jangan bayar tebusan), senario A–F termasuk ransomware/peras ugut, rutin, pemulihan, pengerasan pelayan (pengguna DB `dms_app`, kata laluan root, `bind-address=127.0.0.1`). **Had:** aplikasi tidak boleh menahan worm/virus peringkat sistem pengendalian atau penyerang yang menguasai pelayan; pertahanannya ialah pengerasan Windows/MySQL, Defender masa nyata dan sandaran luar talian
 - **Kegagalan proses luaran (OCR/AI/emel) tidak merosakkan data:** OCR/AI ditanda status ralat tanpa membatalkan dokumen; emel pendaftaran gagal membatalkan transaksi; fail yang sempat ditulis dipadam bila transaksi gagal
 
 ---
@@ -724,6 +729,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `LogAuditController` | Log Audit |
 | `NotifikasiController` | Loceng, halaman Notifikasi, langganan peranti |
 | `TongSampahController` | Tong Sampah: senarai & pulih rekod terpadam |
+| `KeselamatanController` | Pusat Keselamatan, butang kecemasan, Pelan Tindak Balas Insiden |
 | `StatusSistemController` | Status Sistem (OCR/AI, notifikasi, sandaran, penjadual, storan, ketepatan AI) |
 | `DelegasiController` | Delegasi kelulusan semasa cuti (P5) |
 | `PelupusanController` | Tempoh simpanan & pelupusan (P12) |
@@ -736,6 +742,10 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `php artisan sandaran:jalan [--simpan=14]` | `app/Console/Commands/SandaranJalan.php` (dijadualkan 12:30 setiap hari) |
 | `php artisan fail:integriti` | `app/Console/Commands/FailIntegriti.php` (dijadualkan setiap Isnin 12:45) |
 | `php artisan ai:panaskan` | `routes/console.php` |
+| `php artisan keselamatan:kecemasan on\|off\|status\|buka-ip [--sebab=]` | `app/Console/Commands/KeselamatanKecemasan.php` |
+| `php artisan sandaran:uji [zip]` | `app/Console/Commands/SandaranUji.php` (dijadualkan setiap Rabu 13:00) |
+| `php artisan sandaran:luar-talian {destinasi}` | `app/Console/Commands/SandaranLuarTalian.php` (manual, mingguan) |
+| `php artisan sandaran:pulih [zip] [--pangkalan-data] [--fail-imbasan] [--ke-db=] [--ya]` | `app/Console/Commands/SandaranPulih.php` |
 | `php artisan ocr:nilai [folder] [--jana-label=KOD] [--tanpa-few-shot] [--simpan=laporan.json]` | `app/Console/Commands/OcrNilai.php` (P15; lalai `../Ujian_Borang_Diisi`) |
 
 ### Views (`resources/views/`)

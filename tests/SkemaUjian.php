@@ -42,6 +42,8 @@ trait SkemaUjian
             $t->text('dua_faktor_rahsia')->nullable();
             $t->text('dua_faktor_kod_pemulihan')->nullable();
             $t->timestamp('dua_faktor_disahkan_pada')->nullable();
+            $t->timestamp('dikunci_hingga')->nullable();
+            $t->string('sebab_kunci')->nullable();
             $t->unsignedBigInteger('bahagian_id')->nullable();
             $t->rememberToken();
             $t->timestamps();
@@ -137,6 +139,16 @@ trait SkemaUjian
             $t->unsignedBigInteger('dicipta_oleh')->nullable();
             $t->timestamp('dibatalkan_pada')->nullable();
             $t->timestamps();
+        });
+
+        Schema::create('ip_disekat', function (Blueprint $t) {
+            $t->id('ip_disekat_id');
+            $t->string('alamat_ip', 45);
+            $t->string('sebab')->nullable();
+            $t->boolean('automatik')->default(false);
+            $t->unsignedBigInteger('disekat_oleh')->nullable();
+            $t->timestamp('tamat_pada')->nullable();
+            $t->timestamp('created_at')->nullable();
         });
 
         Schema::create('log_masuk', function (Blueprint $t) {

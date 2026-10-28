@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Http\Middleware\HeaderKeselamatan;
+use App\Http\Middleware\PengawalKeselamatan;
 use App\Http\Middleware\SemakPeranan;
 use App\Http\Middleware\WajibDuaFaktor;
 use App\Http\Middleware\WajibTukarKataLaluan;
@@ -29,7 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // pengguna (had kadar log masuk) betul, tanpa membenarkan IP lain memalsukan header itu.
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
 
-        $middleware->web(append: [HeaderKeselamatan::class]);
+        // PengawalKeselamatan: sekatan IP, akaun dikunci, log keluar paksa, mod kecemasan (S3)
+        $middleware->web(append: [HeaderKeselamatan::class, PengawalKeselamatan::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

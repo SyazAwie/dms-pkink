@@ -19,6 +19,13 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class HeaderKeselamatan
 {
+    /**
+     * CSP bagi respons fail imbasan muat naik pengguna (Fasa Keselamatan S1): sebarang
+     * kandungan aktif (skrip PDF/SVG/HTML yang menyamar) tidak boleh berjalan dalam
+     * asal (origin) sistem, jadi tidak boleh mencuri sesi pengguna yang membukanya.
+     */
+    public const CSP_FAIL = "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'";
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\Keselamatan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Sejarah log masuk (P13): setiap cubaan berjaya atau gagal. No. KP yang dicuba TIDAK
@@ -30,6 +32,18 @@ class LogMasuk extends Model
             'alamat_ip' => $request->ip(),
             'peranti_pengguna' => $request->userAgent(),
         ]);
+
+        // Amaran keselamatan (lonjakan gagal dari satu IP, pentadbir dari IP baharu).
+        // Kegagalan amaran tidak boleh menghalang log masuk.
+        try {
+            if (! $berjaya) {
+                Keselamatan::selepasGagal($request->ip());
+            } elseif ($userId && ($user = User::find($userId))) {
+                Keselamatan::selepasBerjaya($user, $request->ip());
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Semakan keselamatan log masuk gagal: '.$e->getMessage());
+        }
     }
 
     public function pengguna()

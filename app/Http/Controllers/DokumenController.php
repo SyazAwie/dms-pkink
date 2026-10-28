@@ -12,6 +12,8 @@ use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Services\OcrService;
+use App\Http\Middleware\HeaderKeselamatan;
+use App\Rules\FailSelamat;
 use App\Services\TeraAirService;
 use App\Support\Csv;
 use App\Support\JenisMedan;
@@ -249,7 +251,7 @@ class DokumenController extends Controller
             'perkara' => 'nullable|max:255',
             // Pilihan: borang boleh diisi secara digital tanpa fail imbasan (Situasi 2)
             'fail_scan' => 'nullable|array',
-            'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'fail_scan.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240', new FailSelamat],
             'tindakan' => 'nullable|in:simpan,hantar',
         ] + ($jenisDipilih ? $this->peraturanMedan($jenisDipilih, $request, 'pilihan') : []), $mesejAutoIsi);
 
@@ -449,7 +451,7 @@ class DokumenController extends Controller
             'hapus_scan' => 'nullable|array',
             'hapus_scan.*' => 'integer',
             'fail_scan' => 'nullable|array',
-            'fail_scan.*' => 'file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'fail_scan.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240', new FailSelamat],
         ] + $this->peraturanMedan($dokumen->jenisDokumen, $request, 'pilihan'), $mesejAutoIsi);
 
         // Hanya fail milik dokumen ini boleh dibuang
@@ -678,7 +680,8 @@ class DokumenController extends Controller
             abort(404, 'Fail tidak dijumpai dalam storan.');
         }
 
-        return Storage::disk('local')->response($scan->lokasi_fail, $scan->nama_fail);
+        return Storage::disk('local')->response($scan->lokasi_fail, $scan->nama_fail,
+            ['Content-Security-Policy' => HeaderKeselamatan::CSP_FAIL]);
     }
 
     /**

@@ -61,6 +61,13 @@ class OcrService
             throw new \RuntimeException("Fail sumber tidak wujud: {$laluanRelatifDiskLocal}");
         }
 
+        // Fasa Keselamatan: imej 300dpi ~25MB setiap muka surat; jangan penuhkan cakera pelayan
+        $ruang = @disk_free_space(sys_get_temp_dir());
+        $minMb = (int) config('services.keselamatan.min_ruang_cakera_mb', 1024);
+        if ($ruang !== false && $ruang / 1048576 < $minMb) {
+            throw new \RuntimeException('Ruang cakera pelayan tidak mencukupi untuk OCR (kurang ' . $minMb . ' MB). Sila hubungi Pentadbir Sistem.');
+        }
+
         $sambungan = strtolower(pathinfo($laluanPenuh, PATHINFO_EXTENSION));
         $folderSementara = sys_get_temp_dir() . '/dms_ocr_' . Str::random(10);
         mkdir($folderSementara, 0777, true);
@@ -111,12 +118,16 @@ class OcrService
         }
     }
 
-    /** Tukar setiap muka surat PDF kepada PNG (300dpi) guna pdftoppm (Poppler). */
+    /**
+     * Tukar muka surat PDF kepada PNG (300dpi) guna pdftoppm (Poppler), maksimum
+     * KESELAMATAN_MAKS_MUKA_SURAT muka surat (lapisan kedua selepas semakan muat naik).
+     */
     private function pdfKeImej(string $laluanPdf, string $folderSementara): array
     {
         $awalan = $folderSementara . DIRECTORY_SEPARATOR . 'muka';
+        $maks = (string) config('services.keselamatan.maks_muka_surat', 50);
 
-        $proses = new Process([$this->pdftoppmBin, '-png', '-r', '300', $laluanPdf, $awalan]);
+        $proses = new Process([$this->pdftoppmBin, '-png', '-r', '300', '-l', $maks, $laluanPdf, $awalan]);
         $proses->setTimeout(120);
         $proses->run();
 

@@ -520,6 +520,13 @@
                         </a>
                     </li>
                     <li>
+                        <a href="{{ route('keselamatan.index') }}" class="nav-link {{ request()->routeIs('keselamatan.*') ? 'active' : '' }}">
+                            <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                            <span>Pusat Keselamatan</span>
+                            @if(request()->routeIs('keselamatan.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ route('status-sistem.index') }}" class="nav-link {{ request()->routeIs('status-sistem.*') ? 'active' : '' }}">
                             <i class="bi bi-activity" aria-hidden="true"></i>
                             <span>Status Sistem</span>
@@ -700,6 +707,13 @@
 
             <div class="content-wrap">
                 <main class="content-panel">
+                    @if($modKecemasan = \App\Support\KeadaanKeselamatan::kecemasan())
+                        <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
+                            <i class="bi bi-shield-exclamation" aria-hidden="true"></i>
+                            <strong>MOD KECEMASAN AKTIF.</strong> Hanya Super Admin boleh log masuk dan sistem baca sahaja.
+                            <a href="{{ route('keselamatan.index') }}" class="alert-link ms-auto">Pusat Keselamatan →</a>
+                        </div>
+                    @endif
                     @yield('content')
                 </main>
             </div>

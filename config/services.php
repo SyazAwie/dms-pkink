@@ -59,6 +59,26 @@ return [
         'wajib' => (bool) env('DUA_FAKTOR_WAJIB', false),
     ],
 
+    // Fasa Keselamatan: pemeriksaan fail muat naik (App\Services\PemeriksaFail)
+    'keselamatan' => [
+        // false HANYA untuk ujian automatik (phpunit.xml): fail palsu ujian bukan PDF sebenar
+        'periksa_fail' => (bool) env('KESELAMATAN_PERIKSA_FAIL', true),
+        // Kosong = Windows Defender (MpCmdRun.exe) di Windows, clamdscan di Linux
+        'antivirus_bin' => env('ANTIVIRUS_BIN'),
+        // true = tolak muat naik jika imbasan antivirus tidak dapat dibuat (tetapkan semasa serahan)
+        'antivirus_wajib' => (bool) env('ANTIVIRUS_WAJIB', false),
+        'antivirus_had_masa' => (int) env('ANTIVIRUS_HAD_MASA', 60),
+        // Had "bom": PDF kecil beratus muka surat / imej berpiksel gergasi membebankan OCR & cakera
+        'maks_muka_surat' => (int) env('KESELAMATAN_MAKS_MUKA_SURAT', 50),
+        'maks_piksel' => (int) env('KESELAMATAN_MAKS_PIKSEL', 40_000_000),
+        // OCR tidak dijalankan bila ruang cakera kurang daripada ini (MB)
+        'min_ruang_cakera_mb' => (int) env('KESELAMATAN_MIN_RUANG_MB', 1024),
+        // IP yang tidak pernah disekat (dipisah koma), cth. IP awam pejabat PKINK (NAT dikongsi staf)
+        'ip_dipercayai' => env('KESELAMATAN_IP_DIPERCAYAI'),
+        // Keadaan kecemasan (mod kecemasan, log keluar paksa); fail, bukan cache
+        'fail_keadaan' => storage_path('app/private/keselamatan.json'),
+    ],
+
     // Tera air salinan muat turun (TeraAirService). Laluan penuh fon TrueType; kosong = cuba
     // Arial Bold (Windows) / DejaVu Sans Bold (Linux), jika tiada guna fon bitmap GD
     'tera_air' => [
@@ -98,6 +118,10 @@ return [
         'salinan' => env('SANDARAN_SALINAN'),
         'simpan_hari' => (int) env('SANDARAN_SIMPAN_HARI', 14),
         'had_masa' => (int) env('SANDARAN_HAD_MASA', 900),
+        // Fasa Keselamatan S4: zip disulitkan AES-256 (simpan kata laluan DI LUAR pelayan)
+        'kata_laluan' => env('SANDARAN_KATA_LALUAN'),
+        // Klien mysql untuk sandaran:uji / sandaran:pulih (lalai: sebelah mysqldump)
+        'mysql_bin' => env('SANDARAN_MYSQL_BIN'),
     ],
 
 ];

@@ -11,6 +11,7 @@ use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
 use App\Http\Controllers\IsiBorangController;
 use App\Http\Controllers\JenisDokumenController;
+use App\Http\Controllers\KeselamatanController;
 use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\LogMasukController;
 use App\Http\Controllers\NotifikasiController;
@@ -113,6 +114,17 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
         Route::get('/pelupusan', [PelupusanController::class, 'index'])->name('pelupusan.index');
         Route::post('/pelupusan/{id}/kekalkan', [PelupusanController::class, 'kekalkan'])->whereNumber('id')->name('pelupusan.kekalkan');
         Route::post('/pelupusan/{id}/lupus', [PelupusanController::class, 'lupus'])->whereNumber('id')->name('pelupusan.lupus');
+
+        // Pusat Keselamatan (Fasa Keselamatan): ancaman, pengerasan, butang kecemasan
+        Route::get('/keselamatan', [KeselamatanController::class, 'index'])->name('keselamatan.index');
+        Route::get('/keselamatan/pelan-insiden', [KeselamatanController::class, 'pelan'])->name('keselamatan.pelan');
+        Route::post('/keselamatan/log-keluar', [KeselamatanController::class, 'logKeluar'])->name('keselamatan.log-keluar');
+        Route::post('/keselamatan/log-keluar-semua', [KeselamatanController::class, 'logKeluarSemua'])->name('keselamatan.log-keluar-semua');
+        Route::post('/keselamatan/kunci', [KeselamatanController::class, 'kunci'])->name('keselamatan.kunci');
+        Route::post('/keselamatan/buka-kunci', [KeselamatanController::class, 'bukaKunci'])->name('keselamatan.buka-kunci');
+        Route::post('/keselamatan/sekat-ip', [KeselamatanController::class, 'sekatIp'])->name('keselamatan.sekat-ip');
+        Route::post('/keselamatan/sekat-ip/{sekatan}/buka', [KeselamatanController::class, 'bukaIp'])->name('keselamatan.buka-ip');
+        Route::post('/keselamatan/kecemasan', [KeselamatanController::class, 'kecemasan'])->name('keselamatan.kecemasan');
 
         // Status Sistem: semakan OCR/AI, sandaran, penjadual, storan
         Route::get('/status-sistem', [StatusSistemController::class, 'index'])->name('status-sistem.index');
