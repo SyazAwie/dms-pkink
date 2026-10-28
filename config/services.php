@@ -59,6 +59,22 @@ return [
         'wajib' => (bool) env('DUA_FAKTOR_WAJIB', false),
     ],
 
+    // Fasa Keselamatan: pemeriksaan fail muat naik (App\Services\PemeriksaFail)
+    'keselamatan' => [
+        // false HANYA untuk ujian automatik (phpunit.xml): fail palsu ujian bukan PDF sebenar
+        'periksa_fail' => (bool) env('KESELAMATAN_PERIKSA_FAIL', true),
+        // Kosong = Windows Defender (MpCmdRun.exe) di Windows, clamdscan di Linux
+        'antivirus_bin' => env('ANTIVIRUS_BIN'),
+        // true = tolak muat naik jika imbasan antivirus tidak dapat dibuat (tetapkan semasa serahan)
+        'antivirus_wajib' => (bool) env('ANTIVIRUS_WAJIB', false),
+        'antivirus_had_masa' => (int) env('ANTIVIRUS_HAD_MASA', 60),
+        // Had "bom": PDF kecil beratus muka surat / imej berpiksel gergasi membebankan OCR & cakera
+        'maks_muka_surat' => (int) env('KESELAMATAN_MAKS_MUKA_SURAT', 50),
+        'maks_piksel' => (int) env('KESELAMATAN_MAKS_PIKSEL', 40_000_000),
+        // OCR tidak dijalankan bila ruang cakera kurang daripada ini (MB)
+        'min_ruang_cakera_mb' => (int) env('KESELAMATAN_MIN_RUANG_MB', 1024),
+    ],
+
     // Tera air salinan muat turun (TeraAirService). Laluan penuh fon TrueType; kosong = cuba
     // Arial Bold (Windows) / DejaVu Sans Bold (Linux), jika tiada guna fon bitmap GD
     'tera_air' => [

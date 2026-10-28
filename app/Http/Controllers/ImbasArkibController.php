@@ -10,6 +10,8 @@ use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Models\PembetulanAi;
+use App\Http\Middleware\HeaderKeselamatan;
+use App\Rules\FailSelamat;
 use App\Services\OcrService;
 use App\Services\OllamaExtractionService;
 use App\Support\JenisMedan;
@@ -112,7 +114,7 @@ class ImbasArkibController extends DokumenController
 
         $request->validate([
             'jenis_dokumen_id' => 'required|exists:jenis_dokumen,jenis_dokumen_id',
-            'fail_scan' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'fail_scan' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240', new FailSelamat],
         ]);
 
         $jenisDokumen = JenisDokumen::with('fields')->findOrFail($request->jenis_dokumen_id);
@@ -279,7 +281,7 @@ class ImbasArkibController extends DokumenController
         return Storage::disk('local')->response(
             $this->folderToken($token) . '/' . $meta['fail'],
             $meta['nama_asal'],
-            ['Cache-Control' => 'private, no-store']
+            ['Cache-Control' => 'private, no-store', 'Content-Security-Policy' => HeaderKeselamatan::CSP_FAIL]
         );
     }
 
