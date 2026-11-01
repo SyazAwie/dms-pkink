@@ -17,12 +17,13 @@ use ZipArchive;
 class SandaranTest extends TestCase
 {
     private string $folder;
+
     private string $salinan;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $asas = sys_get_temp_dir() . '/sandaran_ujian_' . uniqid();
+        $asas = sys_get_temp_dir().'/sandaran_ujian_'.uniqid();
         $this->folder = "{$asas}/utama";
         $this->salinan = "{$asas}/salinan";
 
@@ -36,8 +37,9 @@ class SandaranTest extends TestCase
         ]);
 
         Storage::fake('local');
+        Storage::fake('templat');
         Storage::disk('local')->put('dokumen/borang.pdf', '%PDF ujian');
-        Storage::disk('local')->put('ocr_sementara/' . str_repeat('a', 40) . '/fail.pdf', 'sementara');
+        Storage::disk('local')->put('ocr_sementara/'.str_repeat('a', 40).'/fail.pdf', 'sementara');
     }
 
     protected function tearDown(): void
@@ -74,6 +76,7 @@ class SandaranTest extends TestCase
     public function test_sandaran_mengandungi_pangkalan_data_dan_fail_imbasan(): void
     {
         $this->palsuMysqldump();
+        Storage::disk('templat')->put('BD-SEWA/kosong.pdf', '%PDF templat');
 
         $this->artisan('sandaran:jalan')->assertSuccessful();
 
@@ -81,7 +84,8 @@ class SandaranTest extends TestCase
         $this->assertTrue($arkib->open($this->zipTerbaru($this->folder)));
         $this->assertStringContainsString('CREATE TABLE dokumen', $arkib->getFromName('pangkalan_data/dms_ujian.sql'));
         $this->assertSame('%PDF ujian', $arkib->getFromName('fail/dokumen/borang.pdf'));
-        $this->assertFalse($arkib->locateName('fail/ocr_sementara/' . str_repeat('a', 40) . '/fail.pdf'));
+        $this->assertSame('%PDF templat', $arkib->getFromName('templat/BD-SEWA/kosong.pdf'), 'Fasa TB: templat disandarkan');
+        $this->assertFalse($arkib->locateName('fail/ocr_sementara/'.str_repeat('a', 40).'/fail.pdf'));
         $arkib->close();
 
         // Salinan kedua, fail .sql sementara dibuang, status ditulis

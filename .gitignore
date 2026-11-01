@@ -25,3 +25,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Templat borang kosong (Fasa TB): data masa jalan, disandarkan oleh sandaran:jalan
+/Templat/*
+!/Templat/.gitkeep

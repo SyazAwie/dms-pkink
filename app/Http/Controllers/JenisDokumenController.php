@@ -6,6 +6,10 @@ use App\Models\Dokumen;
 use App\Models\JenisDokumen;
 use App\Models\DokumenData;
 use App\Models\DokumenField;
+use App\Models\LogAudit;
+use App\Rules\FailSelamat;
+use App\Services\TemplatBorangService;
+use App\Support\Demo;
 use App\Support\JenisMedan;
 use App\Support\MedanJadual;
 use App\Support\TemplatKategori;
@@ -39,11 +43,15 @@ class JenisDokumenController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validasiBorang($request);
+        $request->validate(['templat' => ['nullable', ...TemplatBorangController::PERATURAN_FAIL, new FailSelamat]], [
+            'templat.mimes' => 'Templat mesti PDF, JPG atau PNG.',
+            'templat.max' => 'Saiz templat maksimum 10MB.',
+        ]);
         $this->semakKodMedanPendua($request);
         $this->semakLajurJadual($request);
         $this->semakSyaratPaparan($request);
 
-        DB::transaction(function () use ($request, $validated) {
+        $jenis = DB::transaction(function () use ($request, $validated) {
             $dokumen = JenisDokumen::create([
                 'kod_dokumen' => $validated['kod_dokumen'],
                 'nama_dokumen' => $validated['nama_dokumen'],
@@ -51,10 +59,33 @@ class JenisDokumenController extends Controller
             ] + $this->tetapanSimpanan($validated));
 
             $this->simpanMedan($dokumen, $request->input('medan', []));
+
+            return $dokumen;
         });
 
-        return redirect()->route('jenis-dokumen.index')
-                         ->with('success', 'Kategori Dokumen berjaya didaftarkan!');
+        // Fasa TB: templat borang kosong pilihan (selepas commit; kegagalan tidak membatalkan kategori)
+        $mesej = 'Kategori Dokumen berjaya didaftarkan!';
+        if ($request->hasFile('templat')) {
+            if (Demo::mod() !== null) {
+                $mesej .= ' Templat tidak disimpan dalam mod demo/percubaan.';
+            } else {
+                try {
+                    $templat = app(TemplatBorangService::class)->simpanMuatNaik($jenis, $request->file('templat'), Auth::id());
+                    LogAudit::create([
+                        'user_id' => Auth::id(), 'tindakan' => 'Muat Naik Templat', 'nama_jadual' => 'templat_borang',
+                        'rekod_id' => $templat->templat_borang_id, 'data_lama' => null,
+                        'data_baharu' => ['kategori' => $jenis->kod_dokumen, 'versi' => $templat->versi, 'nama_fail' => $templat->nama_asal],
+                        'alamat_ip' => $request->ip(), 'peranti_pengguna' => $request->userAgent(), 'created_at' => now(),
+                    ]);
+                    $mesej .= ' Templat borang kosong dimuat naik.';
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Templat kategori baharu gagal disimpan: '.$e->getMessage());
+                    $mesej .= ' Templat gagal disimpan; sila muat naik semula di halaman Edit.';
+                }
+            }
+        }
+
+        return redirect()->route('jenis-dokumen.index')->with('success', $mesej);
     }
 
     // 4. Paparkan borang edit
@@ -73,7 +104,14 @@ class JenisDokumenController extends Controller
             ->map(fn ($f) => $f->toArray() + ['bil_nilai' => (int) ($bilNilai[$f->dokumen_field_id] ?? 0), 'jenis_asal' => $f->jenis_data])
             ->values();
 
-        return view('jenis_dokumen.edit', compact('dokumen', 'kategoriCadangan', 'medanPembina'));
+        // DB demo/percubaan yang disalin sebelum SQL Fasa TB mungkin tiada jadual templat_borang
+        try {
+            $templat = $dokumen->templat()->with('pemuatNaik')->get();
+        } catch (\Illuminate\Database\QueryException) {
+            $templat = collect();
+        }
+
+        return view('jenis_dokumen.edit', compact('dokumen', 'kategoriCadangan', 'medanPembina', 'templat'));
     }
 
     // 5. Simpan kemas kini data

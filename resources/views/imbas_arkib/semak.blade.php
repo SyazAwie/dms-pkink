@@ -23,6 +23,18 @@
     <div class="alert alert-success"><i class="bi bi-check2-circle me-1"></i> {{ session('success') }}</div>
 @endif
 
+@if(! empty($cadanganKategori['jenis']))
+    {{-- TB5: templat borang kosong kategori lain lebih sepadan dengan imbasan ini --}}
+    <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <span><i class="bi bi-signpost-split me-1"></i>
+            Imbasan ini kelihatan seperti <strong>{{ $cadanganKategori['jenis']->nama_dokumen }}</strong>
+            (padanan templat {{ round(($cadanganKategori['padanan'] ?? 0) * 100) }}%), bukan {{ $jenisDokumen->nama_dokumen }}.</span>
+        <a href="{{ route("imbas-{$mod}.create", ['jenis' => $cadanganKategori['jenis']->jenis_dokumen_id]) }}" class="outline-button kekal-label text-decoration-none">
+            <i class="bi bi-arrow-repeat"></i> <span>Mula semula dengan kategori ini</span>
+        </a>
+    </div>
+@endif
+
 @if($mesejAmaran)
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle me-1"></i> {{ $mesejAmaran }}
