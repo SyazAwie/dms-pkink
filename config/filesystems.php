@@ -30,6 +30,15 @@ return [
 
     'disks' => [
 
+        // Templat borang kosong (Fasa TB): folder Templat/ di akar projek (di luar public/,
+        // tidak boleh dicapai terus). Fail hanya dihidangkan melalui pengawal yang menyemak peranan.
+        'templat' => [
+            'driver' => 'local',
+            'root' => env('TEMPLAT_FOLDER', base_path('Templat')),
+            'serve' => false,
+            'throw' => false,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

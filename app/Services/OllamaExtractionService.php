@@ -157,6 +157,10 @@ class OllamaExtractionService
             ? "- ~~teks~~ ialah teks yang DIPOTONG (pilihan ditolak): \"disokong/ ~~tidak sokong~~\" = Disokong\n"
                 ."- [✓] = kotak bertanda (dipilih); [□] = kotak kosong (tidak dipilih); nombor/teks lain pada baris yang sama tetap nilai medan berkaitan (cth. \"[✓] Makmal 10\" = bilangan 10)\n"
             : '';
+        // Fasa TB: teks bertanda isian berbanding templat borang kosong
+        if (str_contains($teksOcr, '«')) {
+            $peraturanTanda .= "- Teks dalam «…» ialah TULISAN PENGISI; teks lain ialah cetakan borang kosong. Nilai medan diambil daripada «…» (kecuali pilihan yang ditanda/dipotong); label tanpa «…» selepasnya = null\n";
+        }
 
         // JSON padat (satu baris) mengurangkan token jawapan, jadi jawapan lebih pantas
         return <<<PROMPT
@@ -250,7 +254,7 @@ PROMPT;
     /** Tarikh Dokumen (tarikh sah, tahun munasabah) & Perkara (teks, maks 255) daripada AI. */
     private function bersihkanAsas(array $data): array
     {
-        $tarikh = $data[self::TARIKH_DOKUMEN] ?? null;
+        $tarikh = self::normalTarikhAi($data[self::TARIKH_DOKUMEN] ?? null);
         $sah = is_string($tarikh)
             && preg_match('/^\d{4}-\d{2}-\d{2}$/', $tarikh)
             && checkdate((int) substr($tarikh, 5, 2), (int) substr($tarikh, 8, 2), (int) substr($tarikh, 0, 4))
@@ -278,6 +282,12 @@ PROMPT;
         return $medan
             ->mapWithKeys(function ($f) use ($data, $label, $digitOcr, $teksOcr) {
                 $nilai = $data[$f->kod_field] ?? null;
+                if (in_array($f->jenis_data, ['tarikh', 'tarikh_masa'], true)) {
+                    $nilai = self::normalTarikhAi($nilai);
+                } elseif ($f->jenis_data === 'jadual' && is_array($nilai)) {
+                    // Sel tarikh dalam jadual: format Malaysia yang AI salin ditukar juga
+                    $nilai = array_map(fn ($baris) => is_array($baris) ? array_map(fn ($sel) => self::normalTarikhAi($sel), $baris) : $baris, $nilai);
+                }
                 if (is_string($nilai) && ($label->has(self::normalLabel($nilai)) || self::sebahagianLabel($nilai, $f)
                     // T6: penanda tanda visual dalam nilai = baris bercetak disalin (cth. komen
                     // "Permohonan disokong/ ~~tidak sokong~~"), bukan tulisan pengisi
@@ -286,6 +296,12 @@ PROMPT;
                     $nilai = null;
                 }
                 $nilai = JenisMedan::bersihkanAi($f, $nilai);
+
+                // Fasa TB: nilai teks yang langsung tiada dalam tulisan pengisi «…» disalin daripada cetakan borang
+                if ($nilai !== null && in_array($f->jenis_data, ['teks', 'textarea', 'emel', 'telefon'], true)
+                    && ! self::adaDalamIsian((string) $nilai, $teksOcr, $f->jenis_data === 'telefon')) {
+                    $nilai = null;
+                }
 
                 // T6: pilihan yang hanya wujud dalam "X/ tidak X" bercetak tanpa potongan belum diputuskan
                 if ($nilai !== null && in_array($f->jenis_data, ['radio', 'dropdown'], true) && self::pilihanBelumDibuat((string) $nilai, $teksOcr)) {
@@ -301,6 +317,61 @@ PROMPT;
                 return [$f->dokumen_field_id => $nilai];
             })
             ->all();
+    }
+
+    /**
+     * Tarikh yang AI salin seperti tertulis (format Malaysia hari dahulu: "21/09/2026",
+     * "21-9-2026 10:00") ditukar kepada YYYY-MM-DD [HH:MM]; tarikh mustahil ditolak oleh
+     * pengesahan seterusnya. Nilai lain dipulangkan tanpa perubahan.
+     */
+    public static function normalTarikhAi(mixed $nilai): mixed
+    {
+        if (! is_string($nilai) || ! preg_match('#^\s*(\d{1,2})\s*[/.-]\s*(\d{1,2})\s*[/.-]\s*(\d{4})(?:[ ,T]+(\d{1,2}):(\d{2}))?\s*$#', $nilai, $m)) {
+            return $nilai;
+        }
+        $tarikh = sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+
+        return isset($m[4]) && $m[4] !== '' ? $tarikh.sprintf(' %02d:%02d', $m[4], $m[5]) : $tarikh;
+    }
+
+    /**
+     * Fasa TB: nilai mempunyai asas dalam tulisan pengisi «…». Benar jika teks tidak bertanda
+     * (tiada templat), atau nilai (tanpa ruang/tanda baca) terkandung dalam isian yang
+     * dicantum (huruf dalam kotak "S Y A Z M I"), atau sekurang-kurangnya satu perkataan nilai
+     * (>= 2 aksara) wujud dalam isian. Sempit dengan sengaja: hanya nilai yang SEMUANYA
+     * cetakan borang dibuang.
+     */
+    public static function adaDalamIsian(string $nilai, string $teksOcr, bool $telefon = false): bool
+    {
+        if (! preg_match_all('/«([^»]*)»/u', $teksOcr, $m)) {
+            return true;
+        }
+        $isian = mb_strtolower(implode(' ', $m[1]));
+        if ($telefon) {
+            // Digit sahaja; ralat OCR biasa O→0, l/I→1 dibetulkan AI ("O9-748 1234" → 09-7481234)
+            $digit = fn (string $t) => preg_replace('/\D+/', '', strtr($t, ['o' => '0', 'O' => '0', 'l' => '1', 'I' => '1', 'i' => '1']));
+            $d = $digit($nilai);
+
+            return $d === '' || str_contains($digit($isian), $d);
+        }
+        $n = self::normalLabel($nilai);
+        if ($n === '' || str_contains(self::normalLabel($isian), $n)) {
+            return true;
+        }
+        $tokenIsian = preg_split('/[^\p{L}\p{N}]+/u', $isian, -1, PREG_SPLIT_NO_EMPTY);
+        foreach (preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($nilai), -1, PREG_SPLIT_NO_EMPTY) as $t) {
+            if (mb_strlen($t) < 2) {
+                continue;
+            }
+            // Kabur seperti penjajaran templat: AI membetulkan ralat OCR ("Keranl" → "Kerani")
+            foreach ($tokenIsian as $ti) {
+                if (TemplatBorangService::sama($t, $ti)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

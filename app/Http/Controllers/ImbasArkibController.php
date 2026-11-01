@@ -250,6 +250,9 @@ class ImbasArkibController extends DokumenController
             'bolehBacaSemula' => app(\App\Services\VlmOcrService::class)->aktif()
                 && in_array('tesseract', $meta['enjin'] ?? ['tesseract'], true),
             'mesejAmaran' => $meta['mesej_amaran'],
+            // TB5: imbasan lebih sepadan dengan templat kategori lain
+            'cadanganKategori' => ($id = $meta['cadangan_kategori']['jenis_dokumen_id'] ?? null)
+                ? ['jenis' => JenisDokumen::find($id), 'padanan' => $meta['cadangan_kategori']['padanan'] ?? null] : null,
             // Imbas & Hantar: borang milik pengguna sendiri, jadi medan auto-isi profil mengatasi AI.
             // Imbas & Arkib: borang milik orang lain, jadi nilai AI digunakan.
             'nilaiAutoIsi' => $this->modHantar() ? JenisMedan::nilaiAutoIsi($jenisDokumen->fields, Auth::user()) : [],

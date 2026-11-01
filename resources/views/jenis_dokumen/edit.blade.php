@@ -138,6 +138,7 @@
 
     <!-- Panel Bantuan / Pratonton -->
     <div class="col-lg-4">
+        @include('jenis_dokumen.partials.templat')
         <div class="glass-panel preview-panel mb-4">
             <div class="summary-head px-1">
                 <div>

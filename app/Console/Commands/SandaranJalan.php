@@ -15,6 +15,7 @@ use ZipArchive;
  * sandaran_YYYYMMDD_HHMMSS.zip:
  *   pangkalan_data/{nama_db}.sql
  *   fail/...                       (storage/app/private, kecuali ocr_sementara)
+ *   templat/...                    (folder Templat/: templat borang kosong, Fasa TB)
  *
  * Disimpan dalam services.sandaran.folder, disalin ke services.sandaran.salinan jika
  * ditetapkan (cth. OneDrive). Keputusan terakhir ditulis ke {folder}/terakhir.json.
@@ -164,6 +165,14 @@ class SandaranJalan extends Command
             }
             $tambah($disk->path($fail), 'fail/' . $fail);
             $bil++;
+        }
+
+        // Templat borang kosong (Fasa TB) di luar storage/: disk `templat`
+        $templat = Storage::disk('templat');
+        foreach ($templat->allFiles() as $fail) {
+            if (! str_starts_with(basename($fail), '.')) {
+                $tambah($templat->path($fail), 'templat/' . $fail);
+            }
         }
 
         if (! $arkib->close()) {

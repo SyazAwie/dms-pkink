@@ -6,6 +6,7 @@ use App\Models\JenisDokumen;
 use App\Models\PembetulanAi;
 use App\Services\OcrService;
 use App\Services\OllamaExtractionService;
+use App\Services\TemplatBorangService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -30,6 +31,7 @@ class OcrNilai extends Command
         {folder? : Folder dokumen berlabel (lalai: ../Ujian_Borang_Diisi)}
         {--jana-label= : Kod kategori; jana draf label bagi fail yang belum berlabel}
         {--tanpa-few-shot : Matikan contoh pembetulan staf (P16) dalam prompt}
+        {--tanpa-templat : Jangan tanda isian berbanding templat borang kosong (Fasa TB)}
         {--simpan= : Tulis laporan penuh (JSON) ke fail ini}';
 
     protected $description = 'Ukur ketepatan OCR + AI setiap medan terhadap dokumen berlabel';
@@ -189,7 +191,8 @@ class OcrNilai extends Command
             $masaOcr = round(microtime(true) - $mula, 1);
 
             $mula = microtime(true);
-            $ekstrak = $ocr['teks'] === '' ? [] : app(OllamaExtractionService::class)->ekstrak($ocr['teks'], $jenis->fields, true);
+            $teksAi = $this->option('tanpa-templat') ? $ocr['teks'] : app(TemplatBorangService::class)->tandaIsian($ocr['teks'], $jenis)['teks'];
+            $ekstrak = $ocr['teks'] === '' ? [] : app(OllamaExtractionService::class)->ekstrak($teksAi, $jenis->fields, true);
             $masaAi = round(microtime(true) - $mula, 1);
         } finally {
             Storage::disk('local')->delete($sementara);

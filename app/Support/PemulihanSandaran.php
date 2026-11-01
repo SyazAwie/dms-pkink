@@ -85,17 +85,19 @@ class PemulihanSandaran
     /** Salin semula fail imbasan (fail/...) ke disk `local`. Pulangkan bilangan fail. */
     public static function pulihkanFail(string $folder): int
     {
-        $sumber = "{$folder}/fail";
-        if (! File::isDirectory($sumber)) {
-            return 0;
-        }
-        $sasaran = storage_path('app/private');
+        // fail/ → storage/app/private; templat/ → folder Templat (Fasa TB; sandaran lama tiadanya)
         $bil = 0;
-        foreach (File::allFiles($sumber) as $f) {
-            $tuju = $sasaran.DIRECTORY_SEPARATOR.$f->getRelativePathname();
-            File::ensureDirectoryExists(dirname($tuju));
-            File::copy($f->getPathname(), $tuju);
-            $bil++;
+        foreach (['fail' => storage_path('app/private'), 'templat' => \Illuminate\Support\Facades\Storage::disk('templat')->path('')] as $bahagian => $sasaran) {
+            $sumber = "{$folder}/{$bahagian}";
+            if (! File::isDirectory($sumber)) {
+                continue;
+            }
+            foreach (File::allFiles($sumber) as $f) {
+                $tuju = rtrim($sasaran, '\\/').DIRECTORY_SEPARATOR.$f->getRelativePathname();
+                File::ensureDirectoryExists(dirname($tuju));
+                File::copy($f->getPathname(), $tuju);
+                $bil++;
+            }
         }
 
         return $bil;

@@ -28,7 +28,7 @@
                 </div>
             </div>
 
-            <form action="{{ route('jenis-dokumen.store') }}" method="POST" id="jenisDokumenForm" class="px-4 pb-4">
+            <form action="{{ route('jenis-dokumen.store') }}" method="POST" id="jenisDokumenForm" class="px-4 pb-4" enctype="multipart/form-data">
                 @csrf
 
                 <div class="mb-4">
@@ -91,6 +91,13 @@
                         </select>
                     </div>
                     <div class="dms-hint mt-1">Kira dari Tarikh Dokumen. Kosongkan untuk simpan kekal. Dokumen tamat tempoh disenaraikan di halaman Pelupusan untuk keputusan pentadbir.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="dms-label" for="templat">Templat Borang Kosong <span class="dms-optional">(pilihan)</span></label>
+                    <input type="file" name="templat" id="templat" class="dms-input @error('templat') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png">
+                    @error('templat') <div class="dms-error">{{ $message }}</div> @enderror
+                    <div class="dms-hint mt-1">Borang kosong (PDF/JPG/PNG, maks 10MB) yang belum diisi. AI menggunakannya untuk membezakan teks bercetak borang dengan tulisan pengisi semasa Imbas &amp; Arkib / Imbas &amp; Hantar. Boleh ditambah kemudian di halaman Edit.</div>
                 </div>
 
                 <hr class="dms-divider">

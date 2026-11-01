@@ -11,6 +11,7 @@ use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
 use App\Http\Controllers\IsiBorangController;
 use App\Http\Controllers\JenisDokumenController;
+use App\Http\Controllers\TemplatBorangController;
 use App\Http\Controllers\KeselamatanController;
 use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\LogMasukController;
@@ -103,6 +104,11 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
 
     Route::middleware('peranan:SUPERADMIN,ADMIN')->group(function () {
         Route::resource('jenis-dokumen', JenisDokumenController::class)->except('show', 'index');   // Kategori Dokumen
+        // Templat borang kosong bagi kategori (Fasa TB)
+        Route::post('/jenis-dokumen/{id}/templat', [TemplatBorangController::class, 'store'])->name('templat.store');
+        Route::get('/templat/{id}', [TemplatBorangController::class, 'papar'])->name('templat.papar');
+        Route::post('/templat/{id}/togol', [TemplatBorangController::class, 'togol'])->name('templat.togol');
+        Route::delete('/templat/{id}', [TemplatBorangController::class, 'destroy'])->name('templat.destroy');
         Route::resource('bahagian', BahagianController::class)->except('show', 'index');            // Pengurusan Bahagian
         Route::resource('users', UserController::class)->except('show');                   // Pengurusan Kakitangan
 

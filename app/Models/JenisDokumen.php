@@ -44,4 +44,10 @@ class JenisDokumen extends Model
     {
         return $this->hasMany(Dokumen::class, 'jenis_dokumen_id', 'jenis_dokumen_id');
     }
+
+    /** Templat borang kosong (Fasa TB), versi terbaharu dahulu. */
+    public function templat()
+    {
+        return $this->hasMany(TemplatBorang::class, 'jenis_dokumen_id', 'jenis_dokumen_id')->orderByDesc('versi');
+    }
 }

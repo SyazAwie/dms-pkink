@@ -201,7 +201,7 @@ Skema `dms_pkink_db` diurus **secara manual dalam HeidiSQL** (dump SQL + skrip S
 - Perubahan skema diberi sebagai skrip SQL untuk dijalankan dalam HeidiSQL
 - **Keunikan yang selamat soft delete** dikuatkuasakan melalui lajur janaan (generated column) yang bernilai `NULL` bila rekod dipadam: `email_aktif`, `ic_pekerja_aktif`, `kod_bahagian_aktif`, `kod_dokumen_aktif`, `kod_field_aktif`, serta `ic_menunggu` / `email_menunggu` (pendaftaran staf)
 
-Pangkalan data mengandungi **21 jadual**: 13 jadual domain dalam 6 kumpulan, `notifications`, `push_subscriptions`, dan 6 jadual infra Laravel (termasuk `jobs` & `failed_jobs` untuk queue OCR/AI, T2).
+Pangkalan data mengandungi **22 jadual**: 14 jadual domain dalam 6 kumpulan (termasuk `templat_borang`, Fasa TB), `notifications`, `push_subscriptions`, dan 6 jadual infra Laravel (termasuk `jobs` & `failed_jobs` untuk queue OCR/AI, T2).
 
 ### 4.1 Kumpulan: Organisasi & Kawalan Akses
 
@@ -455,6 +455,8 @@ CRUD penuh dengan soft delete (SUPERADMIN/ADMIN). Senarai memaparkan bilangan me
 | `auto_isi` | Diisi & dikunci daripada profil pemohon (nama, No. KP, emel, bahagian, jawatan, telefon). Pelayan menulis semula nilai ini, jadi ia tidak boleh dipalsukan |
 | `pejabat` | (Tajuk seksyen) seksyen "untuk kegunaan pejabat": tidak wajib bagi pemohon, disembunyikan dan tidak dihantar kepada AI dalam Imbas & Hantar |
 
+**Templat borang kosong (Fasa TB):** setiap kategori boleh ada borang kosong (PDF/JPG/PNG, berbilang versi) yang dimuat naik semasa cipta kategori atau dalam panel "Templat Borang Kosong" di halaman Edit (pratonton, aktif/nyahaktif, padam; log audit). Fail disimpan dalam folder **`Templat/`** di akar projek (disk `templat`, di luar `public/`, dihidangkan hanya melalui `templat.papar` untuk SUPERADMIN/ADMIN), direkod dalam jadual `templat_borang` (versi, hash, `ocr_json` teks + token, status OCR, aktif) dan dibaca OCR sekali melalui queue OCR. Fail yang disalin terus ke `Templat/` didaftarkan dengan `php artisan templat:daftar <fail> <KOD>` (`--senarai` untuk status). Tidak boleh diubah dalam mod demo/percubaan (folder dikongsi dengan sistem sebenar). Kegunaan: lihat 5.11 (beza isian) dan 5.8 (cadangan kategori).
+
 **Templat permulaan** (`TemplatKategori`): Memo Dalaman, Surat Masuk, Surat Keluar, Minit Mesyuarat, Borang Permohonan, atau salin medan kategori sedia ada. **Amaran tukar jenis:** pelayan menolak penukaran jenis data jika ada nilai lama yang tidak serasi, kecuali "Teruskan tukar jenis" ditanda (nilai lama tidak dipadam).
 
 ### 5.6 Pengurusan Dokumen: Modul Teras
@@ -569,6 +571,15 @@ Ukur setiap perubahan OCR/AI dengan 7 dokumen ujian ini, sebelum dan selepas per
 | Operasi biasa (dengan contoh pembetulan P16) | 38/54 (70.4%) | **44/54 (81.5%)** |
 
 Dibaiki: status sokongan/kelulusan yang belum diputuskan (1-b, 4-b), komen yang disalin daripada "Permohonan disokong/ tidak sokong", caj sewaan rekaan (1500.50, 0.00), "KEW.PA-9", kotak peralatan tanpa tanda (3-b), kepala surat PKINK sebagai Jabatan. Memo dan surat masuk: hasil sama seperti sebelum T6 (peraturan penanda hanya masuk prompt bila teks ada penanda). **Pendekatan generik, bukan templat koordinat:** kedudukan perkataan TSV + analisis piksel, jadi kategori baharu dan imbasan yang beralih/berskala berfungsi tanpa konfigurasi.
+
+**Templat borang kosong (Fasa TB, 2026-11-01).** Teks OCR imbasan dijajarkan dengan teks OCR borang kosong kategori (LCS perkataan, bertoleransi ralat OCR; `TemplatBorangService::tandaIsian`, ~0.05 s). Perkataan yang tiada dalam borang kosong ialah **tulisan pengisi** dan dibalut `«…»` dalam teks kepada AI (teks OCR yang disimpan kekal asal); nilai teks/emel/telefon yang langsung tiada dalam `«…»` dibuang. Tarikh yang AI salin dalam format Malaysia (`21/09/2026`) diterima. Padanan templat dengan borang ujian 96–97%. Ukuran 4 borang BD:
+
+| Mod | T6 sahaja | + Templat |
+|---|---|---|
+| Operasi biasa | 44/54 (81.5%) | **45/54 (83.3%)** |
+| Tanpa contoh pembetulan | 41/54 (75.9%) | **43/54 (79.6%)** |
+
+Sampah logo ("ERASED BN") dan seksyen pejabat kosong kini dikenali sebagai cetakan borang; borang tulisan tangan (laluan GLM-OCR) turut ditanda. Kategori tanpa templat tidak terjejas.
 
 **Had yang tinggal:** jawapan AI beralih apabila teks prompt berubah (tanpa contoh pembetulan, 4-b kadang-kadang mengisi "ERASED BN" daripada logo dan seksyen MEDAN LAMA; R7); potongan **tangan** yang beralun (cth. 3-b "~~tidak diluluskan~~") belum dikesan, AI masih betul melalui konteks; laluan GLM-OCR (tulisan tangan) tiada penanda; "[✓] Makmal 10" kadang-kadang dikelirukan dengan baris jadual (bilangan komputer kosong); tulisan tangan: tahun 2 digit "25" dibaca 2026, nama ("HARIS" → "HARTIS"); format username/telefon; AI tidak sepenuhnya berketentuan bagi dokumen panjang (minit: dua larian kod sama memberi Perkara berbeza); tulisan sambung dan Jawi belum diuji; GLM-OCR pada CPU terlalu perlahan (~100 s/dokumen).
 
@@ -722,6 +733,8 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `AnalisisImbasService.php` | OCR + AI bagi token Imbas & Arkib/Hantar (`meta.json` status menunggu → diproses → siap) |
 | `OcrFailService.php` | OCR satu fail dokumen sedia ada (butang "Jalankan OCR") + log audit |
 
+| `TemplatBorangService.php` | Templat borang kosong (Fasa TB): daftar/muat naik, OCR templat, `tandaIsian` (isian «…»), `padanKategori` |
+
 ### Kerja Queue (`app/Jobs/`)
 `AnalisisImbasJob` (analisis token Imbas) dan `OcrFailJob` (Jalankan OCR + notifikasi bila siap), kedua-dua pada queue `ocr` dan membawa mod demo asal (`Demo::dalamMod`). `App\Support\AntrianOcr`: degupan worker (`storage/framework/antrian-ocr.json`), hantar kerja, kedudukan giliran.
 
@@ -862,6 +875,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 **Sandaran** (`php artisan sandaran:jalan`, dijadualkan 12:30 setiap hari) menghasilkan `sandaran_YYYYMMDD_HHMMSS.zip` yang mengandungi:
 - `pangkalan_data/dms_pkink_db.sql`: mysqldump penuh (17 jadual, `--single-transaction`)
 - `fail/...`: semua fail dalam `storage/app/private` (fail imbasan), kecuali `ocr_sementara`
+- `templat/...`: folder `Templat/` (templat borang kosong, Fasa TB); dipulihkan semula oleh `sandaran:pulih`
 
 | Tetapan `.env` | Lalai | Maksud |
 |---|---|---|

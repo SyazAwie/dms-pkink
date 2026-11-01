@@ -191,6 +191,7 @@ class AnalisisImbasService
     public function analisis(string $laluanFail, JenisDokumen $jenisDokumen, bool $modHantar, bool $paksaVlm = false, bool $kunci = false): array
     {
         $hasil = ['teks_ocr' => '', 'skor_ocr' => null, 'enjin' => [], 'nilai_ekstrak' => [], 'mesej_amaran' => null,
+            'padanan_templat' => null, 'cadangan_kategori' => null,
             // Masa setiap langkah (saat), dipaparkan di skrin semak
             'masa' => ['ocr' => null, 'ai' => null]];
 
@@ -225,9 +226,26 @@ class AnalisisImbasService
             if ($ocr['teks'] === '') {
                 $hasil['mesej_amaran'] = 'OCR tidak kesan sebarang teks pada fail ini. Sila isi semua medan secara manual.';
             } else {
+                // Fasa TB: tulisan pengisi dibalut «…» berbanding templat borang kosong kategori
+                // (teks OCR yang disimpan kekal asal; teks bertanda untuk AI sahaja)
+                $isian = ['teks' => $ocr['teks'], 'padanan' => null, 'templat' => null];
+                try {
+                    $templat = app(TemplatBorangService::class);
+                    $isian = $templat->tandaIsian($ocr['teks'], $jenisDokumen);
+                    // TB5: imbasan lebih sepadan dengan templat kategori lain → cadangkan kategori itu
+                    if ($isian['templat'] === null && ($lain = $templat->padanKategori($ocr['teks']))
+                        && $lain['jenis_dokumen_id'] !== (int) $jenisDokumen->jenis_dokumen_id) {
+                        $hasil['cadangan_kategori'] = $lain;
+                    }
+                } catch (\Throwable $e) {
+                    // Templat ialah bantuan sahaja: kegagalan tidak menghalang analisis
+                    Log::warning('Penandaan isian templat gagal, guna teks asal: '.$e->getMessage());
+                }
+                $hasil['padanan_templat'] = $isian['padanan'];
+
                 $mula = microtime(true);
                 // Turut ekstrak Tarikh Dokumen & Perkara (medan asas, bukan EAV)
-                $hasil['nilai_ekstrak'] = app(OllamaExtractionService::class)->ekstrak($ocr['teks'], self::medanUntukMod($jenisDokumen, $modHantar), true);
+                $hasil['nilai_ekstrak'] = app(OllamaExtractionService::class)->ekstrak($isian['teks'], self::medanUntukMod($jenisDokumen, $modHantar), true);
                 $hasil['masa']['ai'] = round(microtime(true) - $mula, 1);
             }
         } catch (\Throwable $e) {

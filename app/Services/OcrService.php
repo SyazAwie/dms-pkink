@@ -54,9 +54,9 @@ class OcrService
      *         'tesseract' atau 'vlm'
      * @throws \RuntimeException jika tesseract/pdftoppm gagal atau tiada dalam PATH
      */
-    public function proses(string $laluanRelatifDiskLocal, bool $paksaVlm = false): array
+    public function proses(string $laluanRelatifDiskLocal, bool $paksaVlm = false, string $disk = 'local'): array
     {
-        $laluanPenuh = Storage::disk('local')->path($laluanRelatifDiskLocal);
+        $laluanPenuh = Storage::disk($disk)->path($laluanRelatifDiskLocal);
 
         if (!is_file($laluanPenuh)) {
             throw new \RuntimeException("Fail sumber tidak wujud: {$laluanRelatifDiskLocal}");

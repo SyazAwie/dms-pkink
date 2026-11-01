@@ -161,6 +161,25 @@ trait SkemaUjian
             $t->timestamp('created_at')->nullable();
         });
 
+        Schema::create('templat_borang', function (Blueprint $t) {
+            $t->id('templat_borang_id');
+            $t->unsignedBigInteger('jenis_dokumen_id');
+            $t->unsignedSmallInteger('versi')->default(1);
+            $t->string('nama_asal');
+            $t->string('lokasi_fail', 500);
+            $t->unsignedBigInteger('saiz_fail')->nullable();
+            $t->string('jenis_mime', 100)->nullable();
+            $t->char('hash_sha256', 64)->nullable();
+            $t->unsignedSmallInteger('bilangan_muka')->nullable();
+            $t->longText('ocr_json')->nullable();
+            $t->string('status_ocr', 50)->default('Pending');
+            $t->boolean('aktif')->default(true);
+            $t->string('catatan')->nullable();
+            $t->unsignedBigInteger('created_by')->nullable();
+            $t->timestamps();
+            $t->softDeletes();
+        });
+
         Schema::create('pembetulan_ai', function (Blueprint $t) {
             $t->id('pembetulan_ai_id');
             $t->unsignedBigInteger('dokumen_id');
