@@ -11,11 +11,13 @@ use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Models\PembetulanAi;
 use App\Http\Middleware\HeaderKeselamatan;
+use App\Jobs\AnalisisImbasJob;
 use App\Rules\FailSelamat;
-use App\Services\OcrService;
+use App\Services\AnalisisImbasService;
 use App\Services\OllamaExtractionService;
+use App\Support\AntrianOcr;
+use App\Support\Demo;
 use App\Support\JenisMedan;
-use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -60,9 +62,8 @@ use Illuminate\Support\Str;
  */
 class ImbasArkibController extends DokumenController
 {
-    private const FOLDER_SEMENTARA = 'ocr_sementara';
     private const MINIT_TAMAT = 120;
-    public const KUNCI_ANALISIS = 'ocr-ai:analisis';
+    public const KUNCI_ANALISIS = AnalisisImbasService::KUNCI_ANALISIS;
 
     /** 'arkib' atau 'hantar' (ImbasHantarController). */
     protected function mod(): string
@@ -81,19 +82,10 @@ class ImbasArkibController extends DokumenController
         return $this->mod() === 'hantar';
     }
 
-    /**
-     * Medan yang diisi dalam mod ini. Imbas & Hantar: pemohon tidak mengisi seksyen
-     * pejabat (pengesahan/sokongan/urusan BD), jadi medan itu tidak dihantar kepada AI
-     * (elak nilai rekaan), tidak dipaparkan dan tidak disimpan.
-     */
+    /** Medan yang diisi dalam mod ini (lihat AnalisisImbasService::medanUntukMod). */
     private function medanUntukMod(JenisDokumen $jenisDokumen): \Illuminate\Support\Collection
     {
-        if (!$this->modHantar()) {
-            return $jenisDokumen->fields;
-        }
-        $idPejabat = JenisMedan::idMedanPejabat($jenisDokumen->fields);
-
-        return $jenisDokumen->fields->reject(fn ($f) => in_array($f->dokumen_field_id, $idPejabat, true))->values();
+        return AnalisisImbasService::medanUntukMod($jenisDokumen, $this->modHantar());
     }
 
     // Borang: pilih Jenis Dokumen + satu fail (?jenis=ID: kategori dipilih dahulu, cth. dari Isi Borang)
@@ -109,8 +101,8 @@ class ImbasArkibController extends DokumenController
         ]);
     }
 
-    // OCR + ekstrak AI, simpan hasil dalam folder token, kemudian redirect ke skrin semak
-    // (TIDAK simpan ke DB lagi)
+    // Simpan fail dalam folder token, mulakan OCR + ekstrak AI (queue OCR, T2), kemudian
+    // redirect ke skrin semak yang menunggu hasil (TIDAK simpan ke DB lagi)
     public function analisis(Request $request)
     {
         Gate::authorize('create', Dokumen::class);
@@ -120,26 +112,25 @@ class ImbasArkibController extends DokumenController
             'fail_scan' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240', new FailSelamat],
         ]);
 
-        $jenisDokumen = JenisDokumen::with('fields')->findOrFail($request->jenis_dokumen_id);
-
-        // OCR + AI berjalan segerak dan boleh melebihi max_execution_time php.ini (30 saat)
-        set_time_limit((int) config('services.ocr.had_masa', 300));
+        $jenisDokumen = JenisDokumen::findOrFail($request->jenis_dokumen_id);
 
         // Nama fail dalam storan dijana sendiri (bukan nama asal daripada pelayar);
         // nama asal hanya disimpan dalam meta.json untuk paparan.
         $fail = $request->file('fail_scan');
         $token = Str::random(40);
         $namaFail = 'fail.' . $fail->extension();
-        $laluanSementara = $fail->storeAs($this->folderToken($token), $namaFail, 'local');
+        $fail->storeAs($this->folderToken($token), $namaFail, 'local');
 
-        $this->tulisMeta($token, [
+        AnalisisImbasService::tulisMeta($token, [
             'mod' => $this->mod(),
             'user_id' => Auth::id(),
             'jenis_dokumen_id' => $jenisDokumen->jenis_dokumen_id,
             'nama_asal' => $fail->getClientOriginalName(),
             'fail' => $namaFail,
             'dicipta_pada' => now()->toIso8601String(),
-        ] + $this->jalankanOcrAi($laluanSementara, $jenisDokumen));
+            'status' => AnalisisImbasService::MENUNGGU,
+        ]);
+        $this->mulakanAnalisis($token);
 
         return redirect()->route($this->laluan('semak'), $token);
     }
@@ -157,75 +148,49 @@ class ImbasArkibController extends DokumenController
         if ($meta === null) {
             return $this->sesiTamat();
         }
-        $jenisDokumen = JenisDokumen::with('fields')->findOrFail($meta['jenis_dokumen_id']);
-
-        set_time_limit((int) config('services.ocr.had_masa', 300));
-        $baharu = $this->jalankanOcrAi($this->folderToken($token) . '/' . $meta['fail'], $jenisDokumen, true);
-
-        // Token mungkin telah disimpan (dituntut) semasa bacaan berjalan: jangan hidupkan semula
-        if (!Storage::disk('local')->exists($this->folderToken($token) . '/meta.json')) {
-            return $this->sesiTamat();
+        if (AnalisisImbasService::status($meta) !== AnalisisImbasService::SIAP) {
+            return redirect()->route($this->laluan('semak'), $token);
         }
-        $this->tulisMeta($token, array_merge($meta, $baharu));
+
+        AnalisisImbasService::tulisMeta($token, array_merge($meta, [
+            'status' => AnalisisImbasService::MENUNGGU, 'paksa_vlm' => true,
+        ]));
+        $segerak = ! $this->mulakanAnalisis($token);
 
         return redirect()->route($this->laluan('semak'), $token)
-            ->with('success', 'Dokumen dibaca semula dengan AI penglihatan. Sila semak semula setiap medan.');
+            ->with('success', $segerak
+                ? 'Dokumen dibaca semula dengan AI penglihatan. Sila semak semula setiap medan.'
+                : 'Dokumen sedang dibaca semula dengan AI penglihatan.');
     }
 
     /**
-     * OCR (hibrid Tesseract → model penglihatan, lihat OcrService) + pengekstrakan AI.
-     * Kegagalan OCR/AI tidak menghalang semakan: amaran dipaparkan dan medan diisi manual.
-     *
-     * @return array{teks_ocr: string, skor_ocr: float|null, enjin: list<string>, nilai_ekstrak: array,
-     *               mesej_amaran: string|null, masa: array{ocr: float|null, ai: float|null}}
+     * Hantar analisis token ke queue OCR jika worker berjalan; jika tidak, jalankan segerak
+     * dalam permintaan ini (seperti sebelum T2). Pulangkan true jika dihantar ke queue.
      */
-    private function jalankanOcrAi(string $laluanFail, JenisDokumen $jenisDokumen, bool $paksaVlm = false): array
+    private function mulakanAnalisis(string $token): bool
     {
-        $hasil = ['teks_ocr' => '', 'skor_ocr' => null, 'enjin' => [], 'nilai_ekstrak' => [], 'mesej_amaran' => null,
-            // Masa setiap langkah (saat), dipaparkan di skrin semak
-            'masa' => ['ocr' => null, 'ai' => null]];
+        if (AntrianOcr::workerHidup()) {
+            try {
+                $id = AntrianOcr::hantar(new AnalisisImbasJob($token, Demo::mod()));
+                Cache::put($this->kunciKerja($token), $id, now()->addMinutes(self::MINIT_TAMAT));
 
-        // Satu analisis pada satu masa (Fasa D4): permintaan serentak (cth. peserta demo) menunggu
-        // giliran. Kunci tamat sendiri selepas had masa OCR jika proses mati di tengah jalan.
-        $kunci = Cache::lock(self::KUNCI_ANALISIS, (int) config('services.ocr.had_masa', 300) + 30);
-        try {
-            $kunci->block((int) config('services.ocr.tunggu_giliran', 120));
-        } catch (LockTimeoutException) {
-            $hasil['mesej_amaran'] = 'Sistem sedang sibuk menganalisis dokumen lain. Sila isi medan secara manual, atau cuba semula sebentar lagi.';
-
-            return $hasil;
-        }
-
-        try {
-            $mula = microtime(true);
-            $ocr = app(OcrService::class)->proses($laluanFail, $paksaVlm);
-            $hasil['masa']['ocr'] = round(microtime(true) - $mula, 1);
-            $hasil['teks_ocr'] = $ocr['teks'];
-            $hasil['skor_ocr'] = $ocr['skor'];
-            $hasil['enjin'] = $ocr['enjin'] ?? [];
-
-            if ($ocr['teks'] === '') {
-                $hasil['mesej_amaran'] = 'OCR tidak kesan sebarang teks pada fail ini. Sila isi semua medan secara manual.';
-            } else {
-                $mula = microtime(true);
-                // Turut ekstrak Tarikh Dokumen & Perkara (medan asas, bukan EAV)
-                $hasil['nilai_ekstrak'] = app(OllamaExtractionService::class)->ekstrak($ocr['teks'], $this->medanUntukMod($jenisDokumen), true);
-                $hasil['masa']['ai'] = round(microtime(true) - $mula, 1);
+                return true;
+            } catch (\Throwable $e) {
+                // Cth. jadual jobs belum dicipta: teruskan secara segerak
+                Log::warning('Queue OCR: kerja analisis gagal dihantar, diproses segerak: '.$e->getMessage());
             }
-        } catch (\Throwable $e) {
-            Log::warning('Imbas & Arkib: OCR/AI gagal: ' . $e->getMessage());
-            $hasil['mesej_amaran'] = 'OCR/AI gagal diproses automatik' . $this->butiranRalat($e) . ' — sila isi semua medan secara manual.';
-        } finally {
-            $kunci->release();
         }
 
-        return $hasil;
+        // OCR + AI berjalan segerak dan boleh melebihi max_execution_time php.ini (30 saat)
+        set_time_limit((int) config('services.ocr.had_masa', 300));
+        app(AnalisisImbasService::class)->jalankanToken($token, segerak: true);
+
+        return false;
     }
 
-    private function tulisMeta(string $token, array $meta): void
+    private function kunciKerja(string $token): string
     {
-        Storage::disk('local')->put($this->folderToken($token) . '/meta.json',
-            json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR));
+        return "ocr-kerja:imbas:{$token}";
     }
 
     // Skrin semak (GET): boleh dimuat semula (F5) dan menjadi sasaran back() bila validasi gagal
@@ -239,6 +204,33 @@ class ImbasArkibController extends DokumenController
         }
 
         $jenisDokumen = JenisDokumen::with('fields')->findOrFail($meta['jenis_dokumen_id']);
+
+        // Analisis belum siap (queue OCR, T2): paparan menunggu yang menyemak status sendiri.
+        // Worker berhenti sebelum kerja diambil, atau mati di tengah jalan: proses segerak di sini.
+        if (AnalisisImbasService::status($meta) !== AnalisisImbasService::SIAP) {
+            if ($this->perluSegerak($token, $meta)) {
+                set_time_limit((int) config('services.ocr.had_masa', 300));
+                app(AnalisisImbasService::class)->jalankanToken($token, segerak: true);
+                $meta = $this->bacaMeta($token);
+                if ($meta === null) {
+                    return $this->sesiTamat();
+                }
+                if (AnalisisImbasService::status($meta) === AnalisisImbasService::SIAP) {
+                    return redirect()->route($this->laluan('semak'), $token);
+                }
+                // Proses lain sedang menganalisis token ini: papar menunggu
+            }
+
+            return view('imbas_arkib.menunggu', [
+                'mod' => $this->mod(),
+                'token' => $token,
+                'jenisDokumen' => $jenisDokumen,
+                'namaAsal' => $meta['nama_asal'],
+                'status' => AnalisisImbasService::status($meta),
+                'diHadapan' => AntrianOcr::diHadapan(Cache::get($this->kunciKerja($token))),
+                'bacaSemula' => ! empty($meta['paksa_vlm']),
+            ]);
+        }
 
         return view('imbas_arkib.semak', [
             'mod' => $this->mod(),
@@ -262,6 +254,44 @@ class ImbasArkibController extends DokumenController
             // Imbas & Arkib: borang milik orang lain, jadi nilai AI digunakan.
             'nilaiAutoIsi' => $this->modHantar() ? JenisMedan::nilaiAutoIsi($jenisDokumen->fields, Auth::user()) : [],
         ]);
+    }
+
+    /**
+     * Status analisis (JSON) untuk paparan menunggu: menunggu/diproses/siap/tamat, bilangan
+     * kerja di hadapan, dan `muat_semula` bila halaman perlu dimuat semula (siap, tamat,
+     * atau worker tidak lagi berjalan sehingga analisis perlu diproses segerak).
+     */
+    public function status(string $token)
+    {
+        Gate::authorize('create', Dokumen::class);
+
+        $meta = $this->bacaMeta($token);
+        if ($meta === null) {
+            return response()->json(['status' => 'tamat', 'muat_semula' => true]);
+        }
+        $status = AnalisisImbasService::status($meta);
+
+        return response()->json([
+            'status' => $status,
+            'di_hadapan' => $status === AnalisisImbasService::MENUNGGU ? AntrianOcr::diHadapan(Cache::get($this->kunciKerja($token))) : 0,
+            'muat_semula' => $status === AnalisisImbasService::SIAP || $this->perluSegerak($token, $meta),
+        ]);
+    }
+
+    /**
+     * Kerja tidak akan disiapkan: worker tidak berjalan atau kerja hilang daripada jadual jobs
+     * (cth. queue:clear), atau pemproses token mati di tengah jalan.
+     */
+    private function perluSegerak(string $token, array $meta): bool
+    {
+        $id = Cache::get($this->kunciKerja($token));
+
+        return match (AnalisisImbasService::status($meta)) {
+            AnalisisImbasService::MENUNGGU => ! AntrianOcr::workerHidup() || ($id && ! AntrianOcr::kerjaWujud((int) $id)),
+            // Pemproses (worker / permintaan lain) tidak lagi memegang kunci token: ia telah mati
+            AnalisisImbasService::DIPROSES => ! AnalisisImbasService::sedangDituntut($token),
+            default => false,
+        };
     }
 
     /**
@@ -310,6 +340,10 @@ class ImbasArkibController extends DokumenController
         $meta = $this->bacaMeta($token);
         if ($meta === null) {
             return $this->sesiTamat();
+        }
+
+        if (AnalisisImbasService::status($meta) !== AnalisisImbasService::SIAP) {
+            return redirect()->route($this->laluan('semak'), $token);
         }
 
         $jenisDokumen = JenisDokumen::with('fields')->findOrFail($meta['jenis_dokumen_id']);
@@ -504,7 +538,7 @@ class ImbasArkibController extends DokumenController
 
     private function folderToken(string $token): string
     {
-        return self::FOLDER_SEMENTARA . '/' . $token;
+        return AnalisisImbasService::folder($token);
     }
 
     /**

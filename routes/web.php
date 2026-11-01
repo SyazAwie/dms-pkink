@@ -144,6 +144,7 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
     // Salinan bertera air (P11): nama pemuat turun + tarikh pada setiap muka surat, direkod dalam log audit
     Route::get('/dokumen/scan/{id}/muat-turun', [DokumenController::class, 'muatTurunScan'])->name('dokumen.scan.muat-turun');
     Route::post('/dokumen/scan/{id}/ocr', [DokumenController::class, 'jalankanOcr'])->name('dokumen.scan.ocr');
+    Route::get('/dokumen/scan/{id}/ocr/status', [DokumenController::class, 'statusOcr'])->name('dokumen.scan.ocr.status');
     // Semakan teks OCR oleh staf: tandakan disemak / betulkan teks (kebenaran edit dokumen)
     Route::post('/dokumen/scan/{id}/ocr/semak', [DokumenController::class, 'semakOcr'])->name('dokumen.scan.ocr.semak');
     Route::put('/dokumen/scan/{id}/ocr/teks', [DokumenController::class, 'betulkanOcr'])->name('dokumen.scan.ocr.betulkan');
@@ -163,6 +164,9 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.pratonton');
         Route::post('/imbas-arkib/semak/{token}/baca-semula', [ImbasArkibController::class, 'bacaSemula'])
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.baca-semula');
+        // Status analisis queue OCR (T2), disemak oleh paparan menunggu
+        Route::get('/imbas-arkib/semak/{token}/status', [ImbasArkibController::class, 'status'])
+            ->where('token', '[A-Za-z0-9]{40}')->name('imbas-arkib.status');
     });
 
     // ---- Isi Borang + Imbas & Hantar: staf isi borang fizikal sendiri, OCR+AI isi borang digital,
@@ -181,6 +185,9 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.pratonton');
         Route::post('/imbas-hantar/semak/{token}/baca-semula', [ImbasHantarController::class, 'bacaSemula'])
             ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.baca-semula');
+        // Status analisis queue OCR (T2), disemak oleh paparan menunggu
+        Route::get('/imbas-hantar/semak/{token}/status', [ImbasHantarController::class, 'status'])
+            ->where('token', '[A-Za-z0-9]{40}')->name('imbas-hantar.status');
     });
 
     // ---- Aliran Kelulusan (versi asas — lihat nota dalam BorangController) ----

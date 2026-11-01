@@ -119,6 +119,52 @@ class Demo
     }
 
     /**
+     * Jalankan $kerja dalam persekitaran mod $mod (null = sistem sebenar), kemudian pulihkan
+     * persekitaran asal. Untuk worker queue OCR (T2): proses konsol yang berjalan lama
+     * memproses kerja daripada permintaan web mod demo/percubaan dan sistem sebenar.
+     */
+    public static function dalamMod(?string $mod, \Closure $kerja): mixed
+    {
+        // Sudah dalam mod itu. Nota: mod null dari dalam persekitaran demo tidak boleh dipulihkan
+        // ke DB sebenar (nama asal tidak diketahui), tetapi kerja daripada demo sentiasa membawa
+        // modnya sendiri, jadi kes itu tidak berlaku.
+        if ($mod === self::mod() || $mod === null) {
+            return $kerja();
+        }
+
+        $sambungan = config('database.default');
+        $kunci = ['demo.mod', "database.connections.{$sambungan}.database", 'filesystems.disks.local.root',
+            'app.debug', 'mail.default', 'services.notifikasi.emel'];
+        $asal = [];
+        foreach ($kunci as $k) {
+            $asal[$k] = config($k);
+        }
+
+        $segarkan = function () use ($sambungan) {
+            \Illuminate\Support\Facades\DB::purge($sambungan);
+            \Illuminate\Support\Facades\Storage::forgetDisk('local');
+            app('mail.manager')->forgetMailers();
+        };
+
+        try {
+            self::terapkan($mod);
+            $segarkan();
+            // Percubaan: pautan dalam notifikasi/emel ikut alamat terowong (lihat selarasUrl)
+            if ($mod === self::PERCUBAAN && ($url = self::urlTerowong())) {
+                URL::forceRootUrl($url);
+                URL::forceScheme('https');
+            }
+
+            return $kerja();
+        } finally {
+            config($asal);
+            $segarkan();
+            URL::forceRootUrl(null);
+            URL::forceScheme(null);
+        }
+    }
+
+    /**
      * Permintaan datang melalui cloudflared (berjalan pada komputer ini): header
      * CF-Connecting-IP daripada alamat loopback. Ditanda oleh IpTerowong sebelum IP ditukar.
      */

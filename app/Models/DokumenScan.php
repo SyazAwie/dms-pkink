@@ -40,6 +40,36 @@ class DokumenScan extends Model
     }
 
     /**
+     * OCR fail ini sedang dalam giliran / diproses oleh worker queue OCR (T2). Status yang
+     * tersangkut (worker dihentikan di tengah jalan) dianggap tidak berjalan, supaya staf
+     * boleh menjalankan OCR semula.
+     */
+    public function ocrSedangBerjalan(): bool
+    {
+        $umur = $this->updated_at ? $this->updated_at->diffInSeconds(now()) : 0;
+
+        return match ($this->status_ocr) {
+            // Diproses: oleh worker yang masih hidup, atau segerak dalam permintaan (had masa PHP)
+            \App\Services\OcrFailService::SEDANG_DIPROSES => $umur <= \App\Support\AntrianOcr::hadKerja()
+                && (\App\Support\AntrianOcr::workerHidup() || $umur <= (int) config('services.ocr.had_masa', 300) + 30),
+            // Dalam giliran: worker berjalan DAN kerjanya masih dalam jadual jobs (kerja yang
+            // hilang, cth. queue:clear, tidak menyangkut fail selama-lamanya)
+            \App\Services\OcrFailService::DALAM_GILIRAN => \App\Support\AntrianOcr::workerHidup()
+                ? (($id = \Illuminate\Support\Facades\Cache::get(self::kunciKerjaOcr($this->dokumen_scan_id)))
+                    ? \App\Support\AntrianOcr::kerjaWujud((int) $id)
+                    : $umur <= 900)
+                : $umur <= 60,
+            default => false,
+        };
+    }
+
+    /** Kunci cache ID kerja queue OCR bagi fail ini (kedudukan giliran, kerja hilang). */
+    public static function kunciKerjaOcr(int $scanId): string
+    {
+        return "ocr-kerja:fail:{$scanId}";
+    }
+
+    /**
      * Metadata fail sebenar dalam disk `local`, atau null jika fail tiada.
      *
      * @return array{saiz_fail: int, jenis_mime: string|null, hash_sha256: string}|null

@@ -246,7 +246,11 @@
                             @if($scan->saizMudahDibaca())
                                 <span class="fail-saiz" title="SHA-256: {{ $scan->hash_sha256 }}">{{ $scan->saizMudahDibaca() }}</span>
                             @endif
-                            <span class="badge fail-status {{ $kelasOcr }}">{{ $scan->status_ocr }}</span>
+                            @php $ocrBerjalan = $scan->ocrSedangBerjalan(); @endphp
+                            {{-- T2: OCR dalam queue; status disemak sendiri dan halaman dimuat semula bila siap --}}
+                            <span class="badge fail-status {{ $kelasOcr }}" @if($ocrBerjalan) data-status-ocr="{{ route('dokumen.scan.ocr.status', $scan->dokumen_scan_id) }}" @endif>
+                                @if($ocrBerjalan)<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>@endif<span class="teks-status-ocr">{{ $scan->status_ocr }}</span>
+                            </span>
                             @if($jenisPratonton)
                                 <button type="button" class="btn-teks-ocr" data-bs-toggle="collapse" data-bs-target="#pratonton-{{ $scan->dokumen_scan_id }}"
                                         aria-expanded="{{ $loop->first ? 'true' : 'false' }}" title="Pratonton fail" aria-label="Pratonton {{ $scan->nama_fail }}">
@@ -263,11 +267,11 @@
                                 </button>
                             @endif
                             @can('update', $dokumen)
-                                @if(in_array($scan->status_ocr, ['Pending', 'Ralat']))
+                                @if(in_array($scan->status_ocr, ['Pending', 'Ralat']) || (in_array($scan->status_ocr, ['Dalam Giliran', 'Sedang Diproses']) && ! $ocrBerjalan))
                                     <form action="{{ route('dokumen.scan.ocr', $scan->dokumen_scan_id) }}" method="POST" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn-jalan-ocr">
-                                            <i class="bi bi-play-fill"></i> {{ $scan->status_ocr === 'Ralat' ? 'Cuba Semula' : 'Jalankan OCR' }}
+                                            <i class="bi bi-play-fill"></i> {{ $scan->status_ocr === 'Pending' ? 'Jalankan OCR' : 'Cuba Semula' }}
                                         </button>
                                     </form>
                                 @endif
@@ -469,6 +473,24 @@
 
 @push('scripts')
 <script>
+    // T2: OCR dalam giliran / sedang diproses di latar. Semak status setiap 3 saat dan
+    // muat semula halaman bila selesai (teks OCR & butang semakan dipaparkan).
+    document.querySelectorAll('[data-status-ocr]').forEach(function (lencana) {
+        const semak = async function () {
+            try {
+                const res = await fetch(lencana.dataset.statusOcr, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                if (res.ok) {
+                    const d = await res.json();
+                    if (!d.berjalan) { window.location.reload(); return; }
+                    const teks = d.status + (d.di_hadapan ? ' (' + d.di_hadapan + ' di hadapan)' : '');
+                    lencana.querySelector('.teks-status-ocr').textContent = teks;
+                }
+            } catch (e) { /* cuba lagi */ }
+            setTimeout(semak, 3000);
+        };
+        setTimeout(semak, 3000);
+    });
+
     // Pratonton fail selain yang pertama dimuat hanya bila dibuka
     document.querySelectorAll('.pratonton-fail').forEach(function (el) {
         el.addEventListener('show.bs.collapse', function () {
