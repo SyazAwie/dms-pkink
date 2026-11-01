@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Notification;
  * | Diluluskan / Ditolak              | Pemohon                          | null (peribadi)    |
  * | Pendaftaran staf baharu           | SUPERADMIN, ADMIN                | SUPERADMIN, ADMIN  |
  * | Amaran sistem (sandaran/integriti)| SUPERADMIN, ADMIN                | SUPERADMIN, ADMIN  |
+ * | OCR latar selesai/gagal (T2)      | Pengguna yang menekan Jalankan OCR | null (peribadi)  |
  */
 class Notifikasi
 {
@@ -84,6 +85,19 @@ class Notifikasi
     {
         self::kepadaPeranan(self::PERANAN_PENTADBIR, new NotifikasiDms('amaran_sistem', $tajuk, $mesej,
             route('dashboard'), 'bi-exclamation-triangle', 'merah', self::PERANAN_PENTADBIR));
+    }
+
+    /** OCR yang dijalankan di latar (queue OCR, T2) telah selesai atau gagal. */
+    public static function ocrFailSelesai(User $user, \App\Models\DokumenScan $scan, bool $berjaya): void
+    {
+        $rujukan = $scan->dokumen?->no_rujukan ?? 'Dokumen';
+        $notifikasi = $berjaya
+            ? new NotifikasiDms('ocr_selesai', 'OCR selesai', "Teks \"{$scan->nama_fail}\" ({$rujukan}) telah dibaca: {$scan->status_ocr}.",
+                route('dokumen.show', $scan->dokumen_id), 'bi-text-paragraph', 'hijau')
+            : new NotifikasiDms('ocr_gagal', 'OCR gagal', "OCR \"{$scan->nama_fail}\" ({$rujukan}) gagal. Sila cuba semula.",
+                route('dokumen.show', $scan->dokumen_id), 'bi-exclamation-triangle', 'merah');
+
+        self::hantar(fn () => collect([$user]), $notifikasi);
     }
 
     /**

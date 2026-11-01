@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DokumenScan;
 use App\Models\PembetulanAi;
+use App\Support\AntrianOcr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ class StatusSistemController extends Controller
     {
         $kumpulan = [
             'Pangkalan Data & Aplikasi' => [$this->pangkalanData(), ...$this->konfigurasi()],
-            'OCR & AI' => [$this->tesseract(), $this->poppler(), ...$this->ollama()],
+            'OCR & AI' => [$this->tesseract(), $this->poppler(), ...$this->ollama(), $this->workerOcr()],
             'Notifikasi' => [$this->notifikasiPeranti(), $this->notifikasiEmel()],
             'Penyelenggaraan' => [$this->penjadual(), $this->sandaran(), $this->integriti(), $this->storan()],
         ];
@@ -189,6 +190,32 @@ class StatusSistemController extends Controller
         return $minit <= 3
             ? $this->semakan('Penjadual (Task Scheduler)', 'ok', "Degupan terakhir {$minit} minit lalu")
             : $this->semakan('Penjadual (Task Scheduler)', 'ralat', 'Degupan terakhir '.Carbon::parse($degupan)->diffForHumans(), 'Semak tugas "DMS PKINK Penjadual".');
+    }
+
+    /** Worker queue OCR (T2). Tanpanya OCR/AI masih berfungsi, tetapi segerak (pengguna menunggu). */
+    private function workerOcr(): array
+    {
+        $nama = 'Worker OCR/AI (queue)';
+        if (config('queue.default') === 'sync') {
+            return $this->semakan($nama, 'amaran', 'QUEUE_CONNECTION=sync', 'Tetapkan QUEUE_CONNECTION=database supaya OCR/AI berjalan di latar.');
+        }
+        $d = AntrianOcr::degupan();
+        if (! AntrianOcr::workerHidup()) {
+            return $this->semakan($nama, 'amaran',
+                $d ? 'Degupan terakhir '.Carbon::createFromTimestamp($d['masa'])->diffForHumans() : 'Tidak berjalan',
+                'OCR/AI dijalankan segerak (pengguna menunggu). Mulakan tugas "DMS PKINK Worker OCR" (README 10, langkah 13).');
+        }
+        $giliran = null;
+        try {
+            $giliran = DB::connection('antrian')->table('jobs')->where('queue', AntrianOcr::NAMA)->count();
+            $gagal = DB::connection('antrian')->table('failed_jobs')->where('failed_at', '>=', now()->subDay())->count();
+        } catch (\Throwable) {
+            return $this->semakan($nama, 'ralat', 'Jadual jobs tiada', 'Jalankan SQL jadual jobs & failed_jobs (README 10, langkah 13).');
+        }
+
+        return $gagal > 0
+            ? $this->semakan($nama, 'amaran', "{$gagal} kerja gagal (24 jam)", 'Semak storage/logs/laravel.log.')
+            : $this->semakan($nama, 'ok', ($d['sibuk'] ? 'Sedang memproses' : 'Menunggu kerja')." · {$giliran} dalam giliran");
     }
 
     private function statusJson(string $fail): ?array

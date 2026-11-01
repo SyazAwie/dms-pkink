@@ -2,26 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\OcrFailJob;
 use App\Models\Bahagian;
 use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\DokumenData;
 use App\Models\DokumenField;
-use App\Models\DokumenOcr;
 use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
-use App\Services\OcrService;
+use App\Services\OcrFailService;
 use App\Http\Middleware\HeaderKeselamatan;
 use App\Rules\FailSelamat;
 use App\Services\TeraAirService;
+use App\Support\AntrianOcr;
 use App\Support\Csv;
+use App\Support\Demo;
 use App\Support\JenisMedan;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -731,6 +734,10 @@ class DokumenController extends Controller
      * (butang "Jalankan OCR" dalam halaman Butiran Dokumen). Guna kebenaran
      * sama seperti edit dokumen induk.
      *
+     * T2: jika worker queue OCR berjalan, fail dimasukkan ke giliran (status "Dalam Giliran")
+     * dan halaman menyemak status sendiri; pengguna dimaklumkan melalui loceng bila siap.
+     * Jika tidak, OCR dijalankan segerak seperti dahulu.
+     *
      * Mesej ralat sebenar (laluan Tesseract/Poppler, dll.) hanya dipaparkan
      * semasa pembangunan (APP_DEBUG=true); selain itu mesej umum, dan butiran
      * penuh dalam log.
@@ -740,32 +747,50 @@ class DokumenController extends Controller
         $scan = DokumenScan::with('dokumen')->findOrFail($scanId);
         Gate::authorize('update', $scan->dokumen);
 
+        if ($scan->ocrSedangBerjalan()) {
+            return back()->with('success', "OCR \"{$scan->nama_fail}\" sudah dalam giliran.");
+        }
+
+        $pelaku = ['user_id' => Auth::id(), 'ip' => request()->ip(), 'ua' => request()->userAgent()];
+
+        if (AntrianOcr::workerHidup()) {
+            $statusAsal = $scan->status_ocr;
+            // Status ditetapkan SEBELUM kerja dihantar: worker hanya memproses fail "Dalam Giliran"
+            $scan->forceFill(['status_ocr' => OcrFailService::DALAM_GILIRAN])->save();
+            $scan->touch();
+            try {
+                $id = AntrianOcr::hantar(new OcrFailJob($scan->dokumen_scan_id, $pelaku, Demo::mod()));
+                Cache::put(DokumenScan::kunciKerjaOcr($scan->dokumen_scan_id), $id, now()->addHours(2));
+
+                return back()->with('success', "OCR \"{$scan->nama_fail}\" dimasukkan ke giliran. Status dikemas kini sendiri, dan anda akan dimaklumkan bila siap.");
+            } catch (\Throwable $e) {
+                // Cth. jadual jobs belum dicipta: pulihkan status dan teruskan secara segerak
+                Log::warning('Queue OCR: kerja OCR gagal dihantar, diproses segerak: '.$e->getMessage());
+                $scan->forceFill(['status_ocr' => $statusAsal])->save();
+            }
+        }
+
         // OCR berjalan segerak; PDF berbilang muka surat boleh melebihi max_execution_time (30 saat)
         set_time_limit((int) config('services.ocr.had_masa', 300));
+        $ralat = app(OcrFailService::class)->jalankan($scan, $pelaku);
 
-        try {
-            $hasil = app(OcrService::class)->proses($scan->lokasi_fail);
+        return $ralat === null
+            ? back()->with('success', "OCR selesai untuk \"{$scan->nama_fail}\".")
+            : back()->with('error', "OCR gagal untuk \"{$scan->nama_fail}\". Sila cuba lagi atau hubungi Pentadbir Sistem.".$this->butiranRalat($ralat));
+    }
 
-            DokumenOcr::updateOrCreate(
-                ['dokumen_scan_id' => $scan->dokumen_scan_id],
-                [
-                    'teks_dibaca' => $hasil['teks'] !== '' ? $hasil['teks'] : null,
-                    'skor_padanan' => $hasil['skor'],
-                    'status_semakan' => 'Belum Disemak',
-                ]
-            );
+    /** Status OCR satu fail (JSON) untuk halaman Butiran semasa OCR dalam giliran (T2). */
+    public function statusOcr($scanId)
+    {
+        $scan = DokumenScan::with('dokumen')->findOrFail($scanId);
+        Gate::authorize('view', $scan->dokumen);
 
-            $scan->update(['status_ocr' => $hasil['teks'] !== '' ? 'Selesai' : 'Tiada Teks Dikesan']);
-            $this->logOcrManual($scan, ['status_ocr' => $scan->status_ocr, 'skor' => $hasil['skor'], 'enjin' => $hasil['enjin'] ?? []]);
-
-            return back()->with('success', "OCR selesai untuk \"{$scan->nama_fail}\".");
-        } catch (\Throwable $e) {
-            Log::warning("OCR gagal untuk dokumen_scan_id {$scan->dokumen_scan_id}: ".$e->getMessage());
-            $scan->update(['status_ocr' => 'Ralat']);
-            $this->logOcrManual($scan, ['status_ocr' => 'Ralat']);
-
-            return back()->with('error', "OCR gagal untuk \"{$scan->nama_fail}\". Sila cuba lagi atau hubungi Pentadbir Sistem.".$this->butiranRalat($e));
-        }
+        return response()->json([
+            'status' => $scan->status_ocr,
+            'berjalan' => $scan->ocrSedangBerjalan(),
+            'di_hadapan' => $scan->status_ocr === OcrFailService::DALAM_GILIRAN
+                ? AntrianOcr::diHadapan(Cache::get(DokumenScan::kunciKerjaOcr($scan->dokumen_scan_id))) : null,
+        ]);
     }
 
     /**
@@ -820,22 +845,6 @@ class DokumenController extends Controller
             'rekod_id' => $scan->ocr->dokumen_ocr_id,
             'data_lama' => $dataLama,
             'data_baharu' => ['dokumen' => $scan->dokumen?->no_rujukan, 'nama_fail' => $scan->nama_fail] + $dataBaharu,
-            'alamat_ip' => request()->ip(),
-            'peranti_pengguna' => request()->userAgent(),
-            'created_at' => now(),
-        ]);
-    }
-
-    /** Log audit bagi OCR manual (#21): siapa menjalankan OCR atas fail mana, dan hasilnya. */
-    private function logOcrManual(DokumenScan $scan, array $hasil): void
-    {
-        LogAudit::create([
-            'user_id' => Auth::id(),
-            'tindakan' => 'Jalankan OCR',
-            'nama_jadual' => 'dokumen_scan',
-            'rekod_id' => $scan->dokumen_scan_id,
-            'data_lama' => null,
-            'data_baharu' => ['dokumen' => $scan->dokumen?->no_rujukan, 'nama_fail' => $scan->nama_fail] + $hasil,
             'alamat_ip' => request()->ip(),
             'peranti_pengguna' => request()->userAgent(),
             'created_at' => now(),

@@ -201,7 +201,7 @@ Skema `dms_pkink_db` diurus **secara manual dalam HeidiSQL** (dump SQL + skrip S
 - Perubahan skema diberi sebagai skrip SQL untuk dijalankan dalam HeidiSQL
 - **Keunikan yang selamat soft delete** dikuatkuasakan melalui lajur janaan (generated column) yang bernilai `NULL` bila rekod dipadam: `email_aktif`, `ic_pekerja_aktif`, `kod_bahagian_aktif`, `kod_dokumen_aktif`, `kod_field_aktif`, serta `ic_menunggu` / `email_menunggu` (pendaftaran staf)
 
-Pangkalan data mengandungi **19 jadual**: 13 jadual domain dalam 6 kumpulan, `notifications`, `push_subscriptions`, dan 4 jadual infra Laravel.
+Pangkalan data mengandungi **21 jadual**: 13 jadual domain dalam 6 kumpulan, `notifications`, `push_subscriptions`, dan 6 jadual infra Laravel (termasuk `jobs` & `failed_jobs` untuk queue OCR/AI, T2).
 
 ### 4.1 Kumpulan: Organisasi & Kawalan Akses
 
@@ -385,6 +385,8 @@ Pangkalan data mengandungi **19 jadual**: 13 jadual domain dalam 6 kumpulan, `no
 
 **`password_reset_tokens`**, **`sessions`**, **`cache`**, **`cache_locks`**: jadual infra Laravel (token tetapan semula kata laluan, sesi log masuk, cache dan had kadar).
 
+**`jobs`**, **`failed_jobs`** (T2): queue OCR/AI (`queue` = `ocr`). Sentiasa dalam DB sebenar walaupun mod demo hidup (sambungan `antrian`). Struktur standard Laravel; SQL dalam langkah 13 bahagian 10.
+
 ---
 
 ## 5. Modul-Modul Sistem (Terperinci)
@@ -492,7 +494,7 @@ Dua aliran yang berkongsi kod (`ImbasHantarController` mewarisi `ImbasArkibContr
 | Pengesahan | Semakan wajib | Semakan wajib + kotak pengesahan |
 | Status `borang` | **Diluluskan** terus | **Dalam Proses** (masuk aliran kelulusan) |
 
-**Langkah 1, Analisis:** pilih Jenis Dokumen + muat naik **satu** fail. Sistem menjalankan OCR (5.10) dan menghantar teks + senarai medan kepada AI SEA-LION tempatan, yang memulangkan cadangan nilai dalam JSON (termasuk Tarikh Dokumen & Perkara). Fail sementara dan hasil disimpan dalam `storage/app/private/ocr_sementara/{token}/` (`meta.json`), terikat kepada pengguna dan mod, dan tamat selepas 120 minit. Kegagalan OCR/AI tidak menghalang semakan: amaran dipaparkan dan medan diisi secara manual.
+**Langkah 1, Analisis:** pilih Jenis Dokumen + muat naik **satu** fail. Kerja analisis dihantar ke **queue OCR** (T2) dan pengguna terus dibawa ke halaman menunggu ("Dalam giliran: n dokumen di hadapan anda", pratonton fail, dikemas kini sendiri setiap 2 s); jika worker tidak berjalan, analisis dijalankan segerak seperti dahulu. Sistem menjalankan OCR (5.10) dan menghantar teks + senarai medan kepada AI SEA-LION tempatan, yang memulangkan cadangan nilai dalam JSON (termasuk Tarikh Dokumen & Perkara). Fail sementara dan hasil disimpan dalam `storage/app/private/ocr_sementara/{token}/` (`meta.json`), terikat kepada pengguna dan mod, dan tamat selepas 120 minit. Kegagalan OCR/AI tidak menghalang semakan: amaran dipaparkan dan medan diisi secara manual.
 
 **Langkah 2, Semak & Sahkan** (`GET semak/{token}`): borang dengan label **"Diisi AI"**, pratonton fail imbasan di sebelah, skor keyakinan dan masa proses. Butang **"Baca semula (tulisan tangan)"** memaksa GLM-OCR. Muat semula halaman tidak menjalankan OCR semula, dan ralat validasi kembali ke skrin semak dengan nilai terisi.
 
@@ -528,7 +530,7 @@ Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokon
 
 **Semakan teks OCR:** dalam panel teks OCR, staf yang boleh mengedit dokumen boleh **Tandakan Disemak** atau **Betulkan Teks** (status Dibetulkan); teks asal dan baharu direkod dalam log audit.
 
-OCR berjalan segerak dalam permintaan (had masa `OCR_HAD_MASA`, 300 s). Kegagalan OCR/AI **tidak** membatalkan dokumen induk: status ditanda `Ralat` dan butiran dilog. Mesej teknikal (laluan binari, respons Ollama) hanya dipaparkan di skrin bila `APP_DEBUG=true`.
+OCR berjalan di latar melalui **queue OCR** (T2, lihat 5.8 dan langkah 13 bahagian 10): butang "Jalankan OCR" menukar status kepada `Dalam Giliran` → `Sedang Diproses` → `Selesai`; halaman Butiran menyemak status sendiri setiap 3 s, dan pengguna dimaklumkan melalui loceng bila siap. Jika worker tidak berjalan, OCR dijalankan segerak dalam permintaan seperti dahulu (had masa `OCR_HAD_MASA`, 300 s). Status yang tersangkut (worker dihentikan di tengah jalan) boleh dijalankan semula dengan butang Cuba Semula. Kegagalan OCR/AI **tidak** membatalkan dokumen induk: status ditanda `Ralat` dan butiran dilog. Mesej teknikal (laluan binari, respons Ollama) hanya dipaparkan di skrin bila `APP_DEBUG=true`.
 
 ### 5.11 Prestasi & Ketepatan OCR/AI (tempatan, tanpa kos)
 
@@ -706,6 +708,11 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `OcrService.php` | pdftoppm + Tesseract (TSV), buang garisan, laluan hibrid |
 | `VlmOcrService.php` | GLM-OCR melalui Ollama untuk tulisan tangan |
 | `OllamaExtractionService.php` | Prompt daripada medan EAV, ekstrak JSON, panaskan model |
+| `AnalisisImbasService.php` | OCR + AI bagi token Imbas & Arkib/Hantar (`meta.json` status menunggu → diproses → siap) |
+| `OcrFailService.php` | OCR satu fail dokumen sedia ada (butang "Jalankan OCR") + log audit |
+
+### Kerja Queue (`app/Jobs/`)
+`AnalisisImbasJob` (analisis token Imbas) dan `OcrFailJob` (Jalankan OCR + notifikasi bila siap), kedua-dua pada queue `ocr` dan membawa mod demo asal (`Demo::dalamMod`). `App\Support\AntrianOcr`: degupan worker (`storage/framework/antrian-ocr.json`), hantar kerja, kedudukan giliran.
 
 ### Support (`app/Support/`)
 `JenisMedan` (16 jenis medan, auto-isi, seksyen pejabat), `MedanJadual` (jadual baris berulang), `LainDinyatakan`, `TemplatKategori`, `BuangGarisan`, `PolisiKataLaluan`, `PeraturanNama`, `PeraturanProfil`, `TeksEmel`
@@ -802,7 +809,26 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
     schtasks /Create /TN "DMS PKINK Penjadual" /SC MINUTE /MO 1 /F /TR 'conhost.exe --headless C:\Users\NAMA\.config\herd\bin\php83\php.exe C:\laluan\projek\artisan schedule:run'
     ```
     `conhost --headless` mengelakkan tetingkap konsol muncul setiap minit (laluan tanpa ruang kosong). Ini menjalankan `imbas-arkib:bersih` (harian) dan `sandaran:jalan` (12:30 setiap hari)
-13. Sebelum demo: `php artisan ai:panaskan`
+13. **Worker queue OCR/AI (T2).** Jalankan SQL ini dalam HeidiSQL (DB sebenar; juga `dms_pkink_demo` & `dms_pkink_percubaan` jika ada):
+    ```sql
+    CREATE TABLE IF NOT EXISTS `jobs` (
+      `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, `queue` VARCHAR(255) NOT NULL, `payload` LONGTEXT NOT NULL,
+      `attempts` TINYINT UNSIGNED NOT NULL, `reserved_at` INT UNSIGNED NULL, `available_at` INT UNSIGNED NOT NULL,
+      `created_at` INT UNSIGNED NOT NULL, PRIMARY KEY (`id`), KEY `jobs_queue_index` (`queue`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    CREATE TABLE IF NOT EXISTS `failed_jobs` (
+      `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, `uuid` VARCHAR(255) NOT NULL, `connection` TEXT NOT NULL,
+      `queue` TEXT NOT NULL, `payload` LONGTEXT NOT NULL, `exception` LONGTEXT NOT NULL,
+      `failed_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`), UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ```
+    Pastikan `.env` `QUEUE_CONNECTION=database` dan `DB_QUEUE_RETRY_AFTER=660` (mesti melebihi kerja paling lama; kerja yang melebihi `2 × OCR_HAD_MASA + 60` s dianggap tersangkut dan boleh dijalankan semula), kemudian cipta tugas yang memulakan worker setiap kali log masuk Windows (PowerShell, tukar laluan):
+    ```
+    schtasks /Create /TN "DMS PKINK Worker OCR" /SC ONLOGON /F /TR 'conhost.exe --headless C:\laluan\projek\skrip\worker-ocr.cmd C:\Users\NAMA\.config\herd\bin\php83\php.exe'
+    schtasks /Run /TN "DMS PKINK Worker OCR"
+    ```
+    Semak di **Status Sistem** ("Worker OCR/AI (queue)"). Log worker: `storage/logs/worker-ocr.log`. Selepas kemas kini kod: `php artisan queue:restart`. Tanpa worker, OCR/AI tetap berfungsi tetapi segerak.
+14. Sebelum demo: `php artisan ai:panaskan`
 
 **Produksi:** tetapkan `APP_ENV=production`, `APP_DEBUG=false`, dan padam akaun ujian (Bahagian 13).
 
@@ -867,7 +893,7 @@ Tayang `https://….trycloudflare.com/demo` (atau `http://dms-pkink.test/demo`) 
 - Log masuk hanya melalui butang "Masuk sebagai ADMIN/KERANI/…" (akaun `DEMO_AKAUN`); borang kata laluan, lupa kata laluan dan pendaftaran ditutup. Kata laluan semua akaun lain dalam salinan demo dirawakkan oleh `demo:sedia`.
 - Tindakan yang menjejaskan peserta lain disekat dengan mesej "Tindakan ini dimatikan dalam mod demo" (urus kakitangan, sahkan pendaftaran, tindakan Pusat Keselamatan, 2FA, tukar kata laluan/profil; senarai dalam `config/demo.php`).
 - `APP_DEBUG` dimatikan, emel ditulis ke log, banner "Mod Demo" dipaparkan.
-- Analisis OCR/AI berjalan satu pada satu masa; peserta lain menunggu giliran hingga `OCR_TUNGGU_GILIRAN` (120 s).
+- Analisis OCR/AI berjalan satu pada satu masa melalui queue OCR (T2): peserta melihat "Dalam giliran: n dokumen di hadapan anda" dan halaman dikemas kini sendiri. Pastikan worker berjalan (Status Sistem); tanpanya analisis segerak dan peserta lain menunggu hingga `OCR_TUNGGU_GILIRAN` (120 s).
 - Mod demo hanya mempengaruhi permintaan web: penjadual (sandaran harian, semakan keselamatan) kekal pada DB sebenar.
 
 **Selepas demo / antara sesi**
@@ -932,8 +958,8 @@ Dibina ringkas kerana sistem baru digunakan oleh Bahagian Digital untuk mengarki
 - Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); hidupkan semasa serahan
 - Kebenaran disemak dalam controller, bukan melalui `BorangPolicy`
 
-### OCR: Segerak (Synchronous)
-OCR diproses dalam permintaan HTTP yang sama (tiada queue). Analisis Imbas & Arkib/Hantar dijalankan satu pada satu masa (kunci cache, `OCR_TUNGGU_GILIRAN`), jadi permintaan serentak menunggu giliran dan tidak berebut GPU. Sesuai untuk volum rendah semasa; perlu dipindah ke `php artisan queue:work` (T2) jika penggunaan meningkat.
+### OCR: Queue dengan Satu Worker (T2)
+OCR/AI diproses oleh **satu worker** (`queue:work --queue=ocr`, `skrip/worker-ocr.cmd` melalui Task Scheduler), satu kerja pada satu masa kerana GPU 6GB hanya muat satu model. Pengguna tidak lagi menunggu dengan skrin kosong: halaman menunggu memaparkan kedudukan giliran. Had: tiada pemprosesan selari (dokumen ke-5 dalam giliran menunggu ~4 × 10–40 s); worker hanya berjalan semasa pengguna Windows log masuk; jika worker mati, sistem kembali kepada OCR segerak (kunci cache, `OCR_TUNGGU_GILIRAN`). Selepas mengemas kini kod, jalankan `php artisan queue:restart` (skrip memulakan worker semula sendiri). "Mula Semula" di halaman menunggu tidak membatalkan kerja yang sudah dalam giliran (ia tetap diproses, kemudian dibuang bersama token).
 
 ### Ketepatan OCR/AI
 Tanda ✓ tulisan tangan, medan kosong yang diisi teks lain oleh AI, tulisan sambung dan Jawi (lihat 5.11). Cadangan seterusnya: templat zon setiap medan.

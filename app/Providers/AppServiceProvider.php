@@ -16,12 +16,18 @@ use App\Observers\DokumenObserver;
 use App\Observers\JenisDokumenObserver;
 use App\Observers\UserObserver;
 use App\Policies\DokumenPolicy;
+use App\Support\AntrianOcr;
 use App\Support\Demo;
 use App\Support\TeksEmel;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Console\ServeCommand;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobProcessed;
+use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\Looping;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -29,6 +35,16 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // Queue OCR (T2): jadual `jobs` sentiasa dalam DB sebenar. Sambungan `antrian` disalin
+        // SEBELUM mod demo menukar DB sambungan lalai, supaya permintaan web mod demo dan worker
+        // konsol berkongsi satu giliran (setiap kerja membawa modnya, lihat Demo::dalamMod).
+        $lalai = config('database.default');
+        config([
+            'database.connections.antrian' => config("database.connections.{$lalai}"),
+            'queue.connections.database.connection' => 'antrian',
+            'queue.failed.database' => 'antrian',
+        ]);
+
         // Mod Demo (Fasa D): permintaan web sahaja. Konsol & penjadual (sandaran harian,
         // semakan keselamatan) kekal pada DB sebenar walaupun demo sedang berjalan.
         if (! $this->app->runningInConsole() && ($mod = Demo::modPenanda())) {
@@ -43,6 +59,25 @@ class AppServiceProvider extends ServiceProvider
         // untuk notifikasi yang dicetuskan dari pelayar.
         if ($this->app->runningInConsole()) {
             ServeCommand::$passthroughVariables[] = 'OPENSSL_CONF';
+
+            // Degupan worker queue OCR (T2): halaman tahu worker berjalan, jika tidak OCR segerak.
+            // Pendengar TIDAK boleh memulangkan false: Looping === false menghentikan worker.
+            $queueOcr = fn (?string $queue) => in_array(AntrianOcr::NAMA, explode(',', (string) $queue), true);
+            Event::listen(Looping::class, function (Looping $e) use ($queueOcr): void {
+                if ($queueOcr($e->queue)) {
+                    AntrianOcr::degup(false);
+                }
+            });
+            Event::listen(JobProcessing::class, function (JobProcessing $e) use ($queueOcr): void {
+                if ($queueOcr($e->job->getQueue())) {
+                    AntrianOcr::degup(true);
+                }
+            });
+            Event::listen([JobProcessed::class, JobFailed::class], function ($e) use ($queueOcr): void {
+                if ($queueOcr($e->job->getQueue())) {
+                    AntrianOcr::degup(false);
+                }
+            });
         }
 
         // Daftarkan 'CCTV' secara paksa supaya sistem tidak terlepas pandang
