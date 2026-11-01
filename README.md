@@ -822,11 +822,15 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
       `failed_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`id`), UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ```
-    Pastikan `.env` `QUEUE_CONNECTION=database` dan `DB_QUEUE_RETRY_AFTER=660` (mesti melebihi kerja paling lama; kerja yang melebihi `2 × OCR_HAD_MASA + 60` s dianggap tersangkut dan boleh dijalankan semula), kemudian cipta tugas yang memulakan worker setiap kali log masuk Windows (PowerShell, tukar laluan):
+    Pastikan `.env` `QUEUE_CONNECTION=database` dan `DB_QUEUE_RETRY_AFTER=660` (mesti melebihi kerja paling lama; kerja yang melebihi `2 × OCR_HAD_MASA + 60` s dianggap tersangkut dan boleh dijalankan semula), kemudian cipta tugas yang memulakan worker setiap kali log masuk Windows (PowerShell biasa, tukar laluan). `schtasks /SC ONLOGON` memerlukan hak pentadbir, tetapi `Register-ScheduledTask` dengan pencetus log masuk akaun sendiri tidak:
     ```
-    schtasks /Create /TN "DMS PKINK Worker OCR" /SC ONLOGON /F /TR 'conhost.exe --headless C:\laluan\projek\skrip\worker-ocr.cmd C:\Users\NAMA\.config\herd\bin\php83\php.exe'
-    schtasks /Run /TN "DMS PKINK Worker OCR"
+    $t = New-ScheduledTaskAction -Execute 'conhost.exe' -Argument '--headless C:\laluan\projek\skrip\worker-ocr.cmd C:\Users\NAMA\.config\herd\bin\php83\php.exe'
+    $p = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
+    $s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
+    Register-ScheduledTask -TaskName 'DMS PKINK Worker OCR' -Action $t -Trigger $p -Settings $s
+    Start-ScheduledTask -TaskName 'DMS PKINK Worker OCR'
     ```
+    `-ExecutionTimeLimit 0` perlu kerana Windows menghentikan tugas selepas 3 hari secara lalai.
     Semak di **Status Sistem** ("Worker OCR/AI (queue)"). Log worker: `storage/logs/worker-ocr.log`. Selepas kemas kini kod: `php artisan queue:restart`. Tanpa worker, OCR/AI tetap berfungsi tetapi segerak.
 14. Sebelum demo: `php artisan ai:panaskan`
 
