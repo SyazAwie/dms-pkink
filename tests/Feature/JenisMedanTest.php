@@ -150,7 +150,8 @@ class JenisMedanTest extends TestCase
             tap($this->medan('radio', ['kod_field' => 'kegunaan', 'nama_field' => 'Kegunaan', 'pilihan' => ['Individu', 'Bahagian']]), fn ($m) => $m->dokumen_field_id = 9),
         ]);
 
-        $hasil = app(OllamaExtractionService::class)->ekstrak('teks OCR borang', $medan);
+        // T6: nombor/wang mesti wujud dalam teks OCR (jika tidak, dianggap rekaan AI)
+        $hasil = app(OllamaExtractionService::class)->ekstrak('teks OCR borang Caj: RM 50', $medan);
 
         $this->assertSame([7 => '50.00', 8 => null, 9 => 'Individu'], $hasil);
         Http::assertSent(function ($req) {

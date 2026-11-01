@@ -15,6 +15,10 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // Nama organisasi pemilik sistem: kepala bercetak setiap borang (T6: AI tidak boleh
+    // mengisinya sebagai nilai medan seperti Jabatan / Bahagian)
+    'nama_organisasi' => env('NAMA_ORGANISASI', 'Perbadanan Kemajuan Iktisad Negeri Kelantan'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment
