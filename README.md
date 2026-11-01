@@ -544,6 +544,8 @@ OCR berjalan di latar melalui **queue OCR** (T2, lihat 5.8 dan langkah 13 bahagi
 | AI turut mengisi **Tarikh Dokumen & Perkara** | `ekstrak(..., medanAsas: true)` | Memo/surat/minit hampir terisi penuh |
 | AI suhu 0 + seed tetap; tahun 2 digit dinormalkan (`20/9/26` → `20/9/2026`) | `OllamaExtractionService` | Hasil konsisten |
 | Seksyen "Untuk kegunaan pejabat" tidak dihantar kepada AI dalam Imbas & Hantar | `JenisMedan::idMedanPejabat` | Tiada nilai rekaan bagi seksyen pegawai |
+| **Tanda visual borang (T6):** perkataan **dipotong** ditulis `~~tidak sokong~~`, **kotak pilihan** ditulis `[✓] Emel` / `[□] Intranet` (penanda yang tidak boleh terhasil daripada Tesseract sendiri) dalam teks OCR (`OCR_TANDA_VISUAL`) | `App\Support\TandaVisual`, `OcrService::ocrTerbaik` | AI tahu pilihan mana dipotong/ditanda; ~1.2 s setiap muka surat, serentak dengan Tesseract |
+| **Penapis rekaan selepas AI (T6):** pilihan bercetak "X/ tidak X" tanpa potongan = belum diputuskan; komen yang disalin daripada baris pilihan; nama organisasi sendiri; nilai yang hanya sebahagian label medan; nombor/wang yang digitnya tiada dalam dokumen | `OllamaExtractionService::bersihkanNilai` | Medan pejabat kosong kekal kosong |
 
 Ukuran dengan 7 dokumen ujian (data rekaan, folder `../Ujian_Borang_Diisi/`), OCR + AI:
 
@@ -559,7 +561,16 @@ Ukuran dengan 7 dokumen ujian (data rekaan, folder `../Ujian_Borang_Diisi/`), OC
 
 Ukur setiap perubahan OCR/AI dengan 7 dokumen ujian ini, sebelum dan selepas perubahan.
 
-**Had yang tinggal:** tanda ✓ tulisan tangan dalam jadual; medan yang KOSONG pada borang kadang-kadang diisi teks lain oleh AI (cth. "ERASED BN"); tulisan sambung (cursive) dan Jawi belum diuji; GLM-OCR pada CPU terlalu perlahan (~100 s/dokumen). Cadangan: templat zon (setiap medan dibaca daripada petaknya sendiri).
+**Tanda visual & medan kosong (T6, 2026-11-01).** Diukur dengan `php artisan ocr:nilai` atas 4 borang BD berlabel (54 medan; label disahkan dengan membaca imej, `../Ujian_Borang_Diisi/*.label.json`):
+
+| Mod | Sebelum T6 | Selepas T6 |
+|---|---|---|
+| Tanpa contoh pembetulan (`--tanpa-few-shot`, ukuran jujur) | 31/54 (57.4%) | **41/54 (75.9%)** |
+| Operasi biasa (dengan contoh pembetulan P16) | 38/54 (70.4%) | **44/54 (81.5%)** |
+
+Dibaiki: status sokongan/kelulusan yang belum diputuskan (1-b, 4-b), komen yang disalin daripada "Permohonan disokong/ tidak sokong", caj sewaan rekaan (1500.50, 0.00), "KEW.PA-9", kotak peralatan tanpa tanda (3-b), kepala surat PKINK sebagai Jabatan. Memo dan surat masuk: hasil sama seperti sebelum T6 (peraturan penanda hanya masuk prompt bila teks ada penanda). **Pendekatan generik, bukan templat koordinat:** kedudukan perkataan TSV + analisis piksel, jadi kategori baharu dan imbasan yang beralih/berskala berfungsi tanpa konfigurasi.
+
+**Had yang tinggal:** jawapan AI beralih apabila teks prompt berubah (tanpa contoh pembetulan, 4-b kadang-kadang mengisi "ERASED BN" daripada logo dan seksyen MEDAN LAMA; R7); potongan **tangan** yang beralun (cth. 3-b "~~tidak diluluskan~~") belum dikesan, AI masih betul melalui konteks; laluan GLM-OCR (tulisan tangan) tiada penanda; "[✓] Makmal 10" kadang-kadang dikelirukan dengan baris jadual (bilangan komputer kosong); tulisan tangan: tahun 2 digit "25" dibaca 2026, nama ("HARIS" → "HARTIS"); format username/telefon; AI tidak sepenuhnya berketentuan bagi dokumen panjang (minit: dua larian kod sama memberi Perkara berbeza); tulisan sambung dan Jawi belum diuji; GLM-OCR pada CPU terlalu perlahan (~100 s/dokumen).
 
 ### 5.12 Pengurusan Bahagian & Kakitangan
 
@@ -966,7 +977,7 @@ Dibina ringkas kerana sistem baru digunakan oleh Bahagian Digital untuk mengarki
 OCR/AI diproses oleh **satu worker** (`queue:work --queue=ocr`, `skrip/worker-ocr.cmd` melalui Task Scheduler), satu kerja pada satu masa kerana GPU 6GB hanya muat satu model. Pengguna tidak lagi menunggu dengan skrin kosong: halaman menunggu memaparkan kedudukan giliran. Had: tiada pemprosesan selari (dokumen ke-5 dalam giliran menunggu ~4 × 10–40 s); worker hanya berjalan semasa pengguna Windows log masuk; jika worker mati, sistem kembali kepada OCR segerak (kunci cache, `OCR_TUNGGU_GILIRAN`). Selepas mengemas kini kod, jalankan `php artisan queue:restart` (skrip memulakan worker semula sendiri). "Mula Semula" di halaman menunggu tidak membatalkan kerja yang sudah dalam giliran (ia tetap diproses, kemudian dibuang bersama token).
 
 ### Ketepatan OCR/AI
-Tanda ✓ tulisan tangan, medan kosong yang diisi teks lain oleh AI, tulisan sambung dan Jawi (lihat 5.11). Cadangan seterusnya: templat zon setiap medan.
+Potongan tangan yang beralun, laluan tulisan tangan (GLM-OCR) tanpa penanda, tahun 2 digit tulisan tangan, tulisan sambung dan Jawi (lihat 5.11). Medan kosong dan kotak ✓ bercetak/tangan dalam borang bertaip ditangani oleh T6.
 
 **Penilaian (P15):** `php artisan ocr:nilai` menilai setiap medan terhadap dokumen berlabel (`X.label.json` di sebelah fail: `kategori`, `disahkan`, `tarikh_dokumen`, `perkara`, `medan`; hanya label `"disahkan": true` dikira). `--jana-label=KOD` menjana draf label daripada hasil AI untuk disemak manusia, supaya set 30–50 dokumen boleh dibina dengan cepat. Laporan memaparkan ketepatan setiap dokumen, skor OCR, masa OCR/AI dan senarai medan salah.
 

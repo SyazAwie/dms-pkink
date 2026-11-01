@@ -48,6 +48,9 @@ return [
         // Buang garisan kotak/jadual sebelum OCR (App\Support\BuangGarisan); hasil terbaik
         // antara imej asal dan imej bersih dipilih bagi setiap muka surat
         'buang_garisan' => (bool) env('OCR_BUANG_GARISAN', true),
+        // T6: tanda visual borang dalam teks OCR untuk AI: perkataan dipotong (~~tidak sokong~~)
+        // dan kotak pilihan [✓]/[ ] (App\Support\TandaVisual). ~2 s setiap muka surat.
+        'tanda_visual' => (bool) env('OCR_TANDA_VISUAL', true),
         // Laluan hibrid: muka surat dengan skor Tesseract < ambang (cth. tulisan tangan) dibaca
         // semula oleh model penglihatan tempatan (VlmOcrService). Ujian: tulisan tangan ~77%,
         // dokumen bertaip 81-92%. Kosongkan OCR_VLM_MODEL atau OCR_VLM_AKTIF=false untuk matikan.

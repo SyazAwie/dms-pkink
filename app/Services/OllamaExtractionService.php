@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\DokumenField;
 use App\Models\PembetulanAi;
 use App\Support\JenisMedan;
+use App\Support\TandaVisual;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
@@ -87,7 +89,7 @@ class OllamaExtractionService
             throw new \RuntimeException('Model AI tidak pulangkan JSON yang sah: ' . substr((string) $teksJson, 0, 300));
         }
 
-        return $this->bersihkanNilai($data, $medan)
+        return $this->bersihkanNilai($data, $medan, $teksOcr)
             + ($medanAsas ? $this->bersihkanAsas($data) : []);
     }
 
@@ -149,6 +151,12 @@ class OllamaExtractionService
             ))
             ->implode("\n");
         $contoh = $this->blokPembetulan($medan);
+        // T6: peraturan penanda tanda visual hanya bila teks mengandunginya, supaya prompt
+        // dokumen lain (memo, surat, minit, tulisan tangan melalui VLM) kekal sama seperti dahulu
+        $peraturanTanda = preg_match(TandaVisual::CORAK_PENANDA, $teksOcr)
+            ? "- ~~teks~~ ialah teks yang DIPOTONG (pilihan ditolak): \"disokong/ ~~tidak sokong~~\" = Disokong\n"
+                ."- [✓] = kotak bertanda (dipilih); [□] = kotak kosong (tidak dipilih); nombor/teks lain pada baris yang sama tetap nilai medan berkaitan (cth. \"[✓] Makmal 10\" = bilangan 10)\n"
+            : '';
 
         // JSON padat (satu baris) mengurangkan token jawapan, jadi jawapan lebih pantas
         return <<<PROMPT
@@ -169,7 +177,7 @@ Peraturan ketat:
 - Huruf dalam kotak mungkin dipisahkan ruang atau "|" (cth. "S Y A Z M I"): cantumkan
 - Jadual: satu objek bagi setiap baris yang diisi sahaja; abaikan baris kosong
 - Teks selepas tanda ":" dalam Senarai Medan ialah ARAHAN format, bukan nilai
-
+{$peraturanTanda}
 Senarai Medan:
 {$senaraiMedan}
 {$contoh}
@@ -261,21 +269,144 @@ PROMPT;
      * Sahkan setiap nilai ikut jenis_data medan (peraturan sama dengan borang);
      * nilai tak sah jadi null. Nilai dipulangkan dalam bentuk simpanan.
      */
-    private function bersihkanNilai(array $data, Collection $medan): array
+    private function bersihkanNilai(array $data, Collection $medan, string $teksOcr = ''): array
     {
         // Label borang yang disalin sebagai nilai (cth. "Jabatan/ Bahagian" bagi medan nama) dibuang
         $label = $medan->map(fn ($f) => self::normalLabel($f->nama_field))->filter()->flip();
+        $digitOcr = preg_replace('/\D+/', '', $teksOcr);
 
         return $medan
-            ->mapWithKeys(function ($f) use ($data, $label) {
+            ->mapWithKeys(function ($f) use ($data, $label, $digitOcr, $teksOcr) {
                 $nilai = $data[$f->kod_field] ?? null;
-                if (is_string($nilai) && $label->has(self::normalLabel($nilai))) {
+                if (is_string($nilai) && ($label->has(self::normalLabel($nilai)) || self::sebahagianLabel($nilai, $f)
+                    // T6: penanda tanda visual dalam nilai = baris bercetak disalin (cth. komen
+                    // "Permohonan disokong/ ~~tidak sokong~~"), bukan tulisan pengisi
+                    || preg_match(TandaVisual::CORAK_PENANDA, $nilai)
+                    || (in_array($f->jenis_data, ['teks', 'textarea'], true) && self::teksBercetak($nilai, $teksOcr, $f->nama_field)))) {
+                    $nilai = null;
+                }
+                $nilai = JenisMedan::bersihkanAi($f, $nilai);
+
+                // T6: pilihan yang hanya wujud dalam "X/ tidak X" bercetak tanpa potongan belum diputuskan
+                if ($nilai !== null && in_array($f->jenis_data, ['radio', 'dropdown'], true) && self::pilihanBelumDibuat((string) $nilai, $teksOcr)) {
                     $nilai = null;
                 }
 
-                return [$f->dokumen_field_id => JenisMedan::bersihkanAi($f, $nilai)];
+                // T6: nombor/wang yang digitnya tiada langsung dalam teks OCR ialah rekaan AI
+                // (cth. "Caj adalah RM ____" kosong diisi 1500.50)
+                if ($nilai !== null && in_array($f->jenis_data, ['nombor', 'wang'], true) && ! self::nomborWujud((string) $nilai, $teksOcr, $digitOcr)) {
+                    $nilai = null;
+                }
+
+                return [$f->dokumen_field_id => $nilai];
             })
             ->all();
+    }
+
+    /**
+     * T6: nombor/wang benar-benar tertulis dalam dokumen: rentetan digit penuh nilai (integer +
+     * pecahan, tanpa sifar hujung) wujud dalam digit teks OCR, ATAU dokumen menulis nombor dengan
+     * perkataan ("seribu lima ratus", "RM1.5 juta"), yang tidak dapat disemak secara digit.
+     * Sifar mesti tertulis sebagai nombor sendiri ("RM 0.00"), bukan ruang kosong "RM ____".
+     */
+    public static function nomborWujud(string $nilai, string $teksOcr, string $digitOcr): bool
+    {
+        // Perkataan skala sahaja: perkataan satu digit ("dua", "lima") terlalu biasa dalam
+        // dokumen, dan nilai satu digit hampir sentiasa lulus semakan digit (tarikh dsb.)
+        if (preg_match('/(?:ribu|ratus|juta|bilion|puluh|belas)\b|\bse(?:ratus|ribu|juta|puluh)\b/iu', $teksOcr)) {
+            return true;
+        }
+        [$integer, $pecahan] = array_pad(explode('.', $nilai, 2), 2, '');
+        $digit = ltrim(preg_replace('/\D+/', '', $integer), '0').rtrim(preg_replace('/\D+/', '', $pecahan), '0');
+        if ($digit === '') {
+            return (bool) preg_match('/(?<![\d.,])0(?:[.,]0+)?(?![\d.,])/', $teksOcr);
+        }
+
+        return str_contains($digitOcr, $digit);
+    }
+
+    /**
+     * T6: nilai teks yang disalin daripada teks bercetak, bukan isian:
+     *  - sama dengan SATU segmen penuh teks bercetak di antara penanda pada baris bertanda,
+     *    cth. komen "Permohonan disokong" daripada "Permohonan disokong/ ~~tidak sokong~~".
+     *    Tulisan pada baris yang sama (cth. "[✓] Lain-lain: Bengkel keusahawanan") dikekalkan;
+     *  - nama organisasi sendiri (kepala bercetak setiap borang) bagi medan jabatan/bahagian/
+     *    agensi/organisasi. Kepala surat pihak lain (surat masuk) dan medan lain (cth. pengirim
+     *    surat keluar) tidak ditapis.
+     */
+    public static function teksBercetak(string $nilai, string $teksOcr, string $namaMedan = ''): bool
+    {
+        $n = self::normalLabel($nilai);
+        if (mb_strlen($n) < 6) {
+            return false;
+        }
+        $organisasi = self::normalLabel((string) config('app.nama_organisasi'));
+        if ($organisasi !== '' && in_array($n, [$organisasi, $organisasi.'pkink'], true)
+            && preg_match('/jabatan|bahagian|agensi|organisasi|unit/iu', $namaMedan)) {
+            return true;
+        }
+        foreach (preg_split('/\R/u', $teksOcr) as $baris) {
+            if (! preg_match(TandaVisual::CORAK_PENANDA, $baris)) {
+                continue;
+            }
+            foreach (preg_split(TandaVisual::CORAK_PENANDA, $baris) as $segmen) {
+                if (self::normalLabel($segmen) === $n) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * T6: perkataan utama pilihan (perkataan terakhir, cth. "disokong" bagi "Tidak Disokong")
+     * hanya muncul dalam pasangan pilihan bercetak "X/ tidak X" yang TIDAK dipotong langsung
+     * (cth. "Permohonan: Disokong/ Tidak Sokong" kosong): AI menyalin teks bercetak, bukan
+     * pilihan pengisi. Pasangan yang ada ~~potongan~~, atau perkataan yang muncul di luar
+     * pasangan (ditulis/ditanda), dikekalkan.
+     *
+     * Pertukaran yang disengajakan: pilihan yang dibulatkan tangan ("Lulus / Tidak Lulus"
+     * dengan bulatan) tidak dikesan sebagai tanda, jadi dibiarkan kosong untuk diisi staf;
+     * lebih selamat daripada AI meneka pilihan.
+     */
+    public static function pilihanBelumDibuat(string $nilai, string $teksOcr): bool
+    {
+        $perkataan = preg_split('/[^\p{L}]+/u', mb_strtolower($nilai), -1, PREG_SPLIT_NO_EMPTY);
+        $utama = end($perkataan);
+        if (! $utama || mb_strlen($utama) < 4) {
+            return false;
+        }
+        $jumpa = false;
+        foreach (preg_split('/\R/u', mb_strtolower($teksOcr)) as $baris) {
+            if (! str_contains($baris, $utama)) {
+                continue;
+            }
+            $jumpa = true;
+            $pasanganUtuh = ! preg_match(TandaVisual::CORAK_PENANDA, $baris)
+                && preg_match('/\p{L}+\s*\/\s*tidak[\s\-]+\p{L}+/u', $baris);
+            if (! $pasanganUtuh) {
+                return false;
+            }
+        }
+
+        return $jumpa;
+    }
+
+    /**
+     * T6: kod bercetak dalam label medan sendiri disalin sebagai nilai (cth. "KEW.PA-9" bagi
+     * "No. Daftar KEW.PA-9"). Hanya nilai berbentuk kod (ada digit atau . - /) dan bukan medan
+     * pilihan: label yang menyenaraikan pilihan ("Jantina (Lelaki/Perempuan)") tidak terjejas.
+     */
+    private static function sebahagianLabel(string $nilai, DokumenField $medan): bool
+    {
+        if (in_array($medan->jenis_data, ['radio', 'dropdown', 'kotak_semak', 'ya_tidak'], true)
+            || ! preg_match('/[\d.\-\/]/u', $nilai)) {
+            return false;
+        }
+        $n = self::normalLabel($nilai);
+
+        return mb_strlen($n) >= 4 && str_contains(self::normalLabel($medan->nama_field), $n);
     }
 
     /** Bentuk perbandingan label: huruf kecil, tanpa ruang/tanda baca (cth. "Jabatan/ Bahagian:" → "jabatanbahagian"). */

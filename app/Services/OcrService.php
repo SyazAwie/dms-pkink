@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\BuangGarisan;
+use App\Support\TandaVisual;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -156,24 +157,40 @@ class OcrService
      */
     protected function ocrTerbaik(string $laluanImej, string $folderSementara): array
     {
+        $tandaVisual = (bool) config('services.ocr.tanda_visual', true);
         $asal = $this->mulaTesseract($laluanImej, $folderSementara);
-        if (!config('services.ocr.buang_garisan', true)) {
-            return $this->selesaiTesseract(...$asal);
+
+        $bersih = null;
+        if (config('services.ocr.buang_garisan', true)) {
+            // Tesseract imej asal berjalan semasa garisan dibuang
+            $laluanBersih = $folderSementara . DIRECTORY_SEPARATOR . Str::random(8) . '_bersih.png';
+            $bersih = BuangGarisan::proses($laluanImej, $laluanBersih)
+                ? $this->mulaTesseract($laluanBersih, $folderSementara)
+                : null;
         }
 
-        // Tesseract imej asal berjalan semasa garisan dibuang
-        $laluanBersih = $folderSementara . DIRECTORY_SEPARATOR . Str::random(8) . '_bersih.png';
-        $bersih = BuangGarisan::proses($laluanImej, $laluanBersih)
-            ? $this->mulaTesseract($laluanBersih, $folderSementara)
-            : null;
+        // T6: kotak pilihan dicari semasa Tesseract masih berjalan (tidak perlukan teks)
+        $kotak = $tandaVisual ? TandaVisual::cariKotakFail($laluanImej) : [];
 
-        $hasilAsal = $this->selesaiTesseract(...$asal);
-        if ($bersih === null) {
-            return $hasilAsal;
+        $hasil = $this->selesaiTesseract(...$asal);
+        if ($bersih !== null) {
+            $hasilBersih = $this->selesaiTesseract(...$bersih);
+            if (($hasilBersih[1] ?? -1) > ($hasil[1] ?? -1)) {
+                $hasil = $hasilBersih;
+            }
         }
-        $hasilBersih = $this->selesaiTesseract(...$bersih);
 
-        return ($hasilBersih[1] ?? -1) > ($hasilAsal[1] ?? -1) ? $hasilBersih : $hasilAsal;
+        // T6: perkataan dipotong (~~...~~) dan kotak [✓]/[□] ditulis ke dalam teks untuk AI.
+        // Koordinat imej bersih sama dengan imej asal; tanda dinilai pada imej asal.
+        if ($tandaVisual && ! empty($hasil[2])) {
+            try {
+                $hasil[0] = self::binaTeks(TandaVisual::anotasi($laluanImej, $hasil[2], $kotak));
+            } catch (\Throwable $e) {
+                Log::warning('Tanda visual OCR gagal, guna teks asal: ' . $e->getMessage());
+            }
+        }
+
+        return [$hasil[0], $hasil[1]];
     }
 
     /** Mulakan tesseract (tak segerak) atas SATU imej, output TSV (teks + skor keyakinan sekali). */
@@ -200,7 +217,7 @@ class OcrService
 
         $laluanTsv = $awalanOutput . '.tsv';
         if (!is_file($laluanTsv)) {
-            return ['', null];
+            return ['', null, []];
         }
 
         return $this->uraiTsv($laluanTsv);
@@ -211,12 +228,14 @@ class OcrService
      * 'conf' (keyakinan 0-100, -1 bermakna bukan teks/garisan struktur).
      * Perkataan dikumpul ikut baris asal (block/par/line), supaya pasangan
      * "Label: nilai" dan baris jadual kekal pada baris sendiri untuk AI.
+     *
+     * @return array{0: string, 1: float|null, 2: list<array<string, mixed>>} teks, skor, perkataan + koordinat
      */
     private function uraiTsv(string $laluanTsv): array
     {
         $baris = file($laluanTsv, FILE_IGNORE_NEW_LINES);
         if (!$baris) {
-            return ['', null];
+            return ['', null, []];
         }
 
         $header = explode("\t", array_shift($baris));
@@ -225,10 +244,11 @@ class OcrService
         $idxBaris = array_map(fn ($k) => array_search($k, $header), ['block_num', 'par_num', 'line_num']);
 
         if ($idxTeks === false) {
-            return ['', null];
+            return ['', null, []];
         }
 
-        $barisTeks = [];
+        $idxKotak = array_map(fn ($k) => array_search($k, $header), ['left', 'top', 'width', 'height']);
+        $kata = [];
         $skor = [];
 
         foreach ($baris as $b) {
@@ -238,19 +258,29 @@ class OcrService
                 continue;
             }
 
-            $kunci = implode('.', array_map(fn ($i) => $i === false ? '0' : ($lajur[$i] ?? '0'), $idxBaris));
-            $barisTeks[$kunci][] = $teks;
-
             $conf = (float) ($lajur[$idxConf] ?? -1);
+            [$x, $y, $w, $h] = array_map(fn ($i) => $i === false ? 0 : (int) ($lajur[$i] ?? 0), $idxKotak);
+            $kata[] = [
+                'teks' => $teks, 'x' => $x, 'y' => $y, 'w' => $w, 'h' => $h, 'conf' => $conf,
+                'baris' => implode('.', array_map(fn ($i) => $i === false ? '0' : ($lajur[$i] ?? '0'), $idxBaris)),
+            ];
             if ($conf >= 0) {
                 $skor[] = $conf;
             }
         }
 
-        return [
-            implode("\n", array_map(fn ($p) => implode(' ', $p), $barisTeks)),
-            $skor ? round(array_sum($skor) / count($skor), 2) : null,
-        ];
+        return [self::binaTeks($kata), $skor ? round(array_sum($skor) / count($skor), 2) : null, $kata];
+    }
+
+    /** Teks daripada senarai perkataan TSV, dikumpul ikut baris asal (block/par/line). */
+    private static function binaTeks(array $kata): string
+    {
+        $barisTeks = [];
+        foreach ($kata as $k) {
+            $barisTeks[$k['baris']][] = $k['teks'];
+        }
+
+        return implode("\n", array_map(fn ($p) => implode(' ', $p), $barisTeks));
     }
 
     private function bersihkanFolder(string $folder): void
