@@ -997,8 +997,11 @@ Potongan tangan yang beralun, laluan tulisan tangan (GLM-OCR) tanpa penanda, tah
 
 **Pembetulan staf (P16):** setiap simpan Imbas & Arkib/Hantar merekod nilai AI berbanding nilai akhir (`pembetulan_ai`). Prompt AI bagi kategori yang sama menyenaraikan nilai yang pernah **salah** (dan "medan ini biasanya kosong") supaya tidak diulang (`OLLAMA_FEW_SHOT`, lalai hidup). Nilai **betul** sengaja tidak dimasukkan: dalam ujian dengan borang 4-b, model menyalin nilai betul dokumen lama ke dokumen baharu walaupun diarah tidak. Contoh pada 4-b selepas satu pembetulan: "ERASED BN" pada medan nama yang kosong tidak lagi diisi (dokumen yang sama, jadi bukan ukuran ketepatan umum). LoRA kekal kerja masa depan.
 
-### Kerja Kecil Belum Dibuat
-- (Tiada: penapis julat EAV siap dalam P8)
+### Kerja Akan Datang (dirancang, lihat PROGRESS.md)
+- **TB6 Borang siap untuk dimuat turun:** nilai EAV ditulis atas templat borang kosong asal pada kedudukan setiap medan (dikesan daripada label, dilaras pentadbir), + cop status (Diisi / Disokong / Diluluskan), QR pengesahan (P6) dan tera air (P11)
+- **TB4 Beza imej (R&D):** jajarkan templat dengan imbasan (`imageaffine` GD) dan tolak piksel untuk mengesan potongan/bulatan/✓ tangan dalam apa jua bentuk
+- **Fasa R (kemas kod):** aksesibiliti label, `{dokuman}` → `{dokumen}`, lajur `dokumen.status`, Pint semua fail, buang scaffold Vite, seksyen MEDAN LAMA BORANG-ICT
+- **Fasa H (serahan):** padam akaun ujian & tukar kata laluan demo, `.env` produksi, 2FA & antivirus wajib, sandaran ke lokasi PKINK, manual pengguna
 
 ---
 
