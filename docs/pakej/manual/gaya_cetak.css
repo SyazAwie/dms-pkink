@@ -1,0 +1,285 @@
+/* Gaya cetakan A4 bagi Manual Pengguna Sistem Arkib Digital (DMS) PKINK.
+   Dijana ke PDF melalui Google Chrome: --headless --print-to-pdf --no-pdf-header-footer */
+
+:root {
+  --jenama: #183f68;
+  --utama: #1769d2;
+  --teks: #1c3048;
+  --malap: #68798d;
+  --garis: #dce5ef;
+  --latar: #f1f6fb;
+  --hijau: #25a979;
+  --merah: #c43d4e;
+}
+
+@page {
+  size: A4;
+  margin: 20mm 18mm 18mm 18mm;
+  @bottom-center {
+    content: "Halaman " counter(page) " daripada " counter(pages);
+    font: 8.5pt "Segoe UI", Arial, sans-serif;
+    color: #68798d;
+  }
+  @top-right {
+    content: "Manual Pengguna Sistem Arkib Digital (DMS) PKINK";
+    font: 8pt "Segoe UI", Arial, sans-serif;
+    color: #9aa8b8;
+  }
+}
+
+@page :first {
+  margin: 0;
+  @bottom-center { content: none; }
+  @top-right { content: none; }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--teks);
+  font: 10.5pt/1.5 "Segoe UI", Arial, sans-serif;
+}
+
+/* ---------- Kulit ---------- */
+.kulit {
+  height: 297mm;
+  padding: 45mm 25mm 25mm;
+  text-align: center;
+  background: linear-gradient(180deg, #fff 0%, #fff 58%, var(--latar) 100%);
+  border-top: 10mm solid var(--jenama);
+  break-after: page;
+  position: relative;
+}
+.kulit-logo { width: 46mm; height: auto; margin-bottom: 12mm; }
+.kulit-org { font-size: 11pt; font-weight: 600; letter-spacing: .08em; color: var(--malap); }
+.kulit h1 {
+  margin: 22mm 0 4mm;
+  font-size: 34pt;
+  line-height: 1.1;
+  color: var(--jenama);
+  letter-spacing: .01em;
+}
+.kulit-sistem { font-size: 17pt; font-weight: 600; color: var(--utama); }
+.kulit-sub { margin-top: 2mm; font-size: 11.5pt; color: var(--malap); }
+.kulit-info {
+  position: absolute;
+  left: 25mm; right: 25mm; bottom: 28mm;
+  width: auto;
+  border-collapse: collapse;
+  font-size: 10pt;
+  text-align: left;
+}
+.kulit-info td { padding: 2.2mm 4mm; border-bottom: 1px solid var(--garis); }
+.kulit-info td:first-child { width: 40%; color: var(--malap); }
+.kulit-info td:last-child { font-weight: 600; }
+
+/* ---------- Kandungan ---------- */
+.kandungan { break-after: page; }
+.senarai-kandungan { padding-left: 0; list-style: none; counter-reset: bab; font-size: 11.5pt; }
+.senarai-kandungan li {
+  counter-increment: bab;
+  display: flex;
+  padding: 2.6mm 0;
+  border-bottom: 1px dotted #b8c5d4;
+}
+.senarai-kandungan li::before { content: counter(bab) "."; width: 9mm; font-weight: 600; color: var(--utama); }
+.senarai-kandungan a { flex: 1; color: var(--teks); text-decoration: none; }
+/* Nombor halaman diisi oleh skrip penjana PDF (Chrome tidak menyokong target-counter) */
+.senarai-kandungan .hlm { color: var(--malap); }
+
+/* ---------- Bab dan tajuk ---------- */
+.bab { break-before: page; }
+h2 {
+  margin: 0 0 5mm;
+  padding-bottom: 2.5mm;
+  font-size: 18pt;
+  color: var(--jenama);
+  border-bottom: 2.5px solid var(--utama);
+}
+h3 {
+  margin: 6mm 0 2mm;
+  font-size: 12.5pt;
+  color: var(--jenama);
+  break-after: avoid;
+}
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6.5mm; }
+li { margin-bottom: 1.2mm; }
+b { font-weight: 600; }
+code {
+  padding: 0 1.2mm;
+  border-radius: 2px;
+  background: var(--latar);
+  font: 9.5pt Consolas, "Courier New", monospace;
+}
+a { color: var(--utama); text-decoration: none; }
+
+/* ---------- Rajah ---------- */
+figure {
+  margin: 3mm 0 5mm;
+  text-align: center;
+  break-inside: avoid;
+}
+figure img {
+  display: block;
+  max-width: 100%;
+  max-height: 125mm;
+  margin: 0 auto;
+  border: 1px solid var(--garis);
+  border-radius: 3px;
+}
+figure img.sederhana { max-width: 72%; }
+figure img.bingkai { box-shadow: 0 0 0 1px #b8c5d4; padding: 2mm; background: #fff; }
+figcaption {
+  margin-top: 1.8mm;
+  font-size: 9pt;
+  font-style: italic;
+  color: var(--malap);
+}
+
+/* ---------- Jadual ---------- */
+.jadual {
+  width: 100%;
+  margin: 2mm 0 5mm;
+  border-collapse: collapse;
+  font-size: 9.8pt;
+}
+.jadual thead { display: table-header-group; }
+.jadual th {
+  padding: 2.2mm 3mm;
+  text-align: left;
+  color: #fff;
+  background: var(--jenama);
+}
+.jadual td {
+  padding: 2mm 3mm;
+  vertical-align: top;
+  border-bottom: 1px solid var(--garis);
+}
+.jadual tr { break-inside: avoid; }
+.jadual tbody tr:nth-child(even) td { background: #f7fafd; }
+
+/* ---------- Nota, lencana, status ---------- */
+.nota {
+  margin: 3mm 0 4mm;
+  padding: 2.8mm 4mm 2.8mm 4mm;
+  border-left: 3.5px solid var(--utama);
+  border-radius: 0 3px 3px 0;
+  background: var(--latar);
+  font-size: 9.8pt;
+  break-inside: avoid;
+}
+.nota::before { content: "Nota: "; font-weight: 700; color: var(--jenama); }
+
+.merah { color: var(--merah); font-weight: 700; }
+
+.lencana {
+  display: inline-block;
+  padding: .2mm 1.8mm;
+  border-radius: 3px;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: #0d5c8a;
+  background: #e1f1fb;
+  border: 1px solid #b6dcf2;
+}
+.lencana.ungu { color: #5b3a9e; background: #efe8fb; border-color: #d5c6f2; }
+
+.status {
+  display: inline-block;
+  padding: .2mm 2mm;
+  border-radius: 10px;
+  font-size: 8.8pt;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status.hijau { color: #13603f; background: #dcf3e8; }
+.status.kuning { color: #7a5800; background: #fdf0c8; }
+.status.biru { color: #124a8f; background: #dceafb; }
+.status.merah { color: #8e2433; background: #f9dfe2; }
+.status.kelabu { color: #4a5868; background: #e8edf2; }
+
+.aliran {
+  margin: 3mm 0 4mm;
+  padding: 3.5mm 4mm;
+  text-align: center;
+  font-weight: 600;
+  color: var(--jenama);
+  border: 1px solid var(--garis);
+  border-radius: 4px;
+  background: var(--latar);
+}
+.aliran span { margin: 0 2.5mm; color: var(--utama); }
+
+.akhir {
+  margin-top: 10mm;
+  padding-top: 3mm;
+  text-align: center;
+  font-size: 9pt;
+  color: var(--malap);
+  border-top: 1px solid var(--garis);
+}
+
+/* ---------- Dokumen daripada Markdown (panduan, manual templat, pelan insiden) ---------- */
+.dok .kulit h1 { font-size: 28pt; }
+.isi-dok > h2:first-child { margin-top: 0; }
+.isi-dok h2 { margin-top: 8mm; font-size: 15pt; break-after: avoid; }
+.isi-dok h3 { font-size: 12pt; }
+.isi-dok hr { display: none; }
+.isi-dok table {
+  width: 100%;
+  margin: 2mm 0 5mm;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+}
+.isi-dok thead { display: table-header-group; }
+.isi-dok th { padding: 2mm 2.5mm; text-align: left; color: #fff; background: var(--jenama); }
+.isi-dok td { padding: 1.8mm 2.5mm; vertical-align: top; border-bottom: 1px solid var(--garis); }
+.isi-dok tr { break-inside: avoid; }
+/* Ruangan kosong untuk diisi dengan tangan (senarai hubungan, borang log insiden) */
+.isi-dok td:empty { width: 30%; height: 10mm; border-left: 1px solid var(--garis); }
+.isi-dok td:nth-child(2):last-child:empty { width: 58%; }
+.isi-dok tbody tr:nth-child(even) td { background: #f7fafd; }
+.isi-dok blockquote {
+  margin: 3mm 0 4mm;
+  padding: 2.5mm 4mm;
+  border-left: 3.5px solid var(--utama);
+  border-radius: 0 3px 3px 0;
+  background: var(--latar);
+  font-size: 9.8pt;
+  break-inside: avoid;
+}
+.isi-dok blockquote p:last-child { margin-bottom: 0; }
+.isi-dok pre {
+  margin: 2mm 0 4mm;
+  padding: 3mm 4mm;
+  white-space: pre-wrap;
+  word-break: break-all;
+  border: 1px solid var(--garis);
+  border-radius: 3px;
+  background: #f6f8fa;
+  font: 8.8pt/1.45 Consolas, "Courier New", monospace;
+  break-inside: avoid;
+}
+.isi-dok pre code { padding: 0; background: none; font: inherit; }
+.isi-dok td code { word-break: break-word; }
+.isi-dok kbd {
+  padding: 0 1.2mm;
+  border: 1px solid #b8c5d4;
+  border-radius: 2px;
+  font: 9pt Consolas, monospace;
+}
+.isi-dok ul:has(input[type="checkbox"]) { list-style: none; padding-left: 1mm; }
+.isi-dok input[type="checkbox"] { margin: 0 2mm 0 0; vertical-align: -1px; }
+
+/* Paparan skrin (pratonton dalam pelayar) */
+@media screen {
+  body { max-width: 210mm; margin: 0 auto; padding: 10mm; background: #fff; }
+  .kulit { height: auto; min-height: 270mm; }
+  .bab { margin-top: 12mm; }
+}

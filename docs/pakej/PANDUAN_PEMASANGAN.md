@@ -1,6 +1,6 @@
 # Panduan Pemasangan: Sistem Arkib Digital (DMS) PKINK
 
-Untuk: pentadbir pelayan / Bahagian Digital PKINK. Panduan ini meliputi pelayan **Windows** dan **Linux (Ubuntu 22.04+)**. Langkah yang berbeza ditanda **[Windows]** atau **[Linux]**.
+Pengguna sasaran: pentadbir pelayan dan Bahagian Digital PKINK. Panduan ini meliputi pelayan **Windows** dan **Linux (Ubuntu 22.04+)**. Langkah yang berbeza ditanda **[Windows]** atau **[Linux]**.
 
 ---
 
@@ -311,7 +311,7 @@ Selepas pemulihan: `php artisan optimize:clear`, kemudian log masuk dan buka beb
 - [ ] Firewall: hanya port 443 (dan 80 untuk lencongan) dibuka kepada pengguna; port 3306 dan 11434 (Ollama) **tidak** dibuka ke rangkaian
 - [ ] `DUA_FAKTOR_WAJIB=true`, `ANTIVIRUS_WAJIB=true`, antivirus aktif
 - [ ] `SANDARAN_KATA_LALUAN` ditetapkan dan disimpan di luar pelayan; sandaran diuji (`sandaran:uji`); salinan luar talian mingguan
-- [ ] `KESELAMATAN_IP_DIPERCAYAI` diisi dengan IP awam pejabat (jika ramai staf berkongsi satu IP)
+- [ ] `KESELAMATAN_IP_DIPERCAYAI` diisi dengan IP awam pejabat (jika ramai kakitangan berkongsi satu IP)
 - [ ] **Pusat Keselamatan**: semua semakan pengerasan hijau
 - [ ] `docs/PELAN_TINDAK_BALAS_INSIDEN.pdf` dicetak dan disimpan di luar pelayan
 - [ ] Akaun UAT yang tidak diperlukan dipadam selepas UAT
