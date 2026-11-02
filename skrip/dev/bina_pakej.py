@@ -35,6 +35,8 @@ DIBUANG = [
     'docs/pakej', 'docs/erd/skrip', 'docs/MANUAL_TEMPLAT_BORANG.md', 'Templat/.gitkeep',
     # docs/PELAN_TINDAK_BALAS_INSIDEN.md DIKEKALKAN: dibaca oleh Pusat Keselamatan (keselamatan.pelan)
 ]
+# Nama fail/folder dalam vendor/ yang dibuang (panduan pembantu AI & CI pembekal pustaka)
+NAMA_PEMBEKAL_DIBUANG = {'CLAUDE.md', 'AGENTS.md', 'GEMINI.md', '.claude', '.cursor', '.cursorrules', '.github', '.windsurfrules', 'copilot-instructions.md'}
 # PDF yang mesti ada dalam pakej penuh (../Pakej_DMS_PKINK/pdf/)
 PDF = ['MANUAL_PENGGUNA_DMS_PKINK.pdf', 'PANDUAN_PEMASANGAN.pdf', 'MANUAL_TEMPLAT_BORANG.pdf', 'PELAN_TINDAK_BALAS_INSIDEN.pdf']
 # Folder storage yang mesti wujud (kosong)
@@ -109,6 +111,10 @@ def main() -> int:
     jalan([composer, 'install', '--no-dev', '--optimize-autoloader', '--no-interaction', '--no-progress', '--quiet'], cwd=SASARAN)
     for f in (SASARAN / 'bootstrap' / 'cache').glob('*.php'):
         f.unlink()  # dijana semula semasa larian pertama
+    # Fail panduan pembantu AI / CI daripada pembekal pustaka (tiada kod; tidak diperlukan semasa larian)
+    for p in sorted(SASARAN.joinpath('vendor').rglob('*'), reverse=True):
+        if p.name in NAMA_PEMBEKAL_DIBUANG:
+            shutil.rmtree(p) if p.is_dir() else p.unlink()
 
     # 4. Semakan
     ralat = semak(interim)
@@ -155,6 +161,8 @@ def semak(interim: bool) -> list[str]:
             ralat.append(f'fail tidak dibenarkan: {rel}')
         if p.is_dir() and p.name == '.git':
             ralat.append(f'folder .git: {rel}')
+        if p.name in NAMA_PEMBEKAL_DIBUANG:
+            ralat.append(f'fail pembantu AI/CI: {rel}')
     teks = ('.php', '.md', '.txt', '.json', '.js', '.css', '.cmd', '.ps1', '.service', '.conf', '.example', '.sql', '.dbml', '.drawio', '.xml', '.webmanifest', '.htaccess')
     for p in SASARAN.rglob('*'):
         rel = p.relative_to(SASARAN).as_posix()
