@@ -121,9 +121,9 @@ Contoh laluan: **[Windows]** `C:\dms_pkink`, **[Linux]** `/var/www/dms_pkink`.
 ### 3.3 Fail tetapan `.env`
 1. Salin `.env.example` kepada `.env` dalam folder sistem.
 2. Isi setiap nilai bertanda `<ISI>`: `APP_URL`, `DB_*`, `MAIL_*`, `VAPID_SUBJECT`, dan alih keluar tanda `#` pada laluan program OCR dan sandaran yang sesuai dengan sistem pengendalian pelayan.
-3. Jana kunci aplikasi (sekali sahaja; **jangan** ditukar selepas data wujud):
+3. Jana kunci aplikasi (sekali sahaja; **jangan** ditukar selepas data wujud). Pilihan `--force` diperlukan kerana `APP_ENV=production`:
    ```
-   php artisan key:generate
+   php artisan key:generate --force
    ```
 4. Jana kunci notifikasi peranti (Web Push):
    ```

@@ -23,7 +23,7 @@ import tarfile
 import zipfile
 from pathlib import Path
 
-VERSI = '1.0'
+VERSI = '1.0.1'
 AKAR = Path(__file__).resolve().parents[2]
 LUAR = AKAR.parent / 'Pakej_DMS_PKINK'
 SASARAN = LUAR / 'DMS_PKINK'
@@ -38,7 +38,7 @@ DIBUANG = [
 # Nama fail/folder dalam vendor/ yang dibuang (panduan pembantu AI & CI pembekal pustaka)
 NAMA_PEMBEKAL_DIBUANG = {'CLAUDE.md', 'AGENTS.md', 'GEMINI.md', '.claude', '.cursor', '.cursorrules', '.github', '.windsurfrules', 'copilot-instructions.md'}
 # PDF yang mesti ada dalam pakej penuh (../Pakej_DMS_PKINK/pdf/)
-PDF = ['MANUAL_PENGGUNA_DMS_PKINK.pdf', 'PANDUAN_PEMASANGAN.pdf', 'MANUAL_TEMPLAT_BORANG.pdf', 'PELAN_TINDAK_BALAS_INSIDEN.pdf']
+PDF = ['MANUAL_PENGGUNA_DMS_PKINK.pdf', 'PANDUAN_PEMASANGAN.pdf', 'PANDUAN_UJIAN_KOMPUTER_RIBA.pdf', 'MANUAL_TEMPLAT_BORANG.pdf', 'PELAN_TINDAK_BALAS_INSIDEN.pdf']
 # Folder storage yang mesti wujud (kosong)
 FOLDER_KOSONG = ['storage/app/private', 'storage/app/public', 'storage/framework/cache/data', 'storage/framework/sessions',
                  'storage/framework/views', 'storage/framework/testing', 'storage/logs', 'bootstrap/cache']
