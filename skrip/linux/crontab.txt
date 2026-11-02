@@ -1,0 +1,8 @@
+# Sistem Arkib Digital (DMS) PKINK - penjadual Laravel setiap minit
+# (sandaran harian, pembersihan fail sementara, semakan keselamatan, degupan Status Sistem)
+#
+# Pasang sebagai pengguna pelayan web (tukar laluan jika berbeza):
+#   sudo crontab -u www-data -e
+# kemudian tambah baris di bawah:
+
+* * * * * cd /var/www/dms_pkink && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
