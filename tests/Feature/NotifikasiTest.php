@@ -7,6 +7,7 @@ use App\Models\Dokumen;
 use App\Models\JenisDokumen;
 use App\Models\User;
 use App\Support\Notifikasi;
+use Illuminate\Notifications\DatabaseNotification;
 use Tests\SkemaUjian;
 use Tests\TestCase;
 
@@ -18,8 +19,11 @@ class NotifikasiTest extends TestCase
     use SkemaUjian;
 
     private User $staf;
+
     private User $penyokong;
+
     private User $pelulus;
+
     private Dokumen $dokumen;
 
     protected function setUp(): void
@@ -81,7 +85,7 @@ class NotifikasiTest extends TestCase
         Borang::create(['dokumen_id' => $this->dokumen->dokumen_id, 'pemohon_id' => $this->staf->user_id,
             'status_permohonan' => 'Diluluskan', 'tarikh_permohonan' => now(), 'tarikh_kelulusan' => now()]);
 
-        $this->assertSame(0, \Illuminate\Notifications\DatabaseNotification::count());
+        $this->assertSame(0, DatabaseNotification::count());
     }
 
     public function test_pendaftaran_awam_maklumkan_pentadbir(): void

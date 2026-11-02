@@ -11,6 +11,7 @@ class BahagianController extends Controller
     public function index()
     {
         $senarai = Bahagian::withCount(['users', 'dokumen', 'pendaftaranMenunggu'])->get();
+
         return view('bahagian.index', compact('senarai'));
     }
 
@@ -23,16 +24,18 @@ class BahagianController extends Controller
     {
         $request->validate([
             'kod_bahagian' => ['required', Rule::unique('bahagian')->whereNull('deleted_at')],
-            'nama_bahagian' => 'required'
+            'nama_bahagian' => 'required',
         ]);
 
         Bahagian::create($request->all());
+
         return redirect()->route('bahagian.index')->with('success', 'Bahagian berjaya didaftarkan!');
     }
 
     public function edit($id)
     {
         $bahagian = Bahagian::findOrFail($id);
+
         return view('bahagian.edit', compact('bahagian'));
     }
 
@@ -40,11 +43,12 @@ class BahagianController extends Controller
     {
         $request->validate([
             'kod_bahagian' => ['required', Rule::unique('bahagian')->ignore($id, 'bahagian_id')->whereNull('deleted_at')],
-            'nama_bahagian' => 'required'
+            'nama_bahagian' => 'required',
         ]);
 
         $bahagian = Bahagian::findOrFail($id);
         $bahagian->update($request->all());
+
         return redirect()->route('bahagian.index')->with('success', 'Maklumat Bahagian berjaya dikemas kini!');
     }
 
@@ -61,8 +65,8 @@ class BahagianController extends Controller
             ]);
 
             return redirect()->route('bahagian.index')->with('error',
-                "Bahagian \"{$bahagian->nama_bahagian}\" tidak boleh dipadam kerana masih ada " . implode(' dan ', $sebab)
-                . '. Pindahkan kakitangan ke bahagian lain atau proses permohonan tersebut dahulu.');
+                "Bahagian \"{$bahagian->nama_bahagian}\" tidak boleh dipadam kerana masih ada ".implode(' dan ', $sebab)
+                .'. Pindahkan kakitangan ke bahagian lain atau proses permohonan tersebut dahulu.');
         }
 
         $bahagian->delete();
@@ -71,6 +75,6 @@ class BahagianController extends Controller
             ? " {$bahagian->dokumen_count} dokumen sedia ada kekal dalam arkib dengan nama bahagian ini."
             : '';
 
-        return redirect()->route('bahagian.index')->with('success', 'Bahagian telah dipadam.' . $nota);
+        return redirect()->route('bahagian.index')->with('success', 'Bahagian telah dipadam.'.$nota);
     }
 }

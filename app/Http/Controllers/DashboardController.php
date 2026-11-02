@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Bahagian;
 use App\Models\Borang;
 use App\Models\Dokumen;
-use App\Models\DokumenScan;
 use App\Models\DokumenOcr;
+use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Models\PendaftaranStaf;
 use App\Models\User;
+use App\Support\SkopKelulusan;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -172,13 +174,13 @@ class DashboardController extends Controller
     {
         // Giliran sokongan ikut skop bahagian PENYOKONG (P5); kelulusan semua bahagian
         $giliran = fn () => tap(Borang::dokumenAktif()->bukanMilik($user->user_id)->where('status_permohonan', $status),
-            fn ($q) => $status === 'Dalam Proses' ? \App\Support\SkopKelulusan::hadkanGiliranSokongan($q, $user) : null);
+            fn ($q) => $status === 'Dalam Proses' ? SkopKelulusan::hadkanGiliranSokongan($q, $user) : null);
         $tertua = $giliran()->min($lajurMasuk);
 
         return [
             'menunggu' => $giliran()->count(),
             'tertunggak' => $giliran()->where($lajurMasuk, '<', now()->subDays(self::HARI_TERTUNGGAK))->count(),
-            'palingLama' => $tertua ? (int) \Illuminate\Support\Carbon::parse($tertua)->diffInDays(now()) : null,
+            'palingLama' => $tertua ? (int) Carbon::parse($tertua)->diffInDays(now()) : null,
             'selesaiBulanIni' => Borang::dokumenAktif()->where($lajurPegawai, $user->user_id)
                 ->whereMonth($lajurSelesai, now()->month)->whereYear($lajurSelesai, now()->year)->count(),
             'senarai' => $giliran()->with(['dokumen.jenisDokumen', 'pemohon'])->orderBy($lajurMasuk)->limit(5)->get(),
@@ -225,7 +227,7 @@ class DashboardController extends Controller
         return [
             'perhatian' => array_values(array_filter([
                 ['bil' => $pendaftaran, 'teks' => 'pendaftaran staf baharu menunggu pengesahan', 'url' => route('pendaftaran.index'), 'butang' => 'Sahkan', 'tahap' => 'merah'],
-                ['bil' => $tertunggak, 'teks' => 'permohonan tertunggak lebih ' . self::HARI_TERTUNGGAK . ' hari', 'url' => route('kelulusan.index'), 'butang' => 'Semak', 'tahap' => 'merah'],
+                ['bil' => $tertunggak, 'teks' => 'permohonan tertunggak lebih '.self::HARI_TERTUNGGAK.' hari', 'url' => route('kelulusan.index'), 'butang' => 'Semak', 'tahap' => 'merah'],
                 ['bil' => $belumOcr, 'teks' => 'fail imbasan belum di-OCR atau gagal OCR', 'url' => route('dokumen.index'), 'butang' => 'Lihat', 'tahap' => 'kuning'],
             ], fn ($p) => $p['bil'] > 0)),
             'jumlahDokumen' => Dokumen::count(),
@@ -339,6 +341,7 @@ class DashboardController extends Controller
             ->pluck('jumlah', 'kumpulan');
 
         $susunan = ['Cipta', 'Kemaskini', 'Padam', 'Lain-lain'];
+
         return ['label' => $susunan, 'nilai' => array_map(fn ($k) => (int) ($baris[$k] ?? 0), $susunan)];
     }
 }

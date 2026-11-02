@@ -24,7 +24,9 @@ class DokumenFailTransaksiTest extends TestCase
     use SkemaUjian;
 
     private User $kerani;
+
     private JenisDokumen $jenis;
+
     private DokumenField $medan;
 
     protected function setUp(): void
@@ -102,7 +104,7 @@ class DokumenFailTransaksiTest extends TestCase
         // jadi percubaan semula dapat 0002 dan fail ditulis ke folder BERBEZA.
         $pesaing = false;
         Event::listen(TransactionRolledBack::class, function () use (&$pesaing) {
-            if (!$pesaing) {
+            if (! $pesaing) {
                 $pesaing = true;
                 Dokumen::create(['jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'no_rujukan' => 'INV/2025/0001']);
             }

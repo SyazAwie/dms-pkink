@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\LogAudit;
 use App\Support\PolisiKataLaluan;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
 
 class PasswordResetController extends Controller
@@ -25,10 +25,10 @@ class PasswordResetController extends Controller
     {
         // Had 5 permintaan seminit bagi setiap gabungan emel + IP. Disemak sebelum
         // validasi supaya permintaan yang ditolak pun turut dikira.
-        $kunciHad = 'lupa-kata-laluan|' . Str::lower((string) $request->input('email')) . '|' . $request->ip();
+        $kunciHad = 'lupa-kata-laluan|'.Str::lower((string) $request->input('email')).'|'.$request->ip();
         // Lapisan kedua ikut IP sahaja: 10 permintaan setiap 10 minit, supaya banyak
         // emel berbeza tidak boleh dicuba dari IP yang sama.
-        $kunciHadIp = 'lupa-kata-laluan-ip|' . $request->ip();
+        $kunciHadIp = 'lupa-kata-laluan-ip|'.$request->ip();
         foreach ([$kunciHad => 5, $kunciHadIp => 10] as $kunci => $maksimum) {
             if (RateLimiter::tooManyAttempts($kunci, $maksimum)) {
                 $saat = RateLimiter::availableIn($kunci);
@@ -60,7 +60,7 @@ class PasswordResetController extends Controller
             }
         } catch (\Throwable $e) {
             // Biasanya masalah tetapan SMTP (.env MAIL_*): kata laluan aplikasi salah, port disekat, dll.
-            Log::error('Gagal hantar emel tetapan semula kata laluan: ' . $e->getMessage());
+            Log::error('Gagal hantar emel tetapan semula kata laluan: '.$e->getMessage());
         }
 
         return back()->with(
@@ -81,7 +81,7 @@ class PasswordResetController extends Controller
         $request->validate([
             'email' => 'required|email',
             'password' => ['required', 'confirmed', PolisiKataLaluan::peraturan()], // Mesti ada ruangan password_confirmation
-            'token' => 'required'
+            'token' => 'required',
         ], PolisiKataLaluan::mesej('password'));
 
         $status = Password::reset(

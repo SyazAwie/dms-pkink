@@ -41,14 +41,14 @@ class AuthController extends Controller
         ], [
             // Mesej ralat (optional) jika kotak dibiarkan kosong
             'ic_pekerja.required' => 'Sila masukkan No. Kad Pengenalan.',
-            'password.required' => 'Sila masukkan Kata Laluan.'
+            'password.required' => 'Sila masukkan Kata Laluan.',
         ]);
 
         // Had 5 percubaan gagal seminit bagi setiap gabungan No. IC + IP (elak teka kata laluan)
-        $kunciHad = 'login|' . Str::lower($request->input('ic_pekerja')) . '|' . $request->ip();
+        $kunciHad = 'login|'.Str::lower($request->input('ic_pekerja')).'|'.$request->ip();
         // Lapisan kedua ikut IP sahaja: 20 percubaan gagal setiap 10 minit, supaya satu
         // kata laluan tidak boleh dicuba merentas banyak No. IC dari IP yang sama.
-        $kunciHadIp = 'login-ip|' . $request->ip();
+        $kunciHadIp = 'login-ip|'.$request->ip();
         foreach ([$kunciHad => 5, $kunciHadIp => 20] as $kunci => $maksimum) {
             if (RateLimiter::tooManyAttempts($kunci, $maksimum)) {
                 $saat = RateLimiter::availableIn($kunci);

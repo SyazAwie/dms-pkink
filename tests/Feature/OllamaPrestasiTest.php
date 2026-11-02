@@ -59,7 +59,7 @@ class OllamaPrestasiTest extends TestCase
 
         app(OllamaExtractionService::class)->ekstrak('Nama: -', $this->medan());
 
-        Http::assertSent(fn (Request $r) => !array_key_exists('num_gpu', $r['options']));
+        Http::assertSent(fn (Request $r) => ! array_key_exists('num_gpu', $r['options']));
     }
 
     public function test_panaskan_muat_model_dengan_opsyen_sama(): void

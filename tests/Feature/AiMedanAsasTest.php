@@ -83,7 +83,7 @@ class AiMedanAsasTest extends TestCase
         Http::fake(['*/api/generate' => Http::response(['response' => '{"daripada":"Ali"}'])]);
 
         $this->assertSame([1 => 'Ali'], app(OllamaExtractionService::class)->ekstrak('teks', $this->medan()));
-        Http::assertSent(fn (Request $r) => !str_contains($r['prompt'], '_tarikh_dokumen'));
+        Http::assertSent(fn (Request $r) => ! str_contains($r['prompt'], '_tarikh_dokumen'));
     }
 
     public function test_skrin_semak_isi_tarikh_perkara_dan_masa(): void

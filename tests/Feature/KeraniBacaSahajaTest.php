@@ -23,6 +23,7 @@ class KeraniBacaSahajaTest extends TestCase
     }
 
     private $bahagian;
+
     private $jenis;
 
     public function test_kerani_lihat_senarai_tanpa_butang_urus(): void

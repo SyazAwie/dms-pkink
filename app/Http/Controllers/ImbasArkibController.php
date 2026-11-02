@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\HeaderKeselamatan;
+use App\Jobs\AnalisisImbasJob;
 use App\Models\Borang;
 use App\Models\Dokumen;
 use App\Models\DokumenData;
@@ -10,17 +12,17 @@ use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Models\PembetulanAi;
-use App\Http\Middleware\HeaderKeselamatan;
-use App\Jobs\AnalisisImbasJob;
 use App\Rules\FailSelamat;
 use App\Services\AnalisisImbasService;
 use App\Services\OllamaExtractionService;
+use App\Services\VlmOcrService;
 use App\Support\AntrianOcr;
 use App\Support\Demo;
 use App\Support\JenisMedan;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -63,6 +65,7 @@ use Illuminate\Support\Str;
 class ImbasArkibController extends DokumenController
 {
     private const MINIT_TAMAT = 120;
+
     public const KUNCI_ANALISIS = AnalisisImbasService::KUNCI_ANALISIS;
 
     /** 'arkib' atau 'hantar' (ImbasHantarController). */
@@ -83,7 +86,7 @@ class ImbasArkibController extends DokumenController
     }
 
     /** Medan yang diisi dalam mod ini (lihat AnalisisImbasService::medanUntukMod). */
-    private function medanUntukMod(JenisDokumen $jenisDokumen): \Illuminate\Support\Collection
+    private function medanUntukMod(JenisDokumen $jenisDokumen): Collection
     {
         return AnalisisImbasService::medanUntukMod($jenisDokumen, $this->modHantar());
     }
@@ -94,6 +97,7 @@ class ImbasArkibController extends DokumenController
         Gate::authorize('create', Dokumen::class);
 
         $jenisDokumenSenarai = JenisDokumen::with('fields')->orderBy('nama_dokumen')->get();
+
         return view('imbas_arkib.create', [
             'jenisDokumenSenarai' => $jenisDokumenSenarai,
             'mod' => $this->mod(),
@@ -118,7 +122,7 @@ class ImbasArkibController extends DokumenController
         // nama asal hanya disimpan dalam meta.json untuk paparan.
         $fail = $request->file('fail_scan');
         $token = Str::random(40);
-        $namaFail = 'fail.' . $fail->extension();
+        $namaFail = 'fail.'.$fail->extension();
         $fail->storeAs($this->folderToken($token), $namaFail, 'local');
 
         AnalisisImbasService::tulisMeta($token, [
@@ -247,7 +251,7 @@ class ImbasArkibController extends DokumenController
             // Nombor muka surat (1-based) yang dibaca oleh model penglihatan (tulisan tangan)
             'mukaVlm' => array_map(fn ($i) => $i + 1, array_keys(array_filter($meta['enjin'] ?? [], fn ($e) => $e === 'vlm'))),
             // Butang "Baca semula" disembunyikan jika semua muka surat sudah dibaca model penglihatan
-            'bolehBacaSemula' => app(\App\Services\VlmOcrService::class)->aktif()
+            'bolehBacaSemula' => app(VlmOcrService::class)->aktif()
                 && in_array('tesseract', $meta['enjin'] ?? ['tesseract'], true),
             'mesejAmaran' => $meta['mesej_amaran'],
             // TB5: imbasan lebih sepadan dengan templat kategori lain
@@ -328,7 +332,7 @@ class ImbasArkibController extends DokumenController
         abort_if($meta === null, 404);
 
         return Storage::disk('local')->response(
-            $this->folderToken($token) . '/' . $meta['fail'],
+            $this->folderToken($token).'/'.$meta['fail'],
             $meta['nama_asal'],
             ['Cache-Control' => 'private, no-store', 'Content-Security-Policy' => HeaderKeselamatan::CSP_FAIL]
         );
@@ -368,7 +372,7 @@ class ImbasArkibController extends DokumenController
         // Tuntut token secara atomik: rename hanya berjaya bagi SATU permintaan,
         // jadi klik dua kali / dua tab tidak mencipta dua dokumen.
         $folder = $this->folderToken($token);
-        if (!Storage::disk('local')->move("{$folder}/meta.json", "{$folder}/meta.json.diproses")) {
+        if (! Storage::disk('local')->move("{$folder}/meta.json", "{$folder}/meta.json.diproses")) {
             return $this->sesiTamat();
         }
 
@@ -420,8 +424,8 @@ class ImbasArkibController extends DokumenController
                     // Salin fail daripada folder token ke lokasi kekal (nama rawak seperti store())
                     $namaFolder = Str::slug($noRujukan, '_');
                     $sambungan = pathinfo($meta['fail'], PATHINFO_EXTENSION);
-                    $laluanSalinan = "dokumen_scan/{$namaFolder}/" . Str::random(40) . ".{$sambungan}";
-                    if (!Storage::disk('local')->copy($laluanSementara, $laluanSalinan)) {
+                    $laluanSalinan = "dokumen_scan/{$namaFolder}/".Str::random(40).".{$sambungan}";
+                    if (! Storage::disk('local')->copy($laluanSementara, $laluanSalinan)) {
                         $laluanSalinan = null;
                         throw new \RuntimeException('Fail imbasan sementara tidak dapat disalin ke storan kekal.');
                     }
@@ -530,7 +534,7 @@ class ImbasArkibController extends DokumenController
                 }
 
                 $percubaan++;
-                if (!$e instanceof QueryException || ($e->errorInfo[1] ?? null) !== 1062 || $percubaan >= 3) {
+                if (! $e instanceof QueryException || ($e->errorInfo[1] ?? null) !== 1062 || $percubaan >= 3) {
                     throw $e;
                 }
                 // Ulang: janaNoRujukan() akan ambil nombor tertinggi terkini
@@ -568,8 +572,9 @@ class ImbasArkibController extends DokumenController
         abort_unless(($meta['mod'] ?? 'arkib') === $this->mod(), 404);
 
         $tamat = Carbon::parse($meta['dicipta_pada'])->addMinutes(self::MINIT_TAMAT)->isPast();
-        if ($tamat || !Storage::disk('local')->exists("{$folder}/{$meta['fail']}")) {
+        if ($tamat || ! Storage::disk('local')->exists("{$folder}/{$meta['fail']}")) {
             Storage::disk('local')->deleteDirectory($folder);
+
             return null;
         }
 

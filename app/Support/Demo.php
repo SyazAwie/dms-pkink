@@ -3,7 +3,9 @@
 namespace App\Support;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
 /**
@@ -141,8 +143,8 @@ class Demo
         }
 
         $segarkan = function () use ($sambungan) {
-            \Illuminate\Support\Facades\DB::purge($sambungan);
-            \Illuminate\Support\Facades\Storage::forgetDisk('local');
+            DB::purge($sambungan);
+            Storage::forgetDisk('local');
             app('mail.manager')->forgetMailers();
         };
 

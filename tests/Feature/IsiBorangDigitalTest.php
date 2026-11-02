@@ -22,6 +22,7 @@ class IsiBorangDigitalTest extends TestCase
     use SkemaUjian;
 
     private User $staf;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void

@@ -18,6 +18,7 @@ class AksesibilitiLabelTest extends TestCase
     use SkemaUjian;
 
     private User $admin;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void
@@ -28,7 +29,7 @@ class AksesibilitiLabelTest extends TestCase
         $this->jenis = JenisDokumen::create(['kod_dokumen' => 'UJI', 'nama_dokumen' => 'Borang Uji']);
         foreach ([['teks', 'Nama'], ['dropdown', 'Status'], ['radio', 'Pilihan'], ['tarikh', 'Tarikh Mohon']] as $i => [$jenis, $nama]) {
             DokumenField::create([
-                'jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'nama_field' => $nama, 'kod_field' => 'm' . $i,
+                'jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'nama_field' => $nama, 'kod_field' => 'm'.$i,
                 'jenis_data' => $jenis, 'is_required' => false, 'susunan' => $i + 1,
                 'pilihan' => in_array($jenis, ['dropdown', 'radio'], true) ? ['A', 'B'] : null,
             ]);
@@ -42,11 +43,11 @@ class AksesibilitiLabelTest extends TestCase
 
         foreach ($padanan as [$penuh, $atribut, $isi]) {
             if (preg_match('/\bfor="([^"]+)"/', $atribut, $for)) {
-                $this->assertMatchesRegularExpression('/\bid="' . preg_quote($for[1], '/') . '"/', $html,
+                $this->assertMatchesRegularExpression('/\bid="'.preg_quote($for[1], '/').'"/', $html,
                     "{$halaman}: label for=\"{$for[1]}\" tiada medan sepadan");
             } else {
                 $this->assertMatchesRegularExpression('/<(input|select|textarea)\b/', $isi,
-                    "{$halaman}: label tanpa for dan tidak membalut medan: " . trim(strip_tags($penuh)));
+                    "{$halaman}: label tanpa for dan tidak membalut medan: ".trim(strip_tags($penuh)));
             }
         }
     }

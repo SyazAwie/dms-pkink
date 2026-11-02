@@ -3,7 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Bahagian;
+use App\Models\Dokumen;
+use App\Models\DokumenScan;
+use App\Models\JenisDokumen;
 use App\Models\LogAudit;
+use App\Services\OcrService;
+use Illuminate\Support\Facades\Password;
 use Tests\SkemaUjian;
 use Tests\TestCase;
 
@@ -57,7 +62,7 @@ class AuditFasaTTest extends TestCase
         $this->assertSame(2, $logMedan('Cipta')->count());
         $this->assertSame($admin->user_id, $logMedan('Cipta')->first()->user_id);
 
-        $jenis = \App\Models\JenisDokumen::sole();
+        $jenis = JenisDokumen::sole();
         $nama = $jenis->fields()->where('kod_field', 'nama_pemohon')->sole();
         $catatan = $jenis->fields()->where('kod_field', 'catatan')->sole();
 
@@ -98,7 +103,7 @@ class AuditFasaTTest extends TestCase
         $this->assertSame(['nama_bahagian' => 'Bahagian Kewangan'], $log->data_lama);
         $this->assertSame(['nama_bahagian' => 'Bahagian Kewangan & Akaun'], $log->data_baharu);
 
-        $jenis = \App\Models\JenisDokumen::create(['kod_dokumen' => 'MEMO', 'nama_dokumen' => 'Memo']);
+        $jenis = JenisDokumen::create(['kod_dokumen' => 'MEMO', 'nama_dokumen' => 'Memo']);
         $jenis->update(['nama_dokumen' => 'Memo Dalaman']);
         $this->assertSame(['nama_dokumen' => 'Memo'], $logKemaskini('jenis_dokumen')->data_lama);
 
@@ -117,11 +122,11 @@ class AuditFasaTTest extends TestCase
     public function test_ocr_manual_dilog(): void
     {
         $kerani = $this->buatPengguna(['KERANI']);
-        $jenis = \App\Models\JenisDokumen::create(['kod_dokumen' => 'BPK', 'nama_dokumen' => 'Borang Pohon']);
-        $dokumen = \App\Models\Dokumen::create(['jenis_dokumen_id' => $jenis->jenis_dokumen_id, 'no_rujukan' => 'BPK/2026/0001',
+        $jenis = JenisDokumen::create(['kod_dokumen' => 'BPK', 'nama_dokumen' => 'Borang Pohon']);
+        $dokumen = Dokumen::create(['jenis_dokumen_id' => $jenis->jenis_dokumen_id, 'no_rujukan' => 'BPK/2026/0001',
             'tarikh_dokumen' => '2026-10-27', 'created_by' => $kerani->user_id]);
-        $scan = \App\Models\DokumenScan::create(['dokumen_id' => $dokumen->dokumen_id, 'nama_fail' => 'borang.pdf', 'lokasi_fail' => 'dokumen/borang.pdf']);
-        $this->mock(\App\Services\OcrService::class)->shouldReceive('proses')
+        $scan = DokumenScan::create(['dokumen_id' => $dokumen->dokumen_id, 'nama_fail' => 'borang.pdf', 'lokasi_fail' => 'dokumen/borang.pdf']);
+        $this->mock(OcrService::class)->shouldReceive('proses')
             ->andReturn(['teks' => 'BORANG PERMOHONAN', 'skor' => 88.5, 'enjin' => ['tesseract']]);
 
         $this->actingAs($kerani)->post(route('dokumen.scan.ocr', $scan->dokumen_scan_id))->assertRedirect();
@@ -136,7 +141,7 @@ class AuditFasaTTest extends TestCase
     public function test_tetapan_semula_kata_laluan_melalui_emel_dilog_atas_nama_pengguna(): void
     {
         $staf = $this->buatPengguna(['STAFF'], ['email' => 'staf@pkink.test']);
-        $token = \Illuminate\Support\Facades\Password::createToken($staf);
+        $token = Password::createToken($staf);
 
         $this->post(route('password.update'), [
             'token' => $token, 'email' => 'staf@pkink.test',

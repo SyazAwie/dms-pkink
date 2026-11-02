@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dokumen;
-use App\Models\JenisDokumen;
 use App\Models\DokumenData;
 use App\Models\DokumenField;
+use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Rules\FailSelamat;
 use App\Services\TemplatBorangService;
@@ -13,11 +13,14 @@ use App\Support\Demo;
 use App\Support\JenisMedan;
 use App\Support\MedanJadual;
 use App\Support\TemplatKategori;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class JenisDokumenController extends Controller
 {
@@ -25,6 +28,7 @@ class JenisDokumenController extends Controller
     public function index()
     {
         $senarai = JenisDokumen::withCount(['fields', 'dokumen'])->get();
+
         return view('jenis_dokumen.index', compact('senarai'));
     }
 
@@ -79,7 +83,7 @@ class JenisDokumenController extends Controller
                     ]);
                     $mesej .= ' Templat borang kosong dimuat naik.';
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('Templat kategori baharu gagal disimpan: '.$e->getMessage());
+                    Log::warning('Templat kategori baharu gagal disimpan: '.$e->getMessage());
                     $mesej .= ' Templat gagal disimpan; sila muat naik semula di halaman Edit.';
                 }
             }
@@ -107,7 +111,7 @@ class JenisDokumenController extends Controller
         // DB demo/percubaan yang disalin sebelum SQL Fasa TB mungkin tiada jadual templat_borang
         try {
             $templat = $dokumen->templat()->with('pemuatNaik')->get();
-        } catch (\Illuminate\Database\QueryException) {
+        } catch (QueryException) {
             $templat = collect();
         }
 
@@ -150,7 +154,7 @@ class JenisDokumenController extends Controller
         });
 
         return redirect()->route('jenis-dokumen.index')
-                         ->with('success', 'Kategori Dokumen berjaya dikemas kini!');
+            ->with('success', 'Kategori Dokumen berjaya dikemas kini!');
     }
 
     /**
@@ -182,7 +186,7 @@ class JenisDokumenController extends Controller
             : '';
 
         return redirect()->route('jenis-dokumen.index')
-                         ->with('success', 'Kategori Dokumen telah dipadam.' . $nota);
+            ->with('success', 'Kategori Dokumen telah dipadam.'.$nota);
     }
 
     /** Tempoh simpanan & tindakan tamat tempoh (P12); kosong = simpan kekal. */
@@ -257,7 +261,7 @@ class JenisDokumenController extends Controller
     {
         $medanIkutKod = [];
         foreach ($request->input('medan', []) as $baris) {
-            if (!empty($baris['kod_field'])) {
+            if (! empty($baris['kod_field'])) {
                 $medanIkutKod[Str::slug($baris['kod_field'], '_')] = $baris;
             }
         }
@@ -274,13 +278,13 @@ class JenisDokumenController extends Controller
             $ralat = match (true) {
                 $sumber === null => "kod medan \"{$kod}\" tidak wujud dalam kategori ini",
                 $kod === Str::slug((string) ($baris['kod_field'] ?? ''), '_') => 'medan tidak boleh bergantung pada dirinya sendiri',
-                !in_array($sumber['jenis_data'] ?? 'teks', JenisMedan::SUMBER_SYARAT, true) => "medan \"{$sumber['nama_field']}\" mesti jenis Dropdown, Radio, Kotak Semak atau Ya/Tidak",
+                ! in_array($sumber['jenis_data'] ?? 'teks', JenisMedan::SUMBER_SYARAT, true) => "medan \"{$sumber['nama_field']}\" mesti jenis Dropdown, Radio, Kotak Semak atau Ya/Tidak",
                 $nilai === '' => 'nilai syarat mesti diisi',
-                !in_array($nilai, $this->pilihanSumber($sumber), true) => "nilai \"{$nilai}\" bukan salah satu pilihan medan \"{$sumber['nama_field']}\"",
+                ! in_array($nilai, $this->pilihanSumber($sumber), true) => "nilai \"{$nilai}\" bukan salah satu pilihan medan \"{$sumber['nama_field']}\"",
                 default => null,
             };
             if ($ralat) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'medan' => "Syarat paparan bagi medan \"{$nama}\": {$ralat}.",
                 ]);
             }
@@ -309,7 +313,7 @@ class JenisDokumenController extends Controller
         foreach ($request->input('medan', []) as $baris) {
             $lama = $sediaAda[$baris['id'] ?? 0] ?? null;
             $jenisBaru = $baris['jenis_data'] ?? 'teks';
-            if (!$lama || $jenisBaru === $lama->jenis_data || !empty($baris['sahkan_tukar'])) {
+            if (! $lama || $jenisBaru === $lama->jenis_data || ! empty($baris['sahkan_tukar'])) {
                 continue;
             }
 
@@ -318,7 +322,7 @@ class JenisDokumenController extends Controller
             $calon->dokumen_field_id = $lama->dokumen_field_id;
             $calon->jenis_data = $jenisBaru;
             $calon->pilihan = $this->pilihanKeArray((string) ($baris['pilihan'] ?? ''));
-            $calon->tetapan = ['lain' => !empty($baris['lain'])]
+            $calon->tetapan = ['lain' => ! empty($baris['lain'])]
                 + ($jenisBaru === 'jadual' ? MedanJadual::tetapanDaripadaPembina($baris) : []);
 
             $tidakSerasi = DokumenData::where('dokumen_field_id', $lama->dokumen_field_id)
@@ -328,9 +332,9 @@ class JenisDokumenController extends Controller
 
             if ($tidakSerasi > 0) {
                 $label = JenisMedan::SENARAI[$jenisBaru] ?? $jenisBaru;
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'medan' => "Medan \"{$baris['nama_field']}\": {$tidakSerasi} nilai sedia ada tidak serasi dengan jenis \"{$label}\". "
-                        . 'Tandakan "Teruskan tukar jenis" pada medan itu jika anda pasti (nilai lama tidak dipadam, tetapi mungkin perlu dibetulkan semasa dokumen diedit).',
+                        .'Tandakan "Teruskan tukar jenis" pada medan itu jika anda pasti (nilai lama tidak dipadam, tetapi mungkin perlu dibetulkan semasa dokumen diedit).',
                 ]);
             }
         }
@@ -346,7 +350,7 @@ class JenisDokumenController extends Controller
                 continue;
             }
             if (empty(MedanJadual::tetapanDaripadaPembina($baris)['lajur'])) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'medan' => "Medan jadual \"{$baris['nama_field']}\" mesti ada sekurang-kurangnya satu lajur.",
                 ]);
             }
@@ -364,7 +368,7 @@ class JenisDokumenController extends Controller
             ->map(fn ($k) => Str::slug($k, '_'));
 
         if ($kodSenarai->count() !== $kodSenarai->unique()->count()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'medan' => 'Kod Medan tidak boleh berulang dalam Jenis Dokumen yang sama.',
             ]);
         }
@@ -390,7 +394,7 @@ class JenisDokumenController extends Controller
             // Tetapan tambahan (lihat App\Support\JenisMedan); kunci kosong tidak disimpan
             $tetapan = array_filter([
                 'bantuan' => trim((string) ($row['bantuan'] ?? '')) ?: null,
-                'lain' => $adaPilihan && !empty($row['lain']) ? true : null,
+                'lain' => $adaPilihan && ! empty($row['lain']) ? true : null,
             ], fn ($v) => $v !== null);
             if ($jenisData === 'jadual') {
                 $tetapan += MedanJadual::tetapanDaripadaPembina($row);
@@ -402,7 +406,7 @@ class JenisDokumenController extends Controller
                 $tetapan['tunjuk_jika'] = ['kod' => $tunjukKod, 'nilai' => $tunjukNilai];
             }
             // Seksyen diisi oleh pegawai/pejabat (bukan pemohon), lihat JenisMedan::idMedanPejabat
-            if (in_array($jenisData, JenisMedan::TANPA_NILAI, true) && !empty($row['pejabat'])) {
+            if (in_array($jenisData, JenisMedan::TANPA_NILAI, true) && ! empty($row['pejabat'])) {
                 $tetapan['pejabat'] = true;
             }
             // Auto-isi daripada profil: hanya sumber yang serasi dengan jenis data medan
@@ -417,11 +421,11 @@ class JenisDokumenController extends Controller
                 'jenis_data' => $jenisData,
                 'pilihan' => $adaPilihan ? $this->pilihanKeArray($row['pilihan'] ?? '') : null,
                 'tetapan' => $tetapan ?: null,
-                'is_required' => !empty($row['is_required']) && !in_array($jenisData, JenisMedan::TANPA_NILAI, true),
+                'is_required' => ! empty($row['is_required']) && ! in_array($jenisData, JenisMedan::TANPA_NILAI, true),
                 'susunan' => $i + 1,
             ];
 
-            if (!empty($row['id'])) {
+            if (! empty($row['id'])) {
                 // Kemas kini melalui model, sama seperti create() di bawah (cast pilihan/tetapan & event model)
                 DokumenField::where('dokumen_field_id', $row['id'])
                     ->where('jenis_dokumen_id', $dokumen->jenis_dokumen_id)
@@ -438,11 +442,12 @@ class JenisDokumenController extends Controller
      */
     private function pilihanKeArray(?string $teks): ?array
     {
-        if (!$teks) {
+        if (! $teks) {
             return null;
         }
 
         $senarai = array_filter(array_map('trim', explode(',', $teks)));
+
         return $senarai ? array_values($senarai) : null;
     }
 }

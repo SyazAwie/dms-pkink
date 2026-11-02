@@ -22,6 +22,7 @@ class MedanEavSyaratTest extends TestCase
     use SkemaUjian;
 
     private User $admin;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void
@@ -85,7 +86,7 @@ class MedanEavSyaratTest extends TestCase
 
         foreach ($kes as $nama => [$ubah, $mesej]) {
             $res = $this->actingAs($this->admin)->post(route('jenis-dokumen.store'), [
-                'kod_dokumen' => 'X' . crc32($nama), 'nama_dokumen' => 'Ujian', 'medan' => $this->barisAsas($ubah),
+                'kod_dokumen' => 'X'.crc32($nama), 'nama_dokumen' => 'Ujian', 'medan' => $this->barisAsas($ubah),
             ]);
             $res->assertSessionHasErrors('medan');
             $this->assertStringContainsString($mesej, session('errors')->first('medan'), $nama);

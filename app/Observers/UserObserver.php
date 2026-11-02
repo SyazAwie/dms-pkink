@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\User;
 use App\Models\LogAudit;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 
@@ -25,7 +25,9 @@ class UserObserver
 
     public function updated(User $user): void
     {
-        if ($user->wasChanged('deleted_at')) return;
+        if ($user->wasChanged('deleted_at')) {
+            return;
+        }
 
         // Hanya lajur yang berubah (#19), sama seperti DokumenObserver
         $dataBaharu = $user->getChanges();

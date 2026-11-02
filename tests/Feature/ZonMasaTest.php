@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\LogAudit;
+use Carbon\CarbonImmutable;
 use Tests\SkemaUjian;
 use Tests\TestCase;
 
@@ -23,7 +24,7 @@ class ZonMasaTest extends TestCase
     public function test_masa_disimpan_dalam_waktu_malaysia(): void
     {
         $this->sediakanSkema();
-        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-10-22 05:00:00', 'UTC'));
+        $this->travelTo(CarbonImmutable::parse('2026-10-22 05:00:00', 'UTC'));
 
         $log = LogAudit::create([
             'tindakan' => 'Ujian',

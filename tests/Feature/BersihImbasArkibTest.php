@@ -14,7 +14,9 @@ use Tests\TestCase;
 class BersihImbasArkibTest extends TestCase
 {
     private string $tokenLama;
+
     private string $tokenBaharu;
+
     private string $tokenDiproses;
 
     protected function setUp(): void

@@ -19,6 +19,7 @@ class PadamRujukanTest extends TestCase
     use SkemaUjian;
 
     private User $admin;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void

@@ -175,8 +175,8 @@ class MedanEavJenisBaharuTest extends TestCase
 
         $this->actingAs($this->admin)->get(route('dokumen.edit', $dokumen->dokumen_id))
             ->assertOk()
-            ->assertSee('value="' . JenisMedan::NILAI_LAIN . '" checked', false)
-            ->assertSee('name="medan_lain[' . $id('kegunaan') . ']"', false)
+            ->assertSee('value="'.JenisMedan::NILAI_LAIN.'" checked', false)
+            ->assertSee('name="medan_lain['.$id('kegunaan').']"', false)
             ->assertSee('value="Syarikat Anak"', false)
             ->assertSee('type="datetime-local"', false)
             ->assertSee('value="2026-10-27T09:00"', false)

@@ -19,8 +19,11 @@ class SemakanOcrTest extends TestCase
     use SkemaUjian;
 
     private User $kerani;
+
     private Dokumen $dokumen;
+
     private DokumenScan $scan;
+
     private DokumenOcr $ocr;
 
     protected function setUp(): void

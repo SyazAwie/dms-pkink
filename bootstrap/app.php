@@ -1,9 +1,5 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
 use App\Http\Middleware\HeaderKeselamatan;
 use App\Http\Middleware\IpTerowong;
 use App\Http\Middleware\ModDemo;
@@ -11,6 +7,10 @@ use App\Http\Middleware\PengawalKeselamatan;
 use App\Http\Middleware\SemakPeranan;
 use App\Http\Middleware\WajibDuaFaktor;
 use App\Http\Middleware\WajibTukarKataLaluan;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(

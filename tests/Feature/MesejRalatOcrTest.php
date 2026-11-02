@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Dokumen;
 use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
+use App\Models\LogAudit;
 use App\Models\User;
 use App\Services\OcrService;
 use Illuminate\Http\UploadedFile;
@@ -23,6 +24,7 @@ class MesejRalatOcrTest extends TestCase
     private const RALAT = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe tidak dijumpai';
 
     private User $kerani;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void
@@ -67,7 +69,7 @@ class MesejRalatOcrTest extends TestCase
         $this->jalankanOcr()->assertSessionHas('error', 'OCR gagal untuk "borang.pdf". Sila cuba lagi atau hubungi Pentadbir Sistem.');
 
         // #21: percubaan yang gagal juga dilog
-        $this->assertSame('Ralat', \App\Models\LogAudit::where('tindakan', 'Jalankan OCR')->sole()->data_baharu['status_ocr']);
+        $this->assertSame('Ralat', LogAudit::where('tindakan', 'Jalankan OCR')->sole()->data_baharu['status_ocr']);
     }
 
     public function test_ocr_manual_pembangunan_papar_butiran(): void

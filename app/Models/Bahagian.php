@@ -8,13 +8,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Bahagian extends Model
 {
     use SoftDeletes;
-    
+
     protected $table = 'bahagian';
+
     protected $primaryKey = 'bahagian_id';
 
     protected $fillable = [
         'kod_bahagian',
-        'nama_bahagian'
+        'nama_bahagian',
     ];
 
     public function users()

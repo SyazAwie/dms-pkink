@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Support\Notifikasi;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
@@ -51,7 +52,7 @@ class SandaranJalan extends Command
         }
 
         $mula = microtime(true);
-        $nama = 'sandaran_' . now()->format('Ymd_His') . '.zip';
+        $nama = 'sandaran_'.now()->format('Ymd_His').'.zip';
         $sql = null;
 
         try {
@@ -69,10 +70,10 @@ class SandaranJalan extends Command
             $dipadam = $this->padamLama($folder, $simpanHari) + ($salinan ? $this->padamLama($salinan, $simpanHari) : 0);
             $disulitkan = (bool) config('services.sandaran.kata_laluan');
         } catch (\Throwable $e) {
-            Log::error('Sandaran gagal: ' . $e->getMessage());
+            Log::error('Sandaran gagal: '.$e->getMessage());
             $this->tulisStatus($folder, ['berjaya' => false, 'masa' => now()->toDateTimeString(), 'ralat' => $e->getMessage()]);
-            $this->error('Sandaran gagal: ' . $e->getMessage());
-            Notifikasi::amaranSistem('Sandaran gagal', 'Sandaran pangkalan data & fail imbasan gagal: ' . $e->getMessage());
+            $this->error('Sandaran gagal: '.$e->getMessage());
+            Notifikasi::amaranSistem('Sandaran gagal', 'Sandaran pangkalan data & fail imbasan gagal: '.$e->getMessage());
 
             return self::FAILURE;
         } finally {
@@ -93,7 +94,7 @@ class SandaranJalan extends Command
             'disulitkan' => $disulitkan,
             'tempoh_saat' => $tempoh,
         ]);
-        Log::info("Sandaran berjaya: {$nama} (" . number_format($saiz / 1048576, 1) . " MB, {$bilFail} fail imbasan).");
+        Log::info("Sandaran berjaya: {$nama} (".number_format($saiz / 1048576, 1)." MB, {$bilFail} fail imbasan).");
 
         $this->info("Sandaran berjaya: {$folder}/{$nama}");
         $this->line(sprintf('Saiz %.1f MB, %d fail imbasan, %.1f saat.', $saiz / 1048576, $bilFail, $tempoh));
@@ -110,30 +111,30 @@ class SandaranJalan extends Command
     /** mysqldump ke fail .sql sementara dalam folder sandaran. */
     private function dumpPangkalanData(string $folder): string
     {
-        $db = config('database.connections.' . config('database.default'));
+        $db = config('database.connections.'.config('database.default'));
         if (! in_array($db['driver'] ?? null, ['mysql', 'mariadb'], true)) {
             throw new \RuntimeException('Sandaran hanya menyokong pangkalan data MySQL/MariaDB.');
         }
 
-        $sql = "{$folder}/{$db['database']}_" . now()->format('Ymd_His') . '.sql';
+        $sql = "{$folder}/{$db['database']}_".now()->format('Ymd_His').'.sql';
         $hasil = Process::timeout((int) config('services.sandaran.had_masa', 900))
             // Kata laluan melalui persekitaran, bukan baris arahan (tidak kelihatan dalam senarai proses)
             ->env(['MYSQL_PWD' => (string) ($db['password'] ?? '')])
             ->run([
                 config('services.sandaran.mysqldump_bin', 'mysqldump'),
-                '--host=' . $db['host'],
-                '--port=' . $db['port'],
-                '--user=' . $db['username'],
+                '--host='.$db['host'],
+                '--port='.$db['port'],
+                '--user='.$db['username'],
                 '--single-transaction',
                 '--routines',
                 '--triggers',
                 '--default-character-set=utf8mb4',
-                '--result-file=' . $sql,
+                '--result-file='.$sql,
                 $db['database'],
             ]);
 
         if ($hasil->failed() || ! File::exists($sql) || File::size($sql) === 0) {
-            throw new \RuntimeException('mysqldump gagal: ' . trim($hasil->errorOutput() ?: $hasil->output() ?: 'tiada output'));
+            throw new \RuntimeException('mysqldump gagal: '.trim($hasil->errorOutput() ?: $hasil->output() ?: 'tiada output'));
         }
 
         return $sql;
@@ -155,7 +156,7 @@ class SandaranJalan extends Command
             }
         };
 
-        $tambah($sql, 'pangkalan_data/' . preg_replace('/_\d{8}_\d{6}(?=\.sql$)/', '', basename($sql)));
+        $tambah($sql, 'pangkalan_data/'.preg_replace('/_\d{8}_\d{6}(?=\.sql$)/', '', basename($sql)));
 
         $disk = Storage::disk('local');
         $bil = 0;
@@ -163,7 +164,7 @@ class SandaranJalan extends Command
             if (in_array(strtok($fail, '/'), self::DIKECUALIKAN, true) || basename($fail) === '.gitignore') {
                 continue;
             }
-            $tambah($disk->path($fail), 'fail/' . $fail);
+            $tambah($disk->path($fail), 'fail/'.$fail);
             $bil++;
         }
 
@@ -171,7 +172,7 @@ class SandaranJalan extends Command
         $templat = Storage::disk('templat');
         foreach ($templat->allFiles() as $fail) {
             if (! str_starts_with(basename($fail), '.')) {
-                $tambah($templat->path($fail), 'templat/' . $fail);
+                $tambah($templat->path($fail), 'templat/'.$fail);
             }
         }
 
@@ -207,7 +208,7 @@ class SandaranJalan extends Command
         $masa = [];
         foreach ($fail as $f) {
             if (preg_match('/sandaran_(\d{8}_\d{6})\.zip$/', $f, $m)) {
-                $masa[$f] = \Illuminate\Support\Carbon::createFromFormat('Ymd_His', $m[1]);
+                $masa[$f] = Carbon::createFromFormat('Ymd_His', $m[1]);
             }
         }
         arsort($masa);

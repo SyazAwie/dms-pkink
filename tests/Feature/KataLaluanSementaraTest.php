@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\LogAudit;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Tests\SkemaUjian;
@@ -129,7 +130,7 @@ class KataLaluanSementaraTest extends TestCase
             'password' => 'rahsia1',
         ])->assertRedirect(route('users.index'));
 
-        $baharu = \App\Models\User::where('ic_pekerja', '900101030003')->first();
+        $baharu = User::where('ic_pekerja', '900101030003')->first();
         $this->assertTrue($baharu->perlu_tukar_kata_laluan);
         $this->assertNull($baharu->kata_laluan_tamat_pada);
 

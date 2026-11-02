@@ -28,9 +28,13 @@ class ImbasHantarTest extends TestCase
     use SkemaUjian;
 
     private User $staf;
+
     private User $kerani;
+
     private JenisDokumen $jenis;
+
     private DokumenField $medanNama;
+
     private DokumenField $medanTujuan;
 
     protected function setUp(): void
@@ -107,7 +111,7 @@ class ImbasHantarTest extends TestCase
 
         $this->actingAs($this->staf)->get(route('imbas-hantar.semak', $token))
             ->assertOk()
-            ->assertSee('<iframe src="' . route('imbas-hantar.pratonton', $token) . '"', false)
+            ->assertSee('<iframe src="'.route('imbas-hantar.pratonton', $token).'"', false)
             ->assertSee('name="pengesahan"', false)
             ->assertSee('Sahkan &amp; Hantar', false)
             ->assertSee('berstatus <strong>"Dalam Proses"</strong>', false)
@@ -122,7 +126,7 @@ class ImbasHantarTest extends TestCase
         $token = $this->analisis($this->staf, 'hantar', 'borang.png');
 
         $this->actingAs($this->staf)->get(route('imbas-hantar.semak', $token))
-            ->assertSee('<img src="' . route('imbas-hantar.pratonton', $token) . '"', false);
+            ->assertSee('<img src="'.route('imbas-hantar.pratonton', $token).'"', false);
     }
 
     public function test_pratonton_hanya_untuk_pemilik_token(): void

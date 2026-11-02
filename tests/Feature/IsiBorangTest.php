@@ -17,6 +17,7 @@ class IsiBorangTest extends TestCase
     use SkemaUjian;
 
     private User $staf;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void
@@ -51,7 +52,7 @@ class IsiBorangTest extends TestCase
             ->assertSee(route('imbas-hantar.create', ['jenis' => $id]))
             // Menu sidebar: "Isi Borang" menggantikan "Imbas & Hantar"
             ->assertSee('<span>Isi Borang</span>', false)
-            ->assertDontSee('href="' . route('imbas-hantar.create') . '" class="nav-link', false);
+            ->assertDontSee('href="'.route('imbas-hantar.create').'" class="nav-link', false);
     }
 
     public function test_peranan_tanpa_muat_naik_tidak_boleh_buka(): void
@@ -64,7 +65,7 @@ class IsiBorangTest extends TestCase
     {
         $this->actingAs($this->staf)->get(route('dokumen.create', ['jenis' => $this->jenis->jenis_dokumen_id]))
             ->assertOk()
-            ->assertSee('<option value="' . $this->jenis->jenis_dokumen_id . '" selected>', false)
+            ->assertSee('<option value="'.$this->jenis->jenis_dokumen_id.'" selected>', false)
             ->assertSee('value="Siti Aminah" required readonly', false);
 
         // ID tidak wujud: tiada kategori dipilih, tiada ralat
@@ -89,6 +90,6 @@ class IsiBorangTest extends TestCase
     {
         $this->actingAs($this->staf)->get(route('imbas-hantar.create', ['jenis' => $this->jenis->jenis_dokumen_id]))
             ->assertOk()
-            ->assertSee('<option value="' . $this->jenis->jenis_dokumen_id . '" selected>', false);
+            ->assertSee('<option value="'.$this->jenis->jenis_dokumen_id.'" selected>', false);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use ZipArchive;
@@ -87,7 +88,7 @@ class PemulihanSandaran
     {
         // fail/ → storage/app/private; templat/ → folder Templat (Fasa TB; sandaran lama tiadanya)
         $bil = 0;
-        foreach (['fail' => storage_path('app/private'), 'templat' => \Illuminate\Support\Facades\Storage::disk('templat')->path('')] as $bahagian => $sasaran) {
+        foreach (['fail' => storage_path('app/private'), 'templat' => Storage::disk('templat')->path('')] as $bahagian => $sasaran) {
             $sumber = "{$folder}/{$bahagian}";
             if (! File::isDirectory($sumber)) {
                 continue;

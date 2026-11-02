@@ -166,7 +166,7 @@ class PendaftaranStafTest extends TestCase
         foreach ($sah as $i => $nama) {
             RateLimiter::clear('daftar-staf|127.0.0.1'); // ujian validasi nama, bukan had kadar
             $this->post(route('pendaftaran.simpan'), $this->dataMohon([
-                'ic_pekerja' => '95050503100' . $i, 'email' => "sah{$i}@pkink.test", 'nama_staff' => $nama,
+                'ic_pekerja' => '95050503100'.$i, 'email' => "sah{$i}@pkink.test", 'nama_staff' => $nama,
             ]))->assertSessionHasNoErrors();
         }
         $this->assertSame(count($sah), PendaftaranStaf::count());

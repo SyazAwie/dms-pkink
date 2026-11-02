@@ -21,7 +21,7 @@ class WajibTukarKataLaluan
 
         if ($user
             && $user->perlu_tukar_kata_laluan
-            && !$request->routeIs('kata-laluan.tukar', 'kata-laluan.simpan')) {
+            && ! $request->routeIs('kata-laluan.tukar', 'kata-laluan.simpan')) {
             if ($request->expectsJson()) {
                 abort(403, 'Sila tukar kata laluan sementara anda terlebih dahulu.');
             }

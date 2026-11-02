@@ -102,7 +102,7 @@ class JenisMedanTest extends TestCase
 
         // Bukan http(s): tidak dijadikan pautan; HTML sentiasa di-escape
         $this->assertSame('javascript:alert(1)', (string) JenisMedan::papar($this->medan('url'), 'javascript:alert(1)'));
-        $this->assertSame('&lt;b&gt;baris 1&lt;/b&gt;<br />' . "\n" . 'baris 2', (string) JenisMedan::papar($this->medan('textarea'), "<b>baris 1</b>\nbaris 2"));
+        $this->assertSame('&lt;b&gt;baris 1&lt;/b&gt;<br />'."\n".'baris 2', (string) JenisMedan::papar($this->medan('textarea'), "<b>baris 1</b>\nbaris 2"));
         $this->assertSame('&lt;script&gt;', (string) JenisMedan::papar(null, '<script>'));
     }
 

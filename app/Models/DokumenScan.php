@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\OcrFailService;
+use App\Support\AntrianOcr;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class DokumenScan extends Model
@@ -50,13 +53,13 @@ class DokumenScan extends Model
 
         return match ($this->status_ocr) {
             // Diproses: oleh worker yang masih hidup, atau segerak dalam permintaan (had masa PHP)
-            \App\Services\OcrFailService::SEDANG_DIPROSES => $umur <= \App\Support\AntrianOcr::hadKerja()
-                && (\App\Support\AntrianOcr::workerHidup() || $umur <= (int) config('services.ocr.had_masa', 300) + 30),
+            OcrFailService::SEDANG_DIPROSES => $umur <= AntrianOcr::hadKerja()
+                && (AntrianOcr::workerHidup() || $umur <= (int) config('services.ocr.had_masa', 300) + 30),
             // Dalam giliran: worker berjalan DAN kerjanya masih dalam jadual jobs (kerja yang
             // hilang, cth. queue:clear, tidak menyangkut fail selama-lamanya)
-            \App\Services\OcrFailService::DALAM_GILIRAN => \App\Support\AntrianOcr::workerHidup()
-                ? (($id = \Illuminate\Support\Facades\Cache::get(self::kunciKerjaOcr($this->dokumen_scan_id)))
-                    ? \App\Support\AntrianOcr::kerjaWujud((int) $id)
+            OcrFailService::DALAM_GILIRAN => AntrianOcr::workerHidup()
+                ? (($id = Cache::get(self::kunciKerjaOcr($this->dokumen_scan_id)))
+                    ? AntrianOcr::kerjaWujud((int) $id)
                     : $umur <= 900)
                 : $umur <= 60,
             default => false,
@@ -96,8 +99,8 @@ class DokumenScan extends Model
         }
 
         return $this->saiz_fail >= 1048576
-            ? number_format($this->saiz_fail / 1048576, 1) . ' MB'
-            : number_format(max(1, $this->saiz_fail / 1024)) . ' KB';
+            ? number_format($this->saiz_fail / 1048576, 1).' MB'
+            : number_format(max(1, $this->saiz_fail / 1024)).' KB';
     }
 
     public function dokumen()

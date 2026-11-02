@@ -33,7 +33,8 @@ class OcrHibridTest extends TestCase
     /** OcrService dengan Tesseract palsu (pulangkan teks & skor tetap) supaya ujian tidak perlukan binari. */
     private function ocr(string $teks, ?float $skor): OcrService
     {
-        return new class($teks, $skor) extends OcrService {
+        return new class($teks, $skor) extends OcrService
+        {
             public function __construct(private string $t, private ?float $s)
             {
                 parent::__construct();
@@ -128,7 +129,7 @@ class OcrHibridTest extends TestCase
         $this->assertSame('Tarikh: 20/9/2026', OllamaExtractionService::normalTahun('Tarikh: 20/9/26'));
         $this->assertSame('13/8/2025 dan 21/09/2026', OllamaExtractionService::normalTahun('13/8/25 dan 21/09/26'));
         $this->assertSame('1/1/1998', OllamaExtractionService::normalTahun('1/1/98'));
-        $this->assertSame('1/1/20' . $tahunDepan, OllamaExtractionService::normalTahun('1/1/' . $tahunDepan));
+        $this->assertSame('1/1/20'.$tahunDepan, OllamaExtractionService::normalTahun('1/1/'.$tahunDepan));
         // Tidak disentuh: tahun 4 digit, rujukan fail, nombor bukan tarikh
         foreach (['12/8/2026', 'PKINK/BD/UJI/100-2/1 (5)', 'Bil. 4/2026', '45/13/26', '3/4'] as $teks) {
             $this->assertSame($teks, OllamaExtractionService::normalTahun($teks), $teks);

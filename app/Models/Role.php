@@ -13,7 +13,7 @@ class Role extends Model
 
     protected $fillable = [
         'kod_roles',
-        'nama_roles'
+        'nama_roles',
     ];
 
     // Hubungan balik ke User melalui jadual pivot 'user_roles'

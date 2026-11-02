@@ -26,6 +26,7 @@ class MedanEavJadualTest extends TestCase
     use SkemaUjian;
 
     private User $admin;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void
@@ -139,7 +140,7 @@ class MedanEavJadualTest extends TestCase
         ]);
         $this->assertSame(
             '[{"jenis_peralatan":"Laptop","kuantiti":"2","harga_seunit":"3500.00","keutamaan":"Tinggi"},'
-            . '{"jenis_peralatan":"Pencetak <b>","kuantiti":"1","harga_seunit":null,"keutamaan":null}]',
+            .'{"jenis_peralatan":"Pencetak <b>","kuantiti":"1","harga_seunit":null,"keutamaan":null}]',
             $json
         );
 
@@ -208,7 +209,7 @@ class MedanEavJadualTest extends TestCase
             ->assertOk()
             ->assertSee('value="Pencetak"', false)
             ->assertSee('Baris 2, Kuantiti: nilai tidak sah.')
-            ->assertSee('name="medan_data[' . $this->id('peralatan') . '][3][kuantiti]" value="satu" class="dms-input is-invalid"', false)
+            ->assertSee('name="medan_data['.$this->id('peralatan').'][3][kuantiti]" value="satu" class="dms-input is-invalid"', false)
             ->assertSee('data-seterusnya="4"', false)
             ->assertSee('<template class="medan-jadual-templat">', false);
 
@@ -231,7 +232,7 @@ class MedanEavJadualTest extends TestCase
             ->assertOk()
             ->assertSee('value="3500.50"', false)
             ->assertSee('value="Akaun dicipta"', false)
-            ->assertSee('name="medan_data[' . $this->id('tindakan_bd') . '][2][_baris]" value="Makluman"', false);
+            ->assertSee('name="medan_data['.$this->id('tindakan_bd').'][2][_baris]" value="Makluman"', false);
 
         $this->actingAs($this->admin)->get(route('dokumen.show', $dokumen->dokumen_id))
             ->assertOk()

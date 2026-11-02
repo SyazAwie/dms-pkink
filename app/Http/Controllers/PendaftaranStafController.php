@@ -57,7 +57,7 @@ class PendaftaranStafController extends Controller
     public function simpan(Request $request)
     {
         $mesejBerjaya = 'Permohonan pendaftaran anda telah dihantar. Anda akan dimaklumkan melalui emel selepas permohonan disemak oleh pentadbir.';
-        $kunciHad = 'daftar-staf|' . $request->ip();
+        $kunciHad = 'daftar-staf|'.$request->ip();
 
         if (RateLimiter::tooManyAttempts($kunciHad, self::HAD_PERMOHONAN)) {
             $minit = (int) ceil(RateLimiter::availableIn($kunciHad) / 60);
@@ -257,7 +257,7 @@ class PendaftaranStafController extends Controller
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
             // Biasanya kegagalan emel (SMTP). Transaksi telah dibatalkan.
-            Log::error("Gagal meluluskan pendaftaran_staf_id {$id}: " . $e->getMessage());
+            Log::error("Gagal meluluskan pendaftaran_staf_id {$id}: ".$e->getMessage());
 
             return back()->with('error', 'Emel kepada pemohon gagal dihantar, jadi permohonan TIDAK diluluskan dan masih menunggu. Sila semak tetapan emel sistem dan cuba lagi.');
         }
@@ -299,7 +299,7 @@ class PendaftaranStafController extends Controller
         } catch (\DomainException $e) {
             return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
-            Log::error("Gagal menolak pendaftaran_staf_id {$id}: " . $e->getMessage());
+            Log::error("Gagal menolak pendaftaran_staf_id {$id}: ".$e->getMessage());
 
             return back()->with('error', 'Emel kepada pemohon gagal dihantar, jadi permohonan TIDAK ditolak dan masih menunggu. Sila semak tetapan emel sistem dan cuba lagi.');
         }
