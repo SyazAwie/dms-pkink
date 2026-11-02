@@ -195,15 +195,15 @@ class StatusSistemController extends Controller
     /** Worker queue OCR (T2). Tanpanya OCR/AI masih berfungsi, tetapi segerak (pengguna menunggu). */
     private function workerOcr(): array
     {
-        $nama = 'Worker OCR/AI (queue)';
+        $nama = 'Pekerja Latar OCR/AI';
         if (config('queue.default') === 'sync') {
-            return $this->semakan($nama, 'amaran', 'QUEUE_CONNECTION=sync', 'Tetapkan QUEUE_CONNECTION=database supaya OCR/AI berjalan di latar.');
+            return $this->semakan($nama, 'amaran', 'QUEUE_CONNECTION=sync', 'Tetapkan QUEUE_CONNECTION=database supaya OCR/AI diproses di latar.');
         }
         $d = AntrianOcr::degupan();
         if (! AntrianOcr::workerHidup()) {
             return $this->semakan($nama, 'amaran',
                 $d ? 'Degupan terakhir '.Carbon::createFromTimestamp($d['masa'])->diffForHumans() : 'Tidak berjalan',
-                'OCR/AI dijalankan segerak (pengguna menunggu). Mulakan worker: tugas "DMS PKINK Worker OCR" (Windows) atau perkhidmatan dms-worker-ocr (Linux systemd).');
+                'OCR/AI dijalankan secara segerak (pengguna perlu menunggu). Mulakan pekerja latar: tugas "DMS PKINK Worker OCR" (Windows) atau perkhidmatan dms-worker-ocr (Linux).');
         }
         $giliran = null;
         try {

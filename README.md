@@ -869,7 +869,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
     Start-ScheduledTask -TaskName 'DMS PKINK Worker OCR'
     ```
     `-ExecutionTimeLimit 0` perlu kerana Windows menghentikan tugas selepas 3 hari secara lalai.
-    Semak di **Status Sistem** ("Worker OCR/AI (queue)"). Log worker: `storage/logs/worker-ocr.log`. Selepas kemas kini kod: `php artisan queue:restart`. Tanpa worker, OCR/AI tetap berfungsi tetapi segerak.
+    Semak di **Status Sistem** ("Pekerja Latar OCR/AI"). Log worker: `storage/logs/worker-ocr.log`. Selepas kemas kini kod: `php artisan queue:restart`. Tanpa worker, OCR/AI tetap berfungsi tetapi segerak.
 14. Sebelum demo: `php artisan ai:panaskan`
 
 **Produksi:** tetapkan `APP_ENV=production`, `APP_DEBUG=false`, dan padam akaun ujian (Bahagian 13).
@@ -1057,6 +1057,10 @@ Log masuk guna **No. KP**. Kata laluan seragam: `123456789`
 | **Gate / Authorize** | Mekanisme Laravel untuk menyemak kebenaran sebelum tindakan |
 | **SRI** | Subresource Integrity: hash yang memastikan fail CDN tidak diubah |
 | **Had Kadar (Rate Limit)** | Had bilangan cubaan dalam tempoh tertentu (log masuk, pendaftaran) |
+| **Baris Gilir (Queue)** | Senarai kerja OCR/AI yang menunggu untuk diproses satu demi satu (jadual `jobs`) |
+| **Pekerja Latar (Worker)** | Proses yang sentiasa berjalan di latar untuk memproses baris gilir OCR/AI, supaya pengguna tidak perlu menunggu di halaman |
+| **Penjadual (Scheduler)** | Tugas yang berjalan setiap minit (`schedule:run`) untuk sandaran harian, pembersihan fail sementara dan semakan keselamatan |
+| **Templat Borang Kosong** | Salinan borang yang belum diisi bagi satu kategori, digunakan untuk membezakan teks bercetak dengan tulisan pengisi dan menjana borang siap |
 
 ---
 

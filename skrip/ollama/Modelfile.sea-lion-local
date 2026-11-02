@@ -1,0 +1,16 @@
+# Model AI pengekstrakan medan DMS PKINK: SEA-LION v3.5 8B (Q4_K_M), didaftarkan dalam Ollama
+# sebagai "sea-lion-local" (OLLAMA_MODEL dalam .env).
+#
+# 1. Muat turun fail GGUF rasmi (~4.9GB):
+#    https://huggingface.co/aisingapore/Llama-SEA-LION-v3.5-8B-R-GGUF
+#    fail: Llama-SEA-LION-v3.5-8B-R-Q4_K_M.gguf
+#    SHA-256: a6dae47bb2f7a5631bb126cab83f2abc8452c0488192a688474102630227b9c2
+# 2. Letakkan fail itu dalam folder yang sama dengan Modelfile ini.
+# 3. Dalam folder ini:  ollama create sea-lion-local -f Modelfile.sea-lion-local
+# 4. Semak:            ollama list   (sea-lion-local ~4.9 GB)
+#
+# TEMPLATE mentah {{ .Prompt }} DISENGAJAKAN: sistem menghantar prompt lengkap sendiri melalui
+# /api/generate. Templat sembang lain mengubah jawapan dan ketepatan pengekstrakan.
+
+FROM ./Llama-SEA-LION-v3.5-8B-R-Q4_K_M.gguf
+TEMPLATE {{ .Prompt }}

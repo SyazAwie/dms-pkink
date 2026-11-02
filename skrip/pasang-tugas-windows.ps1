@@ -5,7 +5,7 @@
  Mencipta dua tugas Task Scheduler:
    1. "DMS PKINK Penjadual"  : php artisan schedule:run setiap minit
                                (sandaran harian, pembersihan, semakan keselamatan, degupan)
-   2. "DMS PKINK Worker OCR" : worker queue OCR/AI (skrip\worker-ocr.cmd), bermula semasa
+   2. "DMS PKINK Worker OCR" : pekerja latar OCR/AI (skrip\worker-ocr.cmd), bermula semasa
                                pelayan dihidupkan dan berulang sendiri jika berhenti
 
  Jalankan dalam PowerShell SEBAGAI PENTADBIR (Run as Administrator):
@@ -15,7 +15,7 @@
    -Php      laluan penuh php.exe (wajib)
    -Akaun    akaun Windows yang menjalankan tugas (lalai: SYSTEM). Gunakan akaun perkhidmatan
              khas jika Ollama/Tesseract dipasang untuk pengguna tertentu sahaja.
-   -Buang    buang kedua-dua tugas
+   -Buang    alih keluar kedua-dua tugas
 ==============================================================================
 #>
 param(
@@ -33,7 +33,7 @@ if ($Buang) {
     foreach ($n in @($namaPenjadual, $namaWorker)) {
         if (Get-ScheduledTask -TaskName $n -ErrorAction SilentlyContinue) {
             Unregister-ScheduledTask -TaskName $n -Confirm:$false
-            Write-Host "Dibuang: $n"
+            Write-Host "Dialih keluar: $n"
         }
     }
     exit 0
@@ -57,7 +57,7 @@ Register-ScheduledTask -TaskName $namaPenjadual -Action $tindakanPenjadual -Trig
     -Settings $tetapan -Principal $prinsipal -Force | Out-Null
 Write-Host "Didaftar: $namaPenjadual (setiap minit)"
 
-# 2. Worker OCR: semasa pelayan dihidupkan; skrip berulang sendiri
+# 2. Pekerja latar OCR: bermula semasa pelayan dihidupkan; skrip dimulakan semula secara automatik
 $tindakanWorker = New-ScheduledTaskAction -Execute "$folderSistem\skrip\worker-ocr.cmd" -Argument "`"$Php`"" -WorkingDirectory $folderSistem
 $pencetusWorker = New-ScheduledTaskTrigger -AtStartup
 Register-ScheduledTask -TaskName $namaWorker -Action $tindakanWorker -Trigger $pencetusWorker `
@@ -66,5 +66,5 @@ Start-ScheduledTask -TaskName $namaWorker
 Write-Host "Didaftar & dimulakan: $namaWorker"
 
 Write-Host ''
-Write-Host 'Semak dalam sistem: Status Sistem -> "Penjadual" dan "Worker OCR/AI" (hijau dalam 1-2 minit).'
-Write-Host 'Selepas mengemas kini kod: php artisan queue:restart (worker dimulakan semula sendiri).'
+Write-Host 'Semak dalam sistem: Status Sistem -> "Penjadual" dan "Pekerja Latar OCR/AI" (hijau dalam 1-2 minit).'
+Write-Host 'Selepas mengemas kini kod: php artisan queue:restart (pekerja latar dimulakan semula secara automatik).'

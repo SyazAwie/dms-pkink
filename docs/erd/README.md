@@ -8,7 +8,6 @@ Dijana terus daripada skema sebenar `dms_pkink_db` (INFORMATION_SCHEMA) pada 202
 | `ERD_DMS_PKINK.drawio` | Buka dalam draw.io (File → Open from → Device). Lengkap dengan garis crow's foot pada lajur, 7 kumpulan berwarna dan legenda; garis bersilang perlu dikemaskan. |
 | `ERD_DMS_PKINK_drawio.sql` | DDL ringkas untuk draw.io Arrange → Insert → Advanced → SQL (kotak jadual sahaja, garis dilukis sendiri ikut `HUBUNGAN_35.txt`). |
 | `HUBUNGAN_35.txt` | Senarai semak 35 hubungan FK + kardinaliti + hubungan logik. |
-| `PROMPT_ERD_GEMINI.md` | Prompt lengkap (skema dibenamkan) untuk menjana ERD dengan Gemini (Mermaid + DBML). |
 
 ## Jana semula selepas skema berubah
 Skrip membaca DB sebenar sahaja (BACA, tiada perubahan). Jalankan dari akar projek:
