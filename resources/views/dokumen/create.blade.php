@@ -1,18 +1,30 @@
 @extends('layouts.app')
 
-@section('title', 'Muat Naik Dokumen')
+@php($dariIsiBorang = $dariIsiBorang ?? false)
+@section('title', $dariIsiBorang ? 'Isi Borang: ' . $jenisTerpilih->nama_dokumen : 'Muat Naik Dokumen')
 
 @section('content')
 
 <div class="page-intro">
     <div>
-        <h2>Muat Naik Dokumen</h2>
-        <p>Daftarkan dokumen baharu ke dalam Sistem Arkib Digital PKINK.</p>
+        @if($dariIsiBorang)
+            <h2>Isi Borang: {{ $jenisTerpilih->nama_dokumen }}</h2>
+            <p>Lengkapkan borang, kemudian simpan atau hantar untuk kelulusan.</p>
+        @else
+            <h2>Muat Naik Dokumen</h2>
+            <p>Daftarkan dokumen baharu ke dalam Sistem Arkib Digital PKINK.</p>
+        @endif
     </div>
     <div>
-        <a href="{{ route('dokumen.index') }}" class="outline-button text-decoration-none">
-            <i class="bi bi-arrow-left"></i> <span>Kembali ke Senarai</span>
-        </a>
+        @if($dariIsiBorang)
+            <a href="{{ route('isi-borang.index') }}" class="outline-button text-decoration-none">
+                <i class="bi bi-arrow-left"></i> <span>Kembali ke Isi Borang</span>
+            </a>
+        @else
+            <a href="{{ route('dokumen.index') }}" class="outline-button text-decoration-none">
+                <i class="bi bi-arrow-left"></i> <span>Kembali ke Senarai</span>
+            </a>
+        @endif
     </div>
 </div>
 

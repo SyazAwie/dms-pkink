@@ -73,6 +73,18 @@ class IsiBorangTest extends TestCase
             ->assertDontSee('selected>', false);
     }
 
+    public function test_tajuk_isi_borang_bila_dibuka_dari_isi_borang(): void
+    {
+        $this->actingAs($this->staf)->get(route('dokumen.create', ['jenis' => $this->jenis->jenis_dokumen_id]))
+            ->assertOk()
+            ->assertSee('<h2>Isi Borang: Borang Sewaan Peralatan</h2>', false)
+            ->assertSee('Kembali ke Isi Borang');
+
+        $this->get(route('dokumen.create'))->assertOk()
+            ->assertSee('<h2>Muat Naik Dokumen</h2>', false)
+            ->assertDontSee('Kembali ke Isi Borang');
+    }
+
     public function test_imbas_hantar_kategori_dipilih(): void
     {
         $this->actingAs($this->staf)->get(route('imbas-hantar.create', ['jenis' => $this->jenis->jenis_dokumen_id]))
