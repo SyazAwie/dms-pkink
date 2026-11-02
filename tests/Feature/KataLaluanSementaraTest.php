@@ -127,7 +127,7 @@ class KataLaluanSementaraTest extends TestCase
             'nama_staff' => 'Staf Baharu',
             'email' => 'staf.baharu@pkink.test',
             'bahagian_id' => $bahagian->bahagian_id,
-            'password' => 'rahsia1',
+            'password' => 'Rahsia123',
         ])->assertRedirect(route('users.index'));
 
         $baharu = User::where('ic_pekerja', '900101030003')->first();
@@ -141,7 +141,7 @@ class KataLaluanSementaraTest extends TestCase
             'nama_staff' => $lain->nama_staff,
             'email' => $lain->email,
             'bahagian_id' => $bahagian->bahagian_id,
-            'password' => 'rahsia2',
+            'password' => 'Rahsia234',
         ])->assertRedirect(route('users.index'));
         $this->assertTrue($lain->fresh()->perlu_tukar_kata_laluan);
 
@@ -151,9 +151,30 @@ class KataLaluanSementaraTest extends TestCase
             'nama_staff' => $admin->nama_staff,
             'email' => $admin->email,
             'bahagian_id' => $bahagian->bahagian_id,
-            'password' => 'rahsia3',
+            'password' => 'Rahsia345',
         ])->assertRedirect(route('users.index'));
         $this->assertFalse($admin->fresh()->perlu_tukar_kata_laluan);
+    }
+
+    public function test_kata_laluan_ditetapkan_admin_ikut_polisi(): void
+    {
+        $admin = $this->buatPengguna(['SUPERADMIN']);
+        $bahagian = $this->buatBahagian();
+        Role::firstOrCreate(['kod_roles' => 'STAFF'], ['nama_roles' => 'Staf']);
+        $data = ['ic_pekerja' => '900101030009', 'nama_staff' => 'Staf Lemah', 'email' => 'lemah@pkink.test', 'bahagian_id' => $bahagian->bahagian_id];
+
+        $this->actingAs($admin)->post(route('users.store'), $data + ['password' => '123456789'])
+            ->assertSessionHasErrors(['password' => 'Kata laluan mesti mengandungi sekurang-kurangnya satu huruf.']);
+        $this->post(route('users.store'), $data + ['password' => 'abc12'])
+            ->assertSessionHasErrors(['password' => 'Kata laluan mesti sekurang-kurangnya 8 aksara.']);
+        $this->assertNull(User::where('ic_pekerja', '900101030009')->first());
+
+        // Kemas kini tanpa kata laluan dibenarkan; kata laluan lemah ditolak
+        $lain = $this->buatPengguna(['STAFF'], ['bahagian_id' => $bahagian->bahagian_id]);
+        $kemas = ['ic_pekerja' => $lain->ic_pekerja, 'nama_staff' => $lain->nama_staff, 'email' => $lain->email, 'bahagian_id' => $bahagian->bahagian_id];
+        $this->put(route('users.update', $lain->user_id), $kemas)->assertSessionHasNoErrors();
+        $this->put(route('users.update', $lain->user_id), $kemas + ['password' => 'kataLaluan'])
+            ->assertSessionHasErrors(['password' => 'Kata laluan mesti mengandungi sekurang-kurangnya satu nombor.']);
     }
 
     public function test_tetapan_semula_melalui_emel_ikut_polisi_dan_kosongkan_bendera(): void

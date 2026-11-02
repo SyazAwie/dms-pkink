@@ -78,7 +78,7 @@ class ProfilJawatanTelefonTest extends TestCase
         $this->actingAs($admin)->post(route('users.store'), [
             'ic_pekerja' => '900101030003', 'nama_staff' => 'Staf Baharu', 'email' => 'staf.baharu@pkink.test',
             'jawatan' => 'Pembantu Tadbir N19', 'no_telefon' => '09-748 1234',
-            'bahagian_id' => $bahagian->bahagian_id, 'password' => 'rahsia1',
+            'bahagian_id' => $bahagian->bahagian_id, 'password' => 'Rahsia123',
         ])->assertRedirect(route('users.index'));
 
         $baharu = User::where('ic_pekerja', '900101030003')->sole();

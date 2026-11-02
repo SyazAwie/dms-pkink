@@ -5,12 +5,10 @@ namespace App\Support;
 use Illuminate\Validation\Rules\Password;
 
 /**
- * Polisi kata laluan yang ditetapkan oleh pengguna sendiri (tukar kata laluan
- * sementara, profil, tetapan semula melalui emel): sekurang-kurangnya 8 aksara,
- * mengandungi huruf dan nombor.
- *
- * Kata laluan yang ditetapkan oleh admin (Pengurusan Kakitangan) tidak guna
- * polisi ini kerana pengguna wajib menukarnya pada log masuk seterusnya.
+ * Polisi kata laluan: sekurang-kurangnya 8 aksara, mengandungi huruf dan nombor.
+ * Digunakan bagi kata laluan yang ditetapkan pengguna sendiri (tukar kata laluan
+ * sementara, profil, tetapan semula melalui emel) dan, sejak Fasa H, kata laluan
+ * sementara yang ditetapkan admin dalam Pengurusan Kakitangan.
  */
 class PolisiKataLaluan
 {
