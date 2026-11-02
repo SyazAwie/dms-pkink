@@ -158,7 +158,6 @@ class ImbasHantarTest extends TestCase
 
         $dokumen = Dokumen::sole();
         $res->assertRedirect(route('dokumen.show', $dokumen->dokumen_id));
-        $this->assertNull($dokumen->status);
         $this->assertSame($this->staf->user_id, (int) $dokumen->created_by);
 
         $borang = Borang::sole();
@@ -219,7 +218,6 @@ class ImbasHantarTest extends TestCase
         ]))->assertSessionHasNoErrors();
 
         $this->assertSame('Diluluskan', Borang::sole()->status_permohonan);
-        $this->assertSame('Archived', Dokumen::sole()->status);
         $this->assertSame('Pemohon Lain', DokumenData::where('dokumen_field_id', $this->medanNama->dokumen_field_id)->value('nilai_data'));
     }
 }

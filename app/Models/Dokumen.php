@@ -24,7 +24,8 @@ class Dokumen extends Model
         'no_rujukan',
         'tarikh_dokumen',
         'perkara',
-        'status',
+        // `status` (lajur lama, sentiasa 'Archived' ikut lalai DB) sengaja tidak digunakan: status
+        // sebenar dokumen ialah borang.status_permohonan. Lajur dibuang dalam Fasa H (SQL).
         'bahagian_id',
         'created_by',
     ];

@@ -408,7 +408,6 @@ class ImbasArkibController extends DokumenController
                 return DB::transaction(function () use ($request, $jenisDokumen, $meta, $laluanSementara, &$laluanSalinan) {
                     $noRujukan = $this->janaNoRujukan($jenisDokumen, $request->tarikh_dokumen);
 
-                    // Mod hantar: status dokumen ikut lalai DB, sama seperti Muat Naik biasa
                     $dokumenBaharu = Dokumen::create([
                         'jenis_dokumen_id' => $jenisDokumen->jenis_dokumen_id,
                         'no_rujukan' => $noRujukan,
@@ -416,7 +415,7 @@ class ImbasArkibController extends DokumenController
                         'perkara' => $request->perkara,
                         'bahagian_id' => Auth::user()->bahagian_id,
                         'created_by' => Auth::id(),
-                    ] + ($this->modHantar() ? [] : ['status' => 'Archived']));
+                    ]);
 
                     // Salin fail daripada folder token ke lokasi kekal (nama rawak seperti store())
                     $namaFolder = Str::slug($noRujukan, '_');

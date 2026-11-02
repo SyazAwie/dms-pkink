@@ -123,7 +123,7 @@ class DokumenFailTransaksiTest extends TestCase
         $disk = Storage::disk('local');
         $dokumen = Dokumen::create([
             'jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'no_rujukan' => 'INV/2025/0001',
-            'tarikh_dokumen' => '2025-05-01', 'status' => 'Archived',
+            'tarikh_dokumen' => '2025-05-01',
             'bahagian_id' => $this->kerani->bahagian_id, 'created_by' => $this->kerani->user_id,
         ]);
         $disk->put('dokumen_scan/inv20250001/lama.pdf', 'fail lama');
