@@ -23,7 +23,7 @@ import tarfile
 import zipfile
 from pathlib import Path
 
-VERSI = '1.0'
+VERSI = '1.0.1'
 AKAR = Path(__file__).resolve().parents[2]
 LUAR = AKAR.parent / 'Pakej_DMS_PKINK'
 SASARAN = LUAR / 'DMS_PKINK'

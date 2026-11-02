@@ -13,7 +13,7 @@ Pengguna sasaran: pegawai yang ingin menilai sistem pada komputer riba atau komp
 | Sistem pengendalian | Windows 10 atau Windows 11 (64-bit) |
 | RAM | 8 GB (16 GB jika fungsi AI hendak diuji) |
 | Ruang cakera | ~2 GB untuk sistem asas; tambahan ~8 GB jika fungsi AI hendak diuji |
-| Fail | `DMS_PKINK_v1.0_<tarikh>.zip` dan `AKAUN_UAT.pdf` (akaun ujian) |
+| Fail | `DMS_PKINK_v<versi>_<tarikh>.zip` dan `AKAUN_UAT.pdf` (akaun ujian) |
 | Internet | Diperlukan semasa memuat turun perisian sahaja |
 
 Fungsi yang boleh diuji dengan **pemasangan asas** (Bahagian 2 hingga 5): log masuk, papan pemuka, isi borang secara digital, muat naik dokumen, aliran sokongan dan kelulusan, slip kelulusan, borang siap, carian, pengurusan kakitangan dan kategori, log audit serta Pusat Keselamatan.
