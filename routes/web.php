@@ -3,26 +3,27 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BahagianController;
 use App\Http\Controllers\BorangController;
+use App\Http\Controllers\BorangSiapController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DelegasiController;
-use App\Http\Controllers\DuaFaktorController;
+use App\Http\Controllers\DemoController;
 use App\Http\Controllers\DokumenController;
+use App\Http\Controllers\DuaFaktorController;
 use App\Http\Controllers\ImbasArkibController;
 use App\Http\Controllers\ImbasHantarController;
 use App\Http\Controllers\IsiBorangController;
 use App\Http\Controllers\JenisDokumenController;
-use App\Http\Controllers\TemplatBorangController;
 use App\Http\Controllers\KeselamatanController;
 use App\Http\Controllers\LogAuditController;
 use App\Http\Controllers\LogMasukController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PelupusanController;
-use App\Http\Controllers\DemoController;
 use App\Http\Controllers\PendaftaranStafController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SlipKelulusanController;
 use App\Http\Controllers\StatusSistemController;
+use App\Http\Controllers\TemplatBorangController;
 use App\Http\Controllers\TongSampahController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -109,6 +110,12 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
         Route::get('/templat/{id}', [TemplatBorangController::class, 'papar'])->name('templat.papar');
         Route::post('/templat/{id}/togol', [TemplatBorangController::class, 'togol'])->name('templat.togol');
         Route::delete('/templat/{id}', [TemplatBorangController::class, 'destroy'])->name('templat.destroy');
+        // Susun kedudukan medan atas templat untuk borang siap (TB6)
+        Route::get('/templat/{id}/susun', [BorangSiapController::class, 'susun'])->whereNumber('id')->name('templat.susun');
+        Route::put('/templat/{id}/susun', [BorangSiapController::class, 'simpanSusunan'])->whereNumber('id')->name('templat.susun.simpan');
+        Route::get('/templat/{id}/muka/{no}', [BorangSiapController::class, 'muka'])->whereNumber(['id', 'no'])->name('templat.muka');
+        Route::get('/templat/{id}/pratonton', [BorangSiapController::class, 'pratonton'])->whereNumber('id')->name('templat.pratonton');
+        Route::get('/templat/{id}/cadang', [BorangSiapController::class, 'cadang'])->whereNumber('id')->name('templat.cadang');
         Route::resource('bahagian', BahagianController::class)->except('show', 'index');            // Pengurusan Bahagian
         Route::resource('users', UserController::class)->except('show');                   // Pengurusan Kakitangan
 
@@ -149,6 +156,8 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
     Route::get('/dokumen/scan/{id}/papar', [DokumenController::class, 'paparScan'])->name('dokumen.scan.papar');
     // Salinan bertera air (P11): nama pemuat turun + tarikh pada setiap muka surat, direkod dalam log audit
     Route::get('/dokumen/scan/{id}/muat-turun', [DokumenController::class, 'muatTurunScan'])->name('dokumen.scan.muat-turun');
+    // Borang siap (TB6): templat kategori diisi nilai dokumen + cop status
+    Route::get('/dokumen/{id}/borang-siap', [BorangSiapController::class, 'muatTurun'])->whereNumber('id')->name('dokumen.borang-siap');
     Route::post('/dokumen/scan/{id}/ocr', [DokumenController::class, 'jalankanOcr'])->name('dokumen.scan.ocr');
     Route::get('/dokumen/scan/{id}/ocr/status', [DokumenController::class, 'statusOcr'])->name('dokumen.scan.ocr.status');
     // Semakan teks OCR oleh staf: tandakan disemak / betulkan teks (kebenaran edit dokumen)

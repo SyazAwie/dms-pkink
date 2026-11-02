@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\HeaderKeselamatan;
 use App\Jobs\OcrFailJob;
 use App\Models\Bahagian;
 use App\Models\Borang;
@@ -11,9 +12,9 @@ use App\Models\DokumenField;
 use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
 use App\Models\LogAudit;
-use App\Services\OcrFailService;
-use App\Http\Middleware\HeaderKeselamatan;
 use App\Rules\FailSelamat;
+use App\Services\BorangSiapService;
+use App\Services\OcrFailService;
 use App\Services\TeraAirService;
 use App\Support\AntrianOcr;
 use App\Support\Csv;
@@ -369,8 +370,9 @@ class DokumenController extends Controller
         Gate::authorize('view', $dokumen);
 
         $barisMedan = $this->barisPaparanMedan($dokumen);
+        $adaBorangSiap = app(BorangSiapService::class)->templatUntuk($dokumen->jenis_dokumen_id) !== null;
 
-        return view('dokumen.show', compact('dokumen', 'barisMedan'));
+        return view('dokumen.show', compact('dokumen', 'barisMedan', 'adaBorangSiap'));
     }
 
     /**
@@ -726,7 +728,7 @@ class DokumenController extends Controller
 
         $nama = pathinfo($scan->nama_fail, PATHINFO_FILENAME).'_salinan.'.$hasil['sambungan'];
 
-        return response()->streamDownload(fn () => print($hasil['kandungan']), $nama, ['Content-Type' => $hasil['mime']]);
+        return response()->streamDownload(fn () => print ($hasil['kandungan']), $nama, ['Content-Type' => $hasil['mime']]);
     }
 
     /**

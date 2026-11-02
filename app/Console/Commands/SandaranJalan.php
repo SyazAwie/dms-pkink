@@ -32,7 +32,7 @@ use ZipArchive;
 class SandaranJalan extends Command
 {
     /** Fail sementara Imbas & Arkib tidak perlu disandarkan. */
-    private const DIKECUALIKAN = ['ocr_sementara'];
+    private const DIKECUALIKAN = ['ocr_sementara', 'templat_cache'];   // templat_cache: imej latar borang siap (TB6), dijana semula
 
     protected $signature = 'sandaran:jalan
                             {--simpan= : Bilangan hari sandaran disimpan (lalai: SANDARAN_SIMPAN_HARI)}';

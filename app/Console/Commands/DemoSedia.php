@@ -27,7 +27,7 @@ use Illuminate\Support\Str;
 class DemoSedia extends Command
 {
     /** Fail dalam disk `local` yang tidak disalin. */
-    private const DIKECUALIKAN = ['ocr_sementara', 'pulih_sementara', 'keselamatan.json'];
+    private const DIKECUALIKAN = ['ocr_sementara', 'pulih_sementara', 'keselamatan.json', 'templat_cache'];
 
     /** Jadual yang dikosongkan dalam salinan (jika wujud). */
     private const DIKOSONGKAN = ['sessions', 'ip_disekat', 'cache', 'cache_locks', 'jobs', 'failed_jobs', 'password_reset_tokens'];

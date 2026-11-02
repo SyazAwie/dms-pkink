@@ -41,7 +41,12 @@ class TemplatBorangService
         $disk = Storage::disk(self::DISK);
         $laluan = $disk->path($lokasi);
 
-        $templat = TemplatBorang::create([
+        // TB6: versi baharu bermula dengan susunan versi sebelumnya sebagai CADANGAN (belum disahkan):
+        // borang siap terus menggunakan versi lama sehingga pentadbir menyemak & menyimpan susunan ini
+        $sebelum = TemplatBorang::where('jenis_dokumen_id', $jenis->jenis_dokumen_id)->orderByDesc('versi')->first();
+        $warisan = $sebelum?->kedudukan_medan ? ['kedudukan_medan' => ['disahkan' => false] + $sebelum->kedudukan_medan] : [];
+
+        $templat = TemplatBorang::create($warisan + [
             'jenis_dokumen_id' => $jenis->jenis_dokumen_id,
             'versi' => (int) TemplatBorang::withTrashed()->where('jenis_dokumen_id', $jenis->jenis_dokumen_id)->max('versi') + 1,
             'nama_asal' => $namaAsal,

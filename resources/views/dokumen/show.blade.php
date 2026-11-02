@@ -159,6 +159,13 @@
                     @endif
                 @endif
 
+                {{-- TB6: templat borang kategori diisi nilai dokumen + cop status semasa --}}
+                @if($adaBorangSiap)
+                    <a href="{{ route('dokumen.borang-siap', $dokumen->dokumen_id) }}" class="outline-button w-100 justify-content-center mt-3 text-decoration-none">
+                        <i class="bi bi-file-earmark-check"></i> Muat Turun Borang Siap (PDF)
+                    </a>
+                @endif
+
                 {{-- Hantar / hantar semula --}}
                 @can('update', $dokumen)
                     @if(!$dokumen->borang || $statusSemasa === 'Ditolak')
