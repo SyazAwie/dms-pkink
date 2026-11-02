@@ -60,7 +60,8 @@ return [
         // TB4: beza imej templat borang kosong (disusun TB6) dengan imbasan: medan tanpa dakwat
         // pengisi = kosong, dan keratan dakwat dibaca semula sebagai petunjuk AI
         // (App\Services\BezaTemplatService). Ambang dakwat: piksel 300dpi & nisbah luas kotak.
-        'beza_templat' => (bool) env('OCR_BEZA_TEMPLAT', false),
+        // Ukuran 4 borang BD: 44 -> 45/52 (biasa & tanpa few-shot, 2 larian setiap satu), +~0.5 s OCR.
+        'beza_templat' => (bool) env('OCR_BEZA_TEMPLAT', true),
         'beza_min_piksel' => (int) env('OCR_BEZA_MIN_PIKSEL', 60),
         'beza_min_nisbah' => (float) env('OCR_BEZA_MIN_NISBAH', 0.003),
         // Bacaan semula keratan dakwat diberi kepada AI hanya jika keyakinan Tesseract >= ini
