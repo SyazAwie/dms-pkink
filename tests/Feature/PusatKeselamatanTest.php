@@ -48,7 +48,7 @@ class PusatKeselamatanTest extends TestCase
     {
         $this->actingAs($this->buatPengguna(['STAFF']))->get(route('keselamatan.pelan'))->assertForbidden();
         $this->actingAs($this->admin)->get(route('keselamatan.pelan'))->assertOk()
-            ->assertSee('JANGAN bayar wang tebusan')->assertSee('RANSOMWARE / PERAS UGUT')
+            ->assertSee('Jangan membayar wang tebusan')->assertSee('Perisian tebusan (ransomware) atau peras ugut')
             ->assertSee('<table>', false)->assertSee('window.print()', false);
     }
 

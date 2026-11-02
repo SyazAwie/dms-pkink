@@ -8,7 +8,7 @@ require $argv[1].'/vendor/autoload.php';
 $app = require $argv[1].'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
-$db = 'dms_pkink_db';
+$db = getenv('ERD_DB') ?: 'dms_pkink_db'; // ERD_DB=dms_pkink_pemasangan untuk pakej pemasangan
 $kumpulan = [
     'Organisasi_dan_Akses' => ['bahagian', 'users', 'roles', 'user_roles', 'pendaftaran_staf', 'delegasi_kelulusan'],
     'Templat_Dokumen_EAV' => ['jenis_dokumen', 'dokumen_field', 'templat_borang'],
@@ -74,7 +74,7 @@ foreach ($unik as $t => $senarai) {
     }
 }
 
-$keluar = ["Project DMS_PKINK {\n  database_type: 'MySQL'\n  Note: 'Sistem Arkib Digital (DMS) PKINK. Skema daripada dms_pkink_db (22 jadual domain; cache, cache_locks, jobs, failed_jobs, password_reset_tokens tidak dimasukkan).'\n}"];
+$keluar = ["Project DMS_PKINK {\n  database_type: 'MySQL'\n  Note: 'Sistem Arkib Digital (DMS) PKINK. Skema pangkalan data sistem (22 jadual domain; cache, cache_locks, jobs, failed_jobs, password_reset_tokens tidak dimasukkan).'\n}"];
 foreach ($kumpulan as $jadualSenarai) {
     foreach ($jadualSenarai as $t) {
         $baris = [];

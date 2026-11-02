@@ -24,6 +24,10 @@ SUB_DIBUANG = ['2.5 ', 'Ujian (`tests/`)', 'Kerja Akan Datang']
 
 # Penggantian teks khusus (lama -> baharu); setiap satu mesti dijumpai
 GANTI = [
+    ('Panduan langkah demi langkah untuk pentadbir: **`docs/MANUAL_TEMPLAT_BORANG.md`**',
+     'Panduan langkah demi langkah untuk pentadbir: **`docs/MANUAL_TEMPLAT_BORANG.pdf`**'),
+    ('- **Pelan Tindak Balas Insiden (S5):** `docs/PELAN_TINDAK_BALAS_INSIDEN.md`, dibuka & dicetak dari Pusat Keselamatan:',
+     '- **Pelan Tindak Balas Insiden:** `docs/PELAN_TINDAK_BALAS_INSIDEN.md` (dipaparkan & dicetak dari Pusat Keselamatan; salinan PDF dalam `docs/`):'),
     ('| **Pelayan Web (Local Dev)** | Laravel Herd (nginx + PHP-FPM) atau `php artisan serve` | Persekitaran pembangunan di Windows |',
      '| **Pelayan Web** | nginx / Apache / IIS + PHP-FPM | Windows atau Linux (lihat Panduan Pemasangan) |'),
     ('Ukuran dengan 7 dokumen ujian (data rekaan, folder `../Ujian_Borang_Diisi/`), OCR + AI:',

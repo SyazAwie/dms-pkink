@@ -32,7 +32,8 @@ SASARAN = LUAR / 'DMS_PKINK'
 DIBUANG = [
     '.editorconfig', '.npmrc', '.gitattributes', '.gitignore', 'AGENTS.md', 'CLAUDE.md', 'README.md', 'phpunit.xml',
     'tests', 'skrip/dev', 'database/factories', 'database/migrations', 'database/seeders', 'database/.gitignore',
-    'docs/pakej', 'docs/MANUAL_TEMPLAT_BORANG.md', 'docs/PELAN_TINDAK_BALAS_INSIDEN.md', 'Templat/.gitkeep',
+    'docs/pakej', 'docs/erd/skrip', 'docs/MANUAL_TEMPLAT_BORANG.md', 'Templat/.gitkeep',
+    # docs/PELAN_TINDAK_BALAS_INSIDEN.md DIKEKALKAN: dibaca oleh Pusat Keselamatan (keselamatan.pelan)
 ]
 # PDF yang mesti ada dalam pakej penuh (../Pakej_DMS_PKINK/pdf/)
 PDF = ['MANUAL_PENGGUNA_DMS_PKINK.pdf', 'PANDUAN_PEMASANGAN.pdf', 'MANUAL_TEMPLAT_BORANG.pdf', 'PELAN_TINDAK_BALAS_INSIDEN.pdf']

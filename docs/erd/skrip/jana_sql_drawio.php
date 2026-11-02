@@ -9,7 +9,7 @@ require $argv[1].'/vendor/autoload.php';
 $app = require $argv[1].'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
-$db = 'dms_pkink_db';
+$db = getenv('ERD_DB') ?: 'dms_pkink_db'; // ERD_DB=dms_pkink_pemasangan untuk pakej pemasangan
 $kecuali = ['cache', 'cache_locks', 'jobs', 'failed_jobs', 'password_reset_tokens'];
 // Susunan ikut kumpulan supaya kotak yang berkaitan diletak berdekatan
 $susunan = ['bahagian', 'users', 'roles', 'user_roles', 'pendaftaran_staf', 'delegasi_kelulusan',
