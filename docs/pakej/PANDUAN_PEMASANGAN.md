@@ -343,6 +343,7 @@ Selepas pemulihan: `php artisan optimize:clear`, kemudian log masuk dan buka beb
 | Medan tidak diisi AI | Ollama tidak berjalan, model belum didaftar, atau tiada GPU (lebih perlahan). Status Sistem → Ollama |
 | Analisis kekal "Menunggu…" | Pekerja latar OCR tidak berjalan (3.7) |
 | Muat naik ditolak "imbasan antivirus tidak dapat dibuat" | Antivirus tiada/tidak berjalan; pasang (3.8) atau `ANTIVIRUS_WAJIB=false` sementara |
+| Pengguna kehilangan telefon 2FA dan kod pemulihan | Sahkan identiti pengguna, kemudian `php artisan pengguna:set-semula-2fa <No. KP>`; pengguna mendaftar 2FA semula selepas log masuk |
 | "Unable to create the key" (Web Push) | [Windows] `OPENSSL_CONF` (3.3) |
 | Emel tidak sampai | Tetapan `MAIL_*`; semak `storage/logs` |
 | Sandaran gagal "Access denied" | Pengguna DB tiada keistimewaan `LOCK TABLES`; laluan `SANDARAN_MYSQLDUMP_BIN` |
@@ -362,6 +363,7 @@ Selepas pemulihan: `php artisan optimize:clear`, kemudian log masuk dan buka beb
 | `php artisan imbas-arkib:bersih` | Padam fail sementara Imbas & Arkib (dijadualkan setiap hari) |
 | `php artisan templat:daftar <fail> <KOD>` | Daftar templat borang kosong yang disalin terus ke `Templat/` |
 | `php artisan keselamatan:kecemasan on\|off\|status` | Mod kecemasan |
+| `php artisan pengguna:set-semula-2fa <No. KP>` | Set semula 2FA pengguna yang kehilangan telefon dan kod pemulihan (direkod dalam log audit) |
 | `php artisan queue:restart` | Mulakan semula pekerja latar selepas kemas kini |
 | `php artisan optimize` / `optimize:clear` | Simpan / kosongkan cache tetapan dan laluan |
 
