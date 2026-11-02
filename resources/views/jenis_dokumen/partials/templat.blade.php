@@ -3,7 +3,7 @@
     <div class="summary-head px-1 mb-2">
         <div>
             <div class="summary-label">TEMPLAT BORANG KOSONG</div>
-            <div class="dms-hint">AI membezakan teks bercetak borang dengan tulisan pengisi (Imbas & Arkib / Hantar).</div>
+            <div class="dms-hint">AI membezakan teks bercetak borang dengan tulisan pengisi (Imbas & Arkib / Hantar). Selepas disusun, templat juga digunakan untuk muat turun borang siap.</div>
         </div>
     </div>
 
@@ -23,9 +23,21 @@
                 </div>
                 <span class="badge fail-status {{ $kelas }}" title="Status OCR templat">{{ $t->status_ocr }}</span>
             </div>
+            @php $bilDiletak = \App\Support\KedudukanMedan::bilangan($t->kedudukan_medan); @endphp
+            <div class="dms-hint mt-1 mb-0">
+                <i class="bi bi-file-earmark-check" aria-hidden="true"></i>
+                @if(\App\Support\KedudukanMedan::perluSemak($t->kedudukan_medan))
+                    <span class="text-warning-emphasis">Borang siap: {{ $bilDiletak }} medan diwarisi versi lama. Semak & simpan susunan untuk mengaktifkan.</span>
+                @else
+                    {{ $bilDiletak ? "Borang siap: {$bilDiletak} medan disusun" : 'Borang siap: belum disusun' }}
+                @endif
+            </div>
             <div class="d-flex flex-wrap gap-2 mt-2">
                 <a href="{{ route('templat.papar', $t->templat_borang_id) }}" target="_blank" rel="noopener" class="outline-button kekal-label text-decoration-none">
                     <i class="bi bi-eye"></i> <span>Pratonton</span>
+                </a>
+                <a href="{{ route('templat.susun', $t->templat_borang_id) }}" class="outline-button kekal-label text-decoration-none">
+                    <i class="bi bi-bounding-box"></i> <span>Susun Kedudukan</span>
                 </a>
                 <form action="{{ route('templat.togol', $t->templat_borang_id) }}" method="POST">
                     @csrf

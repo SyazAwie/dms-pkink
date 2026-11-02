@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\KedudukanMedan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * dikenali bagi imbasan lama; `aktif` = digunakan dalam padanan.
  *
  * ocr_json: {"teks": "...", "skor": 91.2, "token": ["borang", "permohonan", ...]}
+ * kedudukan_medan: kedudukan nilai setiap medan atas templat untuk borang siap (TB6),
+ * format dalam App\Support\KedudukanMedan.
  */
 class TemplatBorang extends Model
 {
@@ -22,11 +25,12 @@ class TemplatBorang extends Model
 
     protected $fillable = [
         'jenis_dokumen_id', 'versi', 'nama_asal', 'lokasi_fail', 'saiz_fail', 'jenis_mime', 'hash_sha256',
-        'bilangan_muka', 'ocr_json', 'status_ocr', 'aktif', 'catatan', 'created_by',
+        'bilangan_muka', 'ocr_json', 'kedudukan_medan', 'status_ocr', 'aktif', 'catatan', 'created_by',
     ];
 
     protected $casts = [
         'ocr_json' => 'array',
+        'kedudukan_medan' => 'array',
         'aktif' => 'boolean',
         'saiz_fail' => 'integer',
         'bilangan_muka' => 'integer',
@@ -47,5 +51,11 @@ class TemplatBorang extends Model
     public function token(): array
     {
         return $this->ocr_json['token'] ?? [];
+    }
+
+    /** Sudah ada medan diletak atas templat ini (boleh menjana borang siap). */
+    public function disusun(): bool
+    {
+        return KedudukanMedan::adaMedan($this->kedudukan_medan);
     }
 }

@@ -457,6 +457,11 @@ CRUD penuh dengan soft delete (SUPERADMIN/ADMIN). Senarai memaparkan bilangan me
 
 **Templat borang kosong (Fasa TB):** setiap kategori boleh ada borang kosong (PDF/JPG/PNG, berbilang versi) yang dimuat naik semasa cipta kategori atau dalam panel "Templat Borang Kosong" di halaman Edit (pratonton, aktif/nyahaktif, padam; log audit). Fail disimpan dalam folder **`Templat/`** di akar projek (disk `templat`, di luar `public/`, dihidangkan hanya melalui `templat.papar` untuk SUPERADMIN/ADMIN), direkod dalam jadual `templat_borang` (versi, hash, `ocr_json` teks + token, status OCR, aktif) dan dibaca OCR sekali melalui queue OCR. Fail yang disalin terus ke `Templat/` didaftarkan dengan `php artisan templat:daftar <fail> <KOD>` (`--senarai` untuk status). Tidak boleh diubah dalam mod demo/percubaan (folder dikongsi dengan sistem sebenar). Kegunaan: lihat 5.11 (beza isian) dan 5.8 (cadangan kategori).
 
+**Borang siap untuk dimuat turun (TB6):** templat borang kosong diisi dengan nilai dokumen, menjadi salinan borang asal yang kemas.
+- **Susun Kedudukan Medan** (butang dalam panel Templat, SUPERADMIN/ADMIN, `templat.susun`): imej templat dengan senarai item di sisi. Pentadbir memilih item dan melukis kotak di ruang isian; kotak boleh diseret, diubah saiz, digerakkan dengan anak panah dan dibuang dengan Delete. Item: medan asas (Tarikh Dokumen, No. Rujukan, Perkara), setiap medan EAV, setiap pilihan (radio/dropdown/kotak semak/ya-tidak, gaya **✓** atau **garis potong** pilihan yang tidak dipilih, cth. "disokong/ ~~tidak sokong~~"), baris pertama + lajur jadual (bilangan baris pada borang; lebihan dicetak pada muka surat lampiran) dan cop status. Disimpan dalam `templat_borang.kedudukan_medan` (koordinat pecahan halaman, `App\Support\KedudukanMedan`); versi templat baharu mewarisi susunan versi lama. Disekat dalam mod demo/percubaan; log audit "Susun Kedudukan Medan".
+- **Cadang Automatik** (`CadangKedudukanService`): kotak perkataan Tesseract pada templat digunakan untuk mencari label setiap medan ikut susunan kategori (label berulang seperti "Komen/Ulasan" dipadankan ikut aliran borang), kemudian kotak diletak atas garisan isian (dikesan daripada piksel), lajur jadual daripada garisan menegak pengepala, tinggi & bilangan baris daripada garisan mendatar. Hanya item yang belum diletak diisi; pentadbir menyemak sebelum Simpan. Borang 4-b (BORANG-ICT): 9/11 medan + Tarikh dicadangkan dan disahkan betul dalam pelayar (dua medan "lama" memang tiada pada borang). Borang 3-b (BD-SEWA): 12/15 medan + Tarikh dicadangkan; medan bahagian atas disahkan betul, manakala jadual Peralatan Dipohon, Caj Sewaan dan Tarikh Keputusan perlu diletak manual (label borang berbeza dengan nama medan).
+- **Muat Turun Borang Siap** (Butiran Dokumen, `dokumen.borang-siap`, sesiapa yang boleh melihat dokumen, sebarang status): templat dirasterkan sekali (150dpi, dicache dalam `storage/app/private/templat_cache/`, tidak disandarkan) sebagai latar FPDF; nilai ditulis sebagai teks PDF berwarna dakwat biru (fon dikecilkan/dibalut supaya muat), ✓ dilukis sebagai garisan vektor (kelihatan dalam semua pemapar PDF), **cop status semasa** (Diisi / Dalam Proses / Disokong / Diluluskan / Ditolak + nama & tarikh setiap langkah; QR & kod pengesahan P6 hanya bila Diluluskan) dan jalur bawah "Salinan terkawal | dimuat turun oleh … pada …". Log audit "Muat Turun Borang Siap". Butang hanya muncul jika kategori ada templat aktif yang sudah disusun. Fon teras FPDF = Latin-1 (aksara Jawi tidak dipaparkan); dokumen menggunakan versi templat aktif terkini.
+
 **Templat permulaan** (`TemplatKategori`): Memo Dalaman, Surat Masuk, Surat Keluar, Minit Mesyuarat, Borang Permohonan, atau salin medan kategori sedia ada. **Amaran tukar jenis:** pelayan menolak penukaran jenis data jika ada nilai lama yang tidak serasi, kecuali "Teruskan tukar jenis" ditanda (nilai lama tidak dipadam).
 
 ### 5.6 Pengurusan Dokumen: Modul Teras
@@ -734,12 +739,15 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `OcrFailService.php` | OCR satu fail dokumen sedia ada (butang "Jalankan OCR") + log audit |
 
 | `TemplatBorangService.php` | Templat borang kosong (Fasa TB): daftar/muat naik, OCR templat, `tandaIsian` (isian «…»), `padanKategori` |
+| `BorangSiapService.php` | Borang siap (TB6): latar templat (cache), nilai/✓/garis potong/jadual + lampiran, cop status + QR, jalur salinan terkawal |
+| `CadangKedudukanService.php` | Cadangan automatik kedudukan medan atas templat (TB6): label (Tesseract TSV) + garisan isian/jadual (piksel) |
+| `SlipKelulusanService.php`, `TeraAirService.php` | Slip kelulusan ber-QR (P6, `qrPng` dikongsi dengan TB6) dan salinan fail bertera air (P11) |
 
 ### Kerja Queue (`app/Jobs/`)
 `AnalisisImbasJob` (analisis token Imbas) dan `OcrFailJob` (Jalankan OCR + notifikasi bila siap), kedua-dua pada queue `ocr` dan membawa mod demo asal (`Demo::dalamMod`). `App\Support\AntrianOcr`: degupan worker (`storage/framework/antrian-ocr.json`), hantar kerja, kedudukan giliran.
 
 ### Support (`app/Support/`)
-`JenisMedan` (16 jenis medan, auto-isi, seksyen pejabat), `MedanJadual` (jadual baris berulang), `LainDinyatakan`, `TemplatKategori`, `BuangGarisan`, `PolisiKataLaluan`, `PeraturanNama`, `PeraturanProfil`, `TeksEmel`
+`JenisMedan` (16 jenis medan, auto-isi, seksyen pejabat), `MedanJadual` (jadual baris berulang), `KedudukanMedan` (format & pembersihan susunan borang siap, TB6), `LainDinyatakan`, `TemplatKategori`, `BuangGarisan`, `PolisiKataLaluan`, `PeraturanNama`, `PeraturanProfil`, `TeksEmel`
 
 ### Controller (`app/Http/Controllers/`)
 | Controller | Modul |
@@ -757,6 +765,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 | `ImbasHantarController` (mewarisi `ImbasArkibController`) | Imbas & Hantar (`mod()` = `hantar`) |
 | `BorangController` | Aliran kelulusan |
 | `SlipKelulusanController` | Slip kelulusan PDF ber-QR + halaman pengesahan awam |
+| `TemplatBorangController`, `BorangSiapController` | Templat borang kosong (muat naik/aktif/padam); susun kedudukan medan, cadang automatik, pratonton & muat turun borang siap (TB6) |
 | `LogAuditController` | Log Audit |
 | `NotifikasiController` | Loceng, halaman Notifikasi, langganan peranti |
 | `TongSampahController` | Tong Sampah: senarai & pulih rekod terpadam |
@@ -998,7 +1007,6 @@ Potongan tangan yang beralun, laluan tulisan tangan (GLM-OCR) tanpa penanda, tah
 **Pembetulan staf (P16):** setiap simpan Imbas & Arkib/Hantar merekod nilai AI berbanding nilai akhir (`pembetulan_ai`). Prompt AI bagi kategori yang sama menyenaraikan nilai yang pernah **salah** (dan "medan ini biasanya kosong") supaya tidak diulang (`OLLAMA_FEW_SHOT`, lalai hidup). Nilai **betul** sengaja tidak dimasukkan: dalam ujian dengan borang 4-b, model menyalin nilai betul dokumen lama ke dokumen baharu walaupun diarah tidak. Contoh pada 4-b selepas satu pembetulan: "ERASED BN" pada medan nama yang kosong tidak lagi diisi (dokumen yang sama, jadi bukan ukuran ketepatan umum). LoRA kekal kerja masa depan.
 
 ### Kerja Akan Datang (dirancang, lihat PROGRESS.md)
-- **TB6 Borang siap untuk dimuat turun:** nilai EAV ditulis atas templat borang kosong asal pada kedudukan setiap medan (dikesan daripada label, dilaras pentadbir), + cop status (Diisi / Disokong / Diluluskan), QR pengesahan (P6) dan tera air (P11)
 - **TB4 Beza imej (R&D):** jajarkan templat dengan imbasan (`imageaffine` GD) dan tolak piksel untuk mengesan potongan/bulatan/✓ tangan dalam apa jua bentuk
 - **Fasa R (kemas kod):** aksesibiliti label, `{dokuman}` → `{dokumen}`, lajur `dokumen.status`, Pint semua fail, buang scaffold Vite, seksyen MEDAN LAMA BORANG-ICT
 - **Fasa H (serahan):** padam akaun ujian & tukar kata laluan demo, `.env` produksi, 2FA & antivirus wajib, sandaran ke lokasi PKINK, manual pengguna

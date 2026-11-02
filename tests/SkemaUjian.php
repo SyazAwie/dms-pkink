@@ -172,6 +172,7 @@ trait SkemaUjian
             $t->char('hash_sha256', 64)->nullable();
             $t->unsignedSmallInteger('bilangan_muka')->nullable();
             $t->longText('ocr_json')->nullable();
+            $t->longText('kedudukan_medan')->nullable();
             $t->string('status_ocr', 50)->default('Pending');
             $t->boolean('aktif')->default(true);
             $t->string('catatan')->nullable();
@@ -305,7 +306,7 @@ trait SkemaUjian
         // Akhiran huruf (A, B, ... AA) supaya nama lulus PeraturanNama (tiada digit)
         $akhiran = '';
         for ($n = $kiraan; $n > 0; $n = intdiv($n - 1, 26)) {
-            $akhiran = chr(65 + ($n - 1) % 26) . $akhiran;
+            $akhiran = chr(65 + ($n - 1) % 26).$akhiran;
         }
 
         $user = new User(array_merge([

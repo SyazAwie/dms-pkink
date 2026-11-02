@@ -85,7 +85,7 @@ class SlipKelulusanService
             }
 
             // Kod QR pengesahan
-            $qr = $this->pngTanpaAlfa((new Writer(new GDLibRenderer(400, 2)))->writeString($urlSahkan));
+            $qr = self::qrPng($urlSahkan);
             $sementara[] = $qr;
             if ($pdf->GetY() > 210) {
                 $pdf->AddPage();
@@ -128,10 +128,13 @@ class SlipKelulusanService
         return $tarikh ? $tarikh->format('d/m/Y, h:i A') : '-';
     }
 
-    /** Ratakan PNG (kod QR) atas latar putih tanpa alfa dan simpan ke fail sementara. */
-    private function pngTanpaAlfa(string $data): ?string
+    /**
+     * Kod QR sebagai fail PNG sementara tanpa alfa (FPDF tidak menyokong PNG beralfa).
+     * Pemanggil memadam fail selepas digunakan. Juga digunakan oleh BorangSiapService (TB6).
+     */
+    public static function qrPng(string $url): ?string
     {
-        $asal = @imagecreatefromstring($data);
+        $asal = @imagecreatefromstring((new Writer(new GDLibRenderer(400, 2)))->writeString($url));
         if ($asal === false) {
             return null;
         }
