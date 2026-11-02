@@ -201,13 +201,14 @@ class BorangSiapController extends Controller
             if ($medan->jenis_data === 'jadual') {
                 $item[] = ['kunci' => "baris:{$id}", 'label' => 'Baris pertama', 'kumpulan' => $nama, 'jenis' => 'baris', 'medan' => $id];
                 foreach (MedanJadual::lajur($medan) as $l) {
-                    $item[] = ['kunci' => "lajur:{$id}:{$l['kod']}", 'label' => 'Lajur: '.$l['nama'], 'kumpulan' => $nama, 'jenis' => 'lajur', 'medan' => $id, 'kod' => $l['kod']];
+                    $item[] = ['kunci' => "lajur:{$id}:{$l['kod']}", 'label' => 'Lajur: '.$l['nama'], 'kumpulan' => $nama, 'jenis' => 'lajur', 'medan' => $id, 'kod' => $l['kod'],
+                        'wang' => ($l['jenis'] ?? 'teks') === 'wang'];
                 }
 
                 continue;
             }
             $pilihan = KedudukanMedan::pilihanMedan($medan);
-            $item[] = ['kunci' => "kotak:{$id}", 'label' => $pilihan ? 'Nilai sebagai teks' : $nama, 'kumpulan' => $pilihan ? $nama : '', 'jenis' => 'kotak', 'medan' => $id, 'textarea' => $medan->jenis_data === 'textarea'];
+            $item[] = ['kunci' => "kotak:{$id}", 'label' => $pilihan ? 'Nilai sebagai teks' : $nama, 'kumpulan' => $pilihan ? $nama : '', 'jenis' => 'kotak', 'medan' => $id, 'textarea' => $medan->jenis_data === 'textarea', 'wang' => $medan->jenis_data === 'wang'];
             foreach ($pilihan as $p) {
                 $item[] = ['kunci' => "pilihan:{$id}:{$p}", 'label' => 'Pilihan: '.($p === JenisMedan::NILAI_LAIN ? 'Lain-lain (nyatakan)' : $p), 'kumpulan' => $nama, 'jenis' => 'pilihan', 'medan' => $id, 'pilihan' => $p];
             }

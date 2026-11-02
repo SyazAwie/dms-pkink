@@ -8,7 +8,8 @@ use App\Models\DokumenField;
  * Kedudukan medan atas templat borang (TB6), disimpan dalam templat_borang.kedudukan_medan.
  *
  * Koordinat ialah pecahan halaman (0–1) dari bucu kiri atas, jadi tidak bergantung pada
- * resolusi imej. Satu "kotak" = {muka, x, y, w, h} (+ saiz fon pilihan).
+ * resolusi imej. Satu "kotak" = {muka, x, y, w, h} (+ saiz fon pilihan, + tanpa_unit: medan wang
+ * ditulis tanpa "RM" kerana borang sudah mencetaknya).
  *
  *   {
  *     "disahkan": true,                            false = diwarisi versi lama, belum disimpan pentadbir
@@ -167,6 +168,10 @@ final class KedudukanMedan
         $hasil = ['muka' => $muka, 'x' => round($x, 4), 'y' => round($y, 4), 'w' => round($w, 4), 'h' => round($h, 4)];
         if (is_numeric($k['saiz'] ?? null)) {
             $hasil['saiz'] = (float) min(max((float) $k['saiz'], self::SAIZ_MIN), self::SAIZ_MAKS);
+        }
+        // Medan wang: borang sudah mencetak "RM" sebelum ruang isian, jadi tulis nombor sahaja
+        if (($k['tanpa_unit'] ?? false) === true) {
+            $hasil['tanpa_unit'] = true;
         }
 
         return $hasil;
