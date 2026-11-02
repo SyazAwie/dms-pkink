@@ -2,6 +2,7 @@
 
 use App\Services\OllamaExtractionService;
 use Illuminate\Foundation\Inspiring;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
@@ -34,15 +35,24 @@ Schedule::command('fail:integriti')->weeklyOn(1, '12:45')->withoutOverlapping();
 
 // Muat model AI (Ollama) ke GPU sebelum digunakan, cth. sebelum demo/pembentangan,
 // supaya imbasan pertama tidak menunggu model dimuat. Model kekal selama OLLAMA_KEEP_ALIVE.
+// Ollama tidak berjalan → mesej jelas & kod keluar 1 (bukan surih tindanan), jadi
+// demo:semak --panaskan tetap memaparkan senarai semak penuh dengan baris RALAT Ollama.
 Artisan::command('ai:panaskan', function () {
     $ai = app(OllamaExtractionService::class);
-    if ($ai->sudahDimuat()) {
-        $this->info('Model AI sudah dimuat.');
+    try {
+        if ($ai->sudahDimuat()) {
+            $this->info('Model AI sudah dimuat.');
 
-        return 0;
+            return 0;
+        }
+        $mula = microtime(true);
+        $dimuat = $ai->panaskan();
+    } catch (ConnectionException) {
+        $this->error('Ollama tidak berjalan ('.config('services.ollama.url').'). Buka aplikasi Ollama dahulu, kemudian cuba semula.');
+
+        return 1;
     }
-    $mula = microtime(true);
-    if (! $ai->panaskan()) {
+    if (! $dimuat) {
         $this->error('Model AI gagal dimuat. Pastikan Ollama berjalan dan OLLAMA_MODEL betul.');
 
         return 1;
