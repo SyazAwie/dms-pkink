@@ -136,7 +136,7 @@ Kemas kini kata laluan dalam sesi HeidiSQL. Simpan kata laluan root di luar pela
 
 **6.4 Windows pelayan**: Windows Defender masa nyata HIDUP; Windows Update automatik; Windows Firewall HIDUP (jangan buka port 3306); akaun Windows berkata laluan kuat; Remote Desktop dimatikan jika tidak perlu; jangan guna pelayan untuk melayari web atau membuka emel.
 
-**6.5 Sistem (`.env`) semasa serahan**: `APP_DEBUG=false`, `DUA_FAKTOR_WAJIB=true`, `ANTIVIRUS_WAJIB=true`, `SANDARAN_KATA_LALUAN=<kata laluan kuat>`; tukar semua kata laluan akaun demo `123456789`.
+**6.5 Tetapan sistem (`.env`) di pelayan produksi**: `APP_DEBUG=false`, `DUA_FAKTOR_WAJIB=true`, `ANTIVIRUS_WAJIB=true`, `SANDARAN_KATA_LALUAN=<kata laluan kuat>`; tukar semua kata laluan akaun demo `123456789`.
 
 ---
 

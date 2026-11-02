@@ -176,7 +176,7 @@ class StatusSistemController extends Controller
     {
         return config('services.notifikasi.emel')
             ? $this->semakan('Notifikasi emel', 'ok', 'Hidup · '.config('mail.default'))
-            : $this->semakan('Notifikasi emel', 'amaran', 'Mati (NOTIFIKASI_EMEL=false)', 'Hidupkan semasa serahan bila akaun sebenar digunakan.');
+            : $this->semakan('Notifikasi emel', 'amaran', 'Mati (NOTIFIKASI_EMEL=false)', 'Hidupkan bila sistem digunakan dengan akaun dan alamat emel sebenar.');
     }
 
     private function penjadual(): array

@@ -102,7 +102,7 @@ class Keselamatan
             ? $semak('2FA pentadbir', 'ok', 'Semua '.$pentadbir->count().' akaun pentadbir ada 2FA')
             : $semak('2FA pentadbir', config('services.dua_faktor.wajib') ? 'ralat' : 'amaran',
                 $tanpa2fa->count().' daripada '.$pentadbir->count().' tanpa 2FA: '.$tanpa2fa->pluck('nama_staff')->take(5)->join(', '),
-                'Pentadbir boleh hidupkan 2FA di Profil. Tetapkan DUA_FAKTOR_WAJIB=true semasa serahan.');
+                'Pentadbir boleh hidupkan 2FA di Profil. Tetapkan DUA_FAKTOR_WAJIB=true di pelayan produksi.');
 
         $lemah = self::pentadbirKataLaluanLemah();
         $hasil[] = $lemah->isEmpty()

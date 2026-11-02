@@ -399,7 +399,7 @@ Pangkalan data mengandungi **27 jadual** (disemak daripada INFORMATION_SCHEMA, 2
 - **Laluan tetamu** (log masuk, lupa/tetap semula kata laluan) dilindungi middleware `guest`; pengguna yang sudah log masuk dibawa ke papan pemuka
 - **Lupa kata laluan:** pautan tetapan semula dihantar ke emel (kandungan emel dalam BM). Respons **sama** sama ada emel berdaftar, tidak berdaftar atau SMTP gagal, supaya borang tidak boleh digunakan untuk meneka emel. Had: 5 seminit bagi setiap emel + IP, 10 setiap 10 minit bagi setiap IP
 - **Polisi kata laluan** (`PolisiKataLaluan`): sekurang-kurangnya 8 aksara, mengandungi huruf dan nombor. Terpakai untuk kata laluan yang dipilih pengguna sendiri
-- **Pengesahan dua faktor (2FA, P13):** pilihan dari Profil (QR untuk Google/Microsoft Authenticator, 8 kod pemulihan sekali guna, rahsia disulitkan). Kata laluan disemak dengan `Auth::validate()` dahulu; akaun ber-2FA dibawa ke `/log-masuk/dua-faktor` (sesi menunggu sah 5 minit, 5 cubaan seminit) sebelum sesi dibuka. `DUA_FAKTOR_WAJIB=true` (lalai `false` hingga serahan) memaksa SUPERADMIN/ADMIN mendaftar (middleware `wajib.dua.faktor`) dan menghalang mereka mematikannya
+- **Pengesahan dua faktor (2FA, P13):** pilihan dari Profil (QR untuk Google/Microsoft Authenticator, 8 kod pemulihan sekali guna, rahsia disulitkan). Kata laluan disemak dengan `Auth::validate()` dahulu; akaun ber-2FA dibawa ke `/log-masuk/dua-faktor` (sesi menunggu sah 5 minit, 5 cubaan seminit) sebelum sesi dibuka. `DUA_FAKTOR_WAJIB=true` (lalai `false`; `true` dalam templat `.env.example` produksi) memaksa SUPERADMIN/ADMIN mendaftar (middleware `wajib.dua.faktor`) dan menghalang mereka mematikannya
 - **Sejarah log masuk (P13):** setiap cubaan direkod dalam `log_masuk`; halaman **Sejarah Log Masuk** (SUPERADMIN/AUDIT) dengan penapis, dan Profil memaparkan 5 log masuk terkini pengguna
 - **Kata laluan sementara:** kata laluan yang ditetapkan pentadbir untuk orang lain, dan kata laluan dalam emel pendaftaran, mesti ditukar pada log masuk seterusnya (middleware `wajib.tukar` → `/tukar-kata-laluan`). Kata laluan sementara daripada emel pendaftaran tamat selepas 72 jam
 
@@ -525,7 +525,7 @@ Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokon
 
 **Slip kelulusan PDF ber-QR** (`kelulusan.slip`, `SlipKelulusanService`, `bacon/bacon-qr-code` + FPDF): bagi permohonan Diluluskan, sesiapa yang boleh melihat dokumen boleh memuat turun slip (No. Rujukan, kategori, pemohon, penyokong, pelulus, tarikh, ulasan) dan setiap jana dilog. Kod QR membuka halaman **awam** `/sahkan-slip/{borang}/{kod}` (tanpa log masuk, had 30 permintaan/minit) yang memaparkan "Slip Sah" dengan maklumat minimum, atau "Slip Tidak Sah". `kod` = 12 aksara HMAC-SHA256 (APP_KEY) atas borang + dokumen + tarikh kelulusan (`Borang::kodPengesahan()`), jadi rekod tidak boleh diteka dan slip lama menjadi tidak sah bila permohonan dipadam atau diluluskan semula. URL dalam QR mengikut `APP_URL` (tetapkan ke alamat awam semasa demo/produksi). Menukar `APP_KEY` membatalkan semua slip lama.
 
-**Notifikasi emel** (`NOTIFIKASI_EMEL`, **mati secara lalai**): bila dihidupkan, setiap notifikasi loceng (5.4) turut dihantar melalui emel kepada penerima yang ada alamat emel, dengan pautan "Buka dalam Sistem". Dimatikan semasa pembangunan kerana akaun ujian menggunakan domain `@pkink.com`; hidupkan semasa serahan.
+**Notifikasi emel** (`NOTIFIKASI_EMEL`, **mati secara lalai**): bila dihidupkan, setiap notifikasi loceng (5.4) turut dihantar melalui emel kepada penerima yang ada alamat emel, dengan pautan "Buka dalam Sistem". Dimatikan semasa pembangunan kerana akaun ujian menggunakan domain `@pkink.com`; dihidupkan dalam templat `.env.example` produksi.
 
 ### 5.10 OCR (Pengecaman Teks)
 
@@ -998,7 +998,7 @@ php artisan demo:terowong       # tetingkap berasingan
 Dibina ringkas kerana sistem baru digunakan oleh Bahagian Digital untuk mengarkib dokumen sedia lulus:
 - Satu dokumen = satu rekod `borang`; hantar semula menimpa rekod itu, tetapi setiap tindakan kekal dalam `borang_sejarah` (P4)
 - Skop: PENYOKONG ikut bahagian dokumen, PELULUS semua bahagian, dan delegasi semasa cuti (P5). Tiada carta organisasi berbilang peringkat
-- Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); hidupkan semasa serahan
+- Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); dihidupkan di pelayan produksi
 - Kebenaran disemak dalam controller, bukan melalui `BorangPolicy`
 
 ### OCR: Queue dengan Satu Worker (T2)
@@ -1013,7 +1013,7 @@ Potongan tangan yang beralun, laluan tulisan tangan (GLM-OCR) tanpa penanda, tah
 
 ### Kerja Akan Datang (dirancang, lihat PROGRESS.md)
 - **Tanda pilihan tulisan tangan dengan beza imej (lanjutan TB4):** peta dakwat TB4 juga boleh mengesan bulatan/✓/potongan tangan dalam apa jua bentuk pada kotak pilihan (kini hanya kotak teks dinilai)
-- **Fasa H (serahan):** SQL buang lajur `dokumen.status` (tidak digunakan sejak R3), padam akaun ujian & tukar kata laluan demo, `.env` produksi, 2FA & antivirus wajib, sandaran ke lokasi PKINK, manual pengguna
+- **Fasa H (pakej pemasangan):** SQL buang lajur `dokumen.status` (tidak digunakan sejak R3), padam akaun ujian & tukar kata laluan demo, `.env` produksi, 2FA & antivirus wajib, sandaran ke lokasi PKINK, manual pengguna
 
 ---
 

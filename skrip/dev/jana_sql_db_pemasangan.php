@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Alat pembangun (TIDAK termasuk dalam pakej serahan), Fasa H-B.
+ * Alat pembangun (TIDAK termasuk dalam pakej pemasangan), Fasa H-B.
  *
- * Menjana skrip SQL yang membina pangkalan data serahan `dms_pkink_serahan` daripada DB
+ * Menjana skrip SQL yang membina pangkalan data pemasangan `dms_pkink_pemasangan` daripada DB
  * pembangunan (DB_DATABASE dalam .env), untuk dijalankan oleh pentadbir dalam HeidiSQL:
  *   - struktur penuh (mysqldump --no-data: semua jadual, indeks, kunci asing, lajur janaan),
  *     tanpa nilai AUTO_INCREMENT lama dan tanpa lajur lapuk dokumen.status;
@@ -12,10 +12,10 @@
  *   - akaun UAT: satu bagi setiap peranan, kata laluan sementara rawak (wajib ditukar).
  *
  * DB sumber hanya DIBACA. Hasil (di luar repo):
- *   ../Serahan_DMS_PKINK/sql/bina_db_serahan.sql
- *   ../Serahan_DMS_PKINK/rahsia/AKAUN_UAT.md   (kata laluan sementara; JANGAN dimasukkan ke zip)
+ *   ../Pakej_DMS_PKINK/sql/bina_db_pemasangan.sql
+ *   ../Pakej_DMS_PKINK/rahsia/AKAUN_UAT.md   (kata laluan sementara; JANGAN dimasukkan ke zip)
  *
- * Guna:  php skrip/dev/jana_sql_db_serahan.php
+ * Guna:  php skrip/dev/jana_sql_db_pemasangan.php
  */
 
 use Illuminate\Contracts\Console\Kernel;
@@ -27,11 +27,11 @@ require $akar.'/vendor/autoload.php';
 $app = require $akar.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
-const DB_SERAHAN = 'dms_pkink_serahan';
+const DB_PEMASANGAN = 'dms_pkink_pemasangan';
 const BAHAGIAN_UAT = 'BD'; // akaun UAT dalam Bahagian Digital
 
 $sumber = config('database.connections.mysql.database');
-$folderKeluar = dirname($akar).DIRECTORY_SEPARATOR.'Serahan_DMS_PKINK';
+$folderKeluar = dirname($akar).DIRECTORY_SEPARATOR.'Pakej_DMS_PKINK';
 @mkdir($folderKeluar.'/sql', 0775, true);
 @mkdir($folderKeluar.'/rahsia', 0700, true); // kata laluan sementara: pemilik sahaja
 
@@ -123,17 +123,17 @@ foreach ($akaun as $i => [$kod, $nama]) {
 $tarikh = now()->format('Y-m-d H:i');
 $sql = <<<SQL
 -- =============================================================================
--- Sistem Arkib Digital (DMS) PKINK: bina pangkalan data serahan (Fasa H-B)
+-- Sistem Arkib Digital (DMS) PKINK: bina pangkalan data pemasangan
 -- Dijana: {$tarikh} daripada `{$sumber}` (DIBACA SAHAJA; tidak diubah)
 --
 -- Jalankan keseluruhan skrip ini dalam HeidiSQL (F9) sebagai pentadbir MySQL.
--- Hasil: pangkalan data BAHARU `dms_pkink_serahan` ({$bilJadual} jadual, {$bilFk} kunci asing) dengan
+-- Hasil: pangkalan data BAHARU `dms_pkink_pemasangan` ({$bilJadual} jadual, {$bilFk} kunci asing) dengan
 -- konfigurasi aktif dan 8 akaun UAT. Tiada dokumen, log atau akaun lama.
 -- =============================================================================
 
-DROP DATABASE IF EXISTS `dms_pkink_serahan`;
-CREATE DATABASE `dms_pkink_serahan` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `dms_pkink_serahan`;
+DROP DATABASE IF EXISTS `dms_pkink_pemasangan`;
+CREATE DATABASE `dms_pkink_pemasangan` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `dms_pkink_pemasangan`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -172,7 +172,7 @@ UNION ALL SELECT 'dokumen', COUNT(*) FROM `dokumen`
 UNION ALL SELECT 'log_audit', COUNT(*) FROM `log_audit`;
 
 SQL;
-file_put_contents($folderKeluar.'/sql/bina_db_serahan.sql', $sql);
+file_put_contents($folderKeluar.'/sql/bina_db_pemasangan.sql', $sql);
 
 // 5. Senarai akaun (sulit)
 $md = "# Akaun Ujian Penerimaan Pengguna (UAT)\n\n**SULIT.** Untuk pentadbir sistem PKINK sahaja. Dijana: {$tarikh}.\n\n";
@@ -186,5 +186,5 @@ file_put_contents($failRahsia, $md);
 umask($umask);
 @chmod($failRahsia, 0600);
 
-echo "Ditulis: {$folderKeluar}/sql/bina_db_serahan.sql ({$bilJadual} jadual, {$bilFk} kunci asing)\n";
+echo "Ditulis: {$folderKeluar}/sql/bina_db_pemasangan.sql ({$bilJadual} jadual, {$bilFk} kunci asing)\n";
 echo "Ditulis: {$folderKeluar}/rahsia/AKAUN_UAT.md (8 akaun)\n";

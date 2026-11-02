@@ -68,7 +68,7 @@ return [
         'beza_min_yakin' => (float) env('OCR_BEZA_MIN_YAKIN', 70),
     ],
 
-    // 2FA (P13): wajib bagi SUPERADMIN/ADMIN bila true. Kekal false hingga serahan (Fasa H)
+    // 2FA (P13): wajib bagi SUPERADMIN/ADMIN bila true. Lalai false; true di pelayan produksi (.env.example)
     // supaya akaun demo tidak memerlukan telefon authenticator.
     'dua_faktor' => [
         'wajib' => (bool) env('DUA_FAKTOR_WAJIB', false),
@@ -80,7 +80,7 @@ return [
         'periksa_fail' => (bool) env('KESELAMATAN_PERIKSA_FAIL', true),
         // Kosong = Windows Defender (MpCmdRun.exe) di Windows, clamdscan di Linux
         'antivirus_bin' => env('ANTIVIRUS_BIN'),
-        // true = tolak muat naik jika imbasan antivirus tidak dapat dibuat (tetapkan semasa serahan)
+        // true = tolak muat naik jika imbasan antivirus tidak dapat dibuat (disyorkan di pelayan produksi)
         'antivirus_wajib' => (bool) env('ANTIVIRUS_WAJIB', false),
         'antivirus_had_masa' => (int) env('ANTIVIRUS_HAD_MASA', 60),
         // Had "bom": PDF kecil beratus muka surat / imej berpiksel gergasi membebankan OCR & cakera
@@ -119,7 +119,7 @@ return [
     ],
 
     // Notifikasi emel (P2): mati secara lalai kerana akaun ujian guna domain @pkink.com yang
-    // mungkin domain sebenar; hidupkan semasa serahan bila akaun sebenar digunakan
+    // mungkin domain sebenar; hidupkan bila akaun dan alamat emel sebenar digunakan
     'notifikasi' => [
         'emel' => (bool) env('NOTIFIKASI_EMEL', false),
     ],

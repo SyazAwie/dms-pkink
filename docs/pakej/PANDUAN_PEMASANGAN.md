@@ -24,7 +24,7 @@ Untuk: pentadbir pelayan / Bahagian Digital PKINK. Panduan ini meliputi pelayan 
 |---|---|
 | `app/`, `bootstrap/`, `config/`, `lang/`, `resources/`, `routes/`, `vendor/` | Kod sistem (Laravel 13) dan pustaka PHP (sudah dipasang, tidak perlu Composer) |
 | `public/` | **Satu-satunya** folder yang dihidangkan oleh pelayan web |
-| `storage/` | Fail imbasan, log, cache (kosong semasa serahan; mesti boleh ditulis) |
+| `storage/` | Fail imbasan, log, cache (kosong semasa pemasangan; mesti boleh ditulis) |
 | `Templat/` | 7 borang kosong yang digunakan oleh templat kategori |
 | `database/dms_pkink.sql` | Pangkalan data: struktur + konfigurasi (peranan, bahagian, kategori, medan, templat) + akaun UAT |
 | `docs/` | Manual pengguna, panduan ini, manual templat, pelan tindak balas insiden, dokumentasi teknikal, ERD |

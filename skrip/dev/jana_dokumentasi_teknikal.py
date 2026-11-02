@@ -1,5 +1,5 @@
 """
-Alat pembangun (TIDAK termasuk dalam pakej serahan): jana docs/serahan/DOKUMENTASI_TEKNIKAL.md
+Alat pembangun (TIDAK termasuk dalam pakej pemasangan): jana docs/pakej/DOKUMENTASI_TEKNIKAL.md
 daripada README.md pembangunan.
 
 Dikekalkan: pengenalan, spesifikasi, seni bina, skema DB, modul, RBAC, keselamatan, carta alir,
@@ -15,7 +15,7 @@ from pathlib import Path
 
 AKAR = Path(__file__).resolve().parents[2]
 SUMBER = AKAR / 'README.md'
-SASARAN = AKAR / 'docs' / 'serahan' / 'DOKUMENTASI_TEKNIKAL.md'
+SASARAN = AKAR / 'docs' / 'pakej' / 'DOKUMENTASI_TEKNIKAL.md'
 
 # Bahagian ## yang dikekalkan (nombor asal README)
 BAHAGIAN = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '12', '14']
@@ -44,6 +44,8 @@ GANTI = [
      ' (lihat `docs/erd/README.md`).'),
     ('**Notifikasi emel** (`NOTIFIKASI_EMEL`, **mati secara lalai**): bila dihidupkan,',
      '**Notifikasi emel** (`NOTIFIKASI_EMEL`): bila dihidupkan,'),
+    ('Dimatikan semasa pembangunan kerana akaun ujian menggunakan domain `@pkink.com`; dihidupkan dalam templat `.env.example` produksi.',
+     'Dihidupkan dalam templat `.env.example` produksi.'),
     ('*Dokumen ini dikemas kini sepanjang pembangunan projek (terakhir: 27 Oktober 2026). Untuk persoalan teknikal semasa pembentangan, rujuk nombor bahagian berkaitan di atas.*',
      '*Dokumentasi teknikal untuk pentadbir sistem dan pembangun. Panduan pemasangan: `docs/PANDUAN_PEMASANGAN.pdf`; manual pengguna: `docs/MANUAL_PENGGUNA_DMS_PKINK.pdf`.*'),
     ('| **Pelayan Pangkalan Data (Local Dev)** | XAMPP, **MySQL sahaja** | Apache/PHP XAMPP tidak digunakan |\n', ''),
@@ -59,7 +61,7 @@ GANTI = [
      '| GPU | Tidak wajib (AI jauh lebih perlahan) | NVIDIA (CUDA) 6GB+ VRAM. Model SEA-LION dimuat penuh dalam GPU |'),
     ('| Sistem Operasi | Windows 10/11 (persekitaran pembangunan semasa) | |',
      '| Sistem Operasi | Windows Server / Windows 10+ atau Linux (Ubuntu 22.04+) | |'),
-    ('- Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); hidupkan semasa serahan',
+    ('- Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); dihidupkan di pelayan produksi',
      '- Notifikasi emel aliran kelulusan dikawal oleh `NOTIFIKASI_EMEL` (memerlukan SMTP)'),
     ('(Fasa D: mod demo & mod percubaan, lihat 10.3)', '(mod demo & mod percubaan untuk taklimat/latihan; DB berasingan)'),
 ]
