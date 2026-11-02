@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<title>Carta Alir Sistem Arkib Digital (DMS) PKINK</title>
+<link rel="stylesheet" href="../../../docs/pakej/manual/gaya_cetak.css">
+<style>
+  @page {
+    @top-right { content: "Carta Alir Sistem Arkib Digital (DMS) PKINK"; }
+  }
+  @page landskap {
+    size: A4 landscape;
+    margin: 13mm 15mm 13mm 15mm;
+    @top-right { content: "Carta Alir Sistem Arkib Digital (DMS) PKINK"; font: 8pt "Segoe UI", Arial, sans-serif; color: #9aa8b8; }
+    @bottom-center { content: "Halaman " counter(page) " daripada " counter(pages); font: 8.5pt "Segoe UI", Arial, sans-serif; color: #68798d; }
+  }
+  .bab { page: landskap; }
+  @media print { body > :not(section):not(script) { display: none !important; } }
+  .bab h2 { margin-bottom: 2.5mm; padding-bottom: 1.5mm; font-size: 16pt; }
+  .bab h3 { margin: 2mm 0 1mm; }
+  .carta { margin: 1mm 0 2mm; text-align: center; break-inside: avoid; }
+  .carta svg { max-width: 100% !important; max-height: 150mm; height: auto; }
+  .carta.sederhana-tinggi svg { max-height: 122mm; }
+  .carta[style] svg { max-height: 112mm; }
+  .carta[style="--t:1"] svg { max-height: 92mm; }
+  .carta.rendah svg { max-height: 68mm; }
+  .senarai-kandungan { font-size: 10.5pt; }
+  .senarai-kandungan li { padding: 1.5mm 0; }
+  .kandungan h3 { margin-top: 4mm; }
+  p.ringkas { color: var(--malap); font-size: 9.8pt; margin-bottom: 1.5mm; }
+  .dua-lajur { display: grid; grid-template-columns: 1.05fr 1fr; gap: 8mm; align-items: start; }
+  .petunjuk { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5mm 5mm; margin: 3mm 0 6mm; font-size: 9.5pt; }
+  .petunjuk div { display: flex; align-items: center; gap: 3mm; }
+  .petunjuk span.b { width: 16mm; height: 8mm; border: 1.5px solid; flex: 0 0 auto; border-radius: 2px; }
+  .b.mula { background: #e3f4ec; border-color: #25a979 !important; border-radius: 10px !important; }
+  .b.proses { background: #e8f1fc; border-color: #1769d2 !important; }
+  .b.keputusan { background: #fff4d6; border-color: #c99a06 !important; clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%); }
+  .b.tamat { background: #183f68; border-color: #183f68 !important; border-radius: 10px !important; }
+  .b.ralat { background: #fbe3e6; border-color: #c43d4e !important; }
+  .b.luaran { background: #efe8fb; border-color: #7b5bc4 !important; }
+  .nota-carta { font-size: 9.3pt; margin-top: 1mm; }
+  .nota-carta li { margin-bottom: .6mm; }
+  .bab .nota { margin: 1.5mm 0 0; padding: 2mm 3.5mm; font-size: 9.3pt; }
+  .bab .jadual { font-size: 9.2pt; margin: 0; }
+  .bab .jadual td, .bab .jadual th { padding: 1.4mm 2.5mm; }
+</style>
+</head>
+<body>
+
+<section class="kulit">
+  <img src="../../../public/images/Logo_PKINK_Tulisan_Jawi_Bawah.png" alt="Logo PKINK" class="kulit-logo">
+  <div class="kulit-org">PERBADANAN KEMAJUAN IKTISAD NEGERI KELANTAN</div>
+  <h1>Carta Alir Sistem</h1>
+  <div class="kulit-sistem">Sistem Arkib Digital (DMS) PKINK</div>
+  <div class="kulit-sub">Aliran proses dan seni bina sistem secara menyeluruh</div>
+  <table class="kulit-info">
+    <tr><td>Versi dokumen</td><td>1.0 (sistem v1.0.1)</td></tr>
+    <tr><td>Tarikh</td><td>November 2026</td></tr>
+    <tr><td>Disediakan untuk</td><td>Penyelia dan pegawai penilai sistem</td></tr>
+    <tr><td>Klasifikasi</td><td>Dalaman</td></tr>
+  </table>
+</section>
+
+<section class="kandungan">
+  <h2 class="tanpa-nombor">Kandungan</h2>
+  <ol class="senarai-kandungan">
+    <li><a href="#c1">Seni Bina Keseluruhan Sistem</a><span class="hlm">3</span></li>
+    <li><a href="#c2">Peranan dan Kawalan Capaian</a><span class="hlm">4</span></li>
+    <li><a href="#c3">Log Masuk dan Pengesahan Dua Faktor</a><span class="hlm">5</span></li>
+    <li><a href="#c4">Pendaftaran Akaun dan Lupa Kata Laluan</a><span class="hlm">6</span></li>
+    <li><a href="#c5">Kitar Hayat Status Permohonan</a><span class="hlm">7</span></li>
+    <li><a href="#c6">Mengisi Borang Digital dan Muat Naik Dokumen</a><span class="hlm">8</span></li>
+    <li><a href="#c7">Imbas &amp; Hantar dan Imbas &amp; Arkib</a><span class="hlm">9</span></li>
+    <li><a href="#c8">Enjin Pengecaman Teks (OCR) dan Kecerdasan Buatan (AI)</a><span class="hlm">10</span></li>
+    <li><a href="#c9">Aliran Sokongan dan Kelulusan</a><span class="hlm">11</span></li>
+    <li><a href="#c10">Dokumen Output dan Pengesahan Slip</a><span class="hlm">12</span></li>
+    <li><a href="#c11">Pengurusan Rekod: Carian, Pelupusan dan Tong Sampah</a><span class="hlm">13</span></li>
+    <li><a href="#c12">Keselamatan Fail dan Pusat Keselamatan</a><span class="hlm">14</span></li>
+    <li><a href="#c13">Proses Latar, Penjadual dan Sandaran</a><span class="hlm">15</span></li>
+    <li><a href="#c14">Model Data</a><span class="hlm">16</span></li>
+  </ol>
+  <h3>Petunjuk simbol</h3>
+  <div class="petunjuk">
+    <div><span class="b mula"></span>Mula / tindakan pengguna</div>
+    <div><span class="b proses"></span>Proses sistem</div>
+    <div><span class="b keputusan"></span>Keputusan / semakan</div>
+    <div><span class="b tamat"></span>Hasil akhir</div>
+    <div><span class="b ralat"></span>Ditolak / ralat</div>
+    <div><span class="b luaran"></span>Komponen luaran / latar</div>
+  </div>
+  <h3>Cara membaca carta</h3>
+  <ul>
+    <li>Carta yang panjang dibahagikan kepada <b>peringkat (A, B, C …)</b> yang dibaca dari kiri ke kanan. Anak panah tebal antara peringkat bermaksud proses diteruskan ke peringkat seterusnya.</li>
+    <li>Label pada anak panah (contohnya <b>Ya</b> / <b>Tidak</b>) menunjukkan hasil sesuatu semakan.</li>
+  </ul>
+  <p class="nota">Semua carta disediakan berdasarkan kod sumber sistem versi 1.0.1. Langkah penggunaan terperinci terdapat dalam Manual Pengguna, manakala butiran pemasangan terdapat dalam Panduan Pemasangan.</p>
+</section>
+
+<!-- ============ 1 ============ -->
+<section class="bab" id="c1">
+<h2>1. Seni Bina Keseluruhan Sistem</h2>
+<p class="ringkas">Komponen sistem dan hubungannya. Semua pemprosesan OCR dan AI dijalankan dalam pelayan PKINK; tiada dokumen dihantar kepada perkhidmatan luar.</p>
+<div class="carta sederhana-tinggi"><pre class="mermaid">
+flowchart TB
+  U(["Pengguna<br/>pelayar web komputer / telefon"]):::mula -- HTTPS --> W["Pelayan web<br/>nginx / Apache / IIS"]:::proses
+  W --> A["Aplikasi DMS PKINK<br/>Laravel 13, PHP 8.3<br/>halaman, peraturan, kawalan capaian,<br/>log audit"]:::proses
+  A <--> DB[("Pangkalan data<br/>MySQL / MariaDB")]:::data
+  A <--> F[("Storan fail peribadi<br/>imbasan, templat, sandaran")]:::data
+  A --> AV["Antivirus<br/>Defender / ClamAV"]:::luaran
+  A --> Q["Baris gilir OCR"]:::luaran --> PL["Pekerja latar OCR/AI"]:::luaran
+  PL --> ENJIN
+  A -. "tiada pekerja latar:<br/>diproses terus" .-> ENJIN
+  subgraph ENJIN["Enjin OCR dan AI tempatan"]
+    direction TB
+    P["Poppler: PDF ke imej"]:::luaran
+    T["Tesseract: pengecaman teks"]:::luaran
+    O["Ollama: SEA-LION 8B (medan)<br/>GLM-OCR (tulisan tangan)"]:::luaran
+  end
+  PJ["Penjadual tugas<br/>setiap minit"]:::luaran --> A
+  A --> E["Emel SMTP"]:::luaran
+  A --> N["Notifikasi peranti<br/>Web Push"]:::luaran
+</pre></div>
+<ul class="nota-carta">
+  <li><b>Pekerja latar</b> memproses analisis OCR/AI satu demi satu supaya halaman pengguna tidak tergantung. Jika pekerja latar tidak berjalan, analisis dijalankan terus dalam permintaan pengguna.</li>
+  <li><b>Penjadual</b> menjalankan sandaran harian, ujian pemulihan, semakan integriti fail, semakan keselamatan dan pembersihan fail sementara (Rajah 13).</li>
+  <li><b>Emel dan notifikasi peranti</b> memaklumkan pengguna tentang permohonan, kelulusan dan amaran keselamatan; semua notifikasi juga dipaparkan dalam loceng notifikasi sistem.</li>
+</ul>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="bab" id="c2">
+<h2>2. Peranan dan Kawalan Capaian</h2>
+<p class="ringkas">Setiap pengguna memegang satu atau lebih daripada lapan peranan. Setiap permintaan melalui tiga lapisan kawalan capaian.</p>
+<div class="carta rendah"><pre class="mermaid">
+flowchart LR
+  R(["Permintaan pengguna"]):::mula --> L1{{"Lapisan 1: peranan dibenarkan<br/>bagi menu / laluan ini?"}}:::keputusan
+  L1 -- Tidak --> X1["Akses Ditolak (403)"]:::ralat
+  L1 -- Ya --> L2{{"Lapisan 2: polisi dokumen<br/>boleh lihat / ubah dokumen INI?"}}:::keputusan
+  L2 -- Tidak --> X1
+  L2 -- Ya --> L3["Lapisan 3: senarai hanya memaparkan<br/>rekod dalam skop peranan"]:::proses
+  L3 --> OK(["Halaman dipaparkan;<br/>tindakan direkod dalam log audit"]):::tamat
+</pre></div>
+<table class="jadual">
+  <thead><tr><th style="width:24%">Peranan</th><th>Fungsi utama</th><th style="width:26%">Skop dokumen</th></tr></thead>
+  <tbody>
+    <tr><td><b>Kakitangan</b> (STAFF)</td><td>Isi Borang (Isi Digital, Imbas &amp; Hantar), hantar permohonan</td><td>Dokumen sendiri</td></tr>
+    <tr><td><b>Kerani Arkib</b> (KERANI)</td><td>Muat naik, Imbas &amp; Arkib dokumen lama, carian dan eksport</td><td>Semua dokumen</td></tr>
+    <tr><td><b>Pengurus Bahagian</b> (PENGURUS)</td><td>Pemantauan dokumen bahagian</td><td>Dokumen bahagian sendiri</td></tr>
+    <tr><td><b>Pegawai Penyokong</b> (PENYOKONG)</td><td>Sokong atau tolak permohonan (peringkat pertama)</td><td>Permohonan bahagiannya</td></tr>
+    <tr><td><b>Pegawai Pelulus</b> (PELULUS)</td><td>Lulus atau tolak permohonan (peringkat akhir)</td><td>Semua bahagian</td></tr>
+    <tr><td><b>Juruaudit</b> (AUDIT)</td><td>Log audit dan sejarah log masuk (baca sahaja)</td><td>Semua dokumen (baca)</td></tr>
+    <tr><td><b>Pentadbir Sistem</b> (ADMIN)</td><td>Kakitangan, bahagian, kategori, templat, keselamatan</td><td>Semua dokumen</td></tr>
+    <tr><td><b>Super Admin</b> (SUPERADMIN)</td><td>Semua fungsi pentadbir, termasuk menetapkan peranan</td><td>Semua dokumen</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="bab" id="c3">
+<h2>3. Log Masuk dan Pengesahan Dua Faktor</h2>
+<p class="ringkas">Log masuk menggunakan No. Kad Pengenalan dan kata laluan, dengan perlindungan terhadap cubaan meneka kata laluan. Setiap cubaan, sama ada berjaya atau gagal, direkodkan dalam Sejarah Log Masuk.</p>
+<div class="carta"><pre class="mermaid">
+flowchart TB
+  subgraph PA["A. Semakan awal"]
+    direction LR
+    S(["Masukkan No. KP<br/>dan kata laluan"]):::mula --> IP{{"Alamat IP disekat?"}}:::keputusan
+    IP -- Ya --> XB["Ditolak: 10 kegagalan dalam<br/>10 minit = sekatan 1 jam"]:::ralat
+    IP -- Tidak --> HAD{{"Melebihi had cubaan?"}}:::keputusan
+    HAD -- Ya --> XH["Ditolak: had 5 seminit (No. KP + IP)<br/>dan 20 setiap 10 minit (IP)"]:::ralat
+    HAD -- Tidak --> A9(["Teruskan"]):::mula
+  end
+  subgraph PB["B. Pengesahan akaun"]
+    direction LR
+    KL{{"Kata laluan betul?"}}:::keputusan
+    KL -- Tidak --> XG["Gagal: direkod,<br/>kiraan cubaan bertambah"]:::ralat
+    KL -- Ya --> TT{{"Kata laluan sementara<br/>melebihi 72 jam?"}}:::keputusan
+    TT -- Ya --> XT["Ditolak: guna<br/>Lupa Kata Laluan"]:::ralat
+    TT -- Tidak --> KN{{"Akaun dikunci atau<br/>Mod Kecemasan aktif?"}}:::keputusan
+    KN -- Ya --> XK["Ditolak<br/>(kecuali Super Admin<br/>semasa Mod Kecemasan)"]:::ralat
+    KN -- Tidak --> B9(["Teruskan"]):::mula
+  end
+  subgraph PC["C. Pengesahan dua faktor (2FA)"]
+    direction LR
+    F2{{"2FA telah didaftarkan?"}}:::keputusan
+    F2 -- Ya --> KOD["Masukkan kod 6 digit aplikasi<br/>pengesah atau kod pemulihan"]:::proses
+    KOD --> KS{{"Kod sah?"}}:::keputusan
+    KS -- Tidak --> KOD
+    KS -- Ya --> BJ["Sesi dibuka;<br/>log masuk direkod"]:::proses
+    F2 -- Tidak --> BJ
+  end
+  subgraph PD["D. Selepas log masuk"]
+    direction LR
+    TK{{"Kata laluan sementara<br/>perlu ditukar?"}}:::keputusan
+    TK -- Ya --> TKL["Tukar Kata Laluan (wajib):<br/>min. 8 aksara, huruf dan nombor"]:::proses
+    TKL --> W2
+    TK -- Tidak --> W2{{"Pentadbir tanpa 2FA<br/>dan 2FA diwajibkan?"}}:::keputusan
+    W2 -- Ya --> D2["Daftar 2FA: imbas kod QR,<br/>sahkan kod, simpan 8 kod pemulihan"]:::proses
+    D2 --> PP
+    W2 -- Tidak --> PP(["Papan Pemuka<br/>mengikut peranan"]):::tamat
+  end
+  PA ==> PB ==> PC ==> PD
+</pre></div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="bab" id="c4">
+<h2>4. Pendaftaran Akaun dan Lupa Kata Laluan</h2>
+<div class="dua-lajur">
+<div>
+<h3>4.1 Permohonan akaun baharu</h3>
+<div class="carta"><pre class="mermaid">
+flowchart TB
+  A(["Halaman log masuk:<br/>Daftar Akaun Baharu"]):::mula --> B["Isi No. KP, nama,<br/>emel rasmi, bahagian"]:::proses
+  B --> C["Permohonan berstatus<br/>Menunggu"]:::proses
+  C --> D["Pentadbir dimaklumkan<br/>melalui loceng notifikasi"]:::luaran
+  D --> E{{"Semakan pentadbir<br/>(Pengesahan Pendaftaran)"}}:::keputusan
+  E -- Lulus --> F["Akaun dicipta dengan peranan;<br/>kata laluan sementara (72 jam)<br/>dihantar melalui emel"]:::proses
+  F --> G(["Log masuk pertama:<br/>wajib tukar kata laluan"]):::tamat
+  E -- Tolak --> H["Pemohon dimaklumkan<br/>melalui emel"]:::ralat
+</pre></div>
+</div>
+<div>
+<h3>4.2 Lupa kata laluan</h3>
+<div class="carta"><pre class="mermaid">
+flowchart TB
+  A(["Klik Lupa Kata Laluan?"]):::mula --> B["Masukkan emel berdaftar"]:::proses
+  B --> C["Mesej yang SAMA dipaparkan sama ada<br/>emel berdaftar atau tidak<br/>(mengelak pengesanan akaun)"]:::proses
+  C --> D{{"Emel berdaftar?"}}:::keputusan
+  D -- Ya --> E["Pautan tetapan semula<br/>bertempoh dihantar melalui emel"]:::proses
+  E --> F["Tetapkan kata laluan baharu<br/>mengikut polisi kata laluan"]:::proses
+  F --> G(["Log masuk semula"]):::tamat
+  D -- Tidak --> H["Tiada emel dihantar"]:::ralat
+</pre></div>
+</div>
+</div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="bab" id="c5">
+<h2>5. Kitar Hayat Status Permohonan</h2>
+<p class="ringkas">Status sebenar setiap dokumen disimpan dalam rekod kelulusan. Setiap perubahan status direkodkan dalam Sejarah Permohonan dan log audit, dan pihak berkaitan dimaklumkan.</p>
+<div class="dua-lajur">
+<div class="carta"><pre class="mermaid">
+stateDiagram-v2
+  direction TB
+  state "Belum Dihantar" as BD
+  state "Dalam Proses" as DP
+  state "Disokong" as DS
+  state "Diluluskan" as DL
+  state "Ditolak" as DT
+  [*] --> BD: Simpan
+  [*] --> DP: Simpan dan Hantar / Imbas dan Hantar
+  [*] --> DL: Imbas dan Arkib
+  BD --> DP: Hantar
+  DP --> DS: Penyokong menyokong
+  DP --> DT: Ditolak
+  DS --> DL: Pelulus meluluskan
+  DS --> DT: Ditolak
+  DT --> DP: Dibetulkan dan dihantar semula
+  DL --> [*]: Slip QR dan Borang Siap
+</pre></div>
+<div>
+<table class="jadual">
+  <thead><tr><th style="width:34%">Status</th><th>Maksud</th></tr></thead>
+  <tbody>
+    <tr><td><span class="status kelabu">Belum Dihantar</span></td><td>Disimpan tetapi belum dihantar untuk kelulusan</td></tr>
+    <tr><td><span class="status kuning">Dalam Proses</span></td><td>Menunggu sokongan Pegawai Penyokong</td></tr>
+    <tr><td><span class="status biru">Disokong</span></td><td>Menunggu kelulusan Pegawai Pelulus</td></tr>
+    <tr><td><span class="status hijau">Diluluskan</span></td><td>Lulus; slip kelulusan berkod QR dan borang siap boleh dimuat turun</td></tr>
+    <tr><td><span class="status merah">Ditolak</span></td><td>Ditolak dengan ulasan; boleh dibetulkan dan dihantar semula</td></tr>
+  </tbody>
+</table>
+<ul class="nota-carta">
+  <li><b>Imbas &amp; Arkib</b> menyimpan dokumen lama yang telah diluluskan secara fizikal terus sebagai Diluluskan, tanpa aliran sokongan.</li>
+  <li>Hanya permohonan yang <b>Ditolak</b> boleh dihantar semula; permohonan yang sedang diproses atau telah diluluskan tidak boleh diubah oleh pemohon.</li>
+  <li>Penolakan pada mana-mana peringkat memerlukan ulasan.</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="bab" id="c6">
+<h2>6. Mengisi Borang Digital dan Muat Naik Dokumen</h2>
+<p class="ringkas">Borang tidak diprogram satu demi satu. Setiap kategori dokumen mempunyai senarai medan yang ditetapkan oleh pentadbir, dan sistem membina borang, peraturan pengesahan serta paparan secara automatik daripada senarai tersebut.</p>
+<div class="carta sederhana-tinggi"><pre class="mermaid">
+flowchart TB
+  subgraph PA["A. Pilih dan isi"]
+    direction LR
+    A(["Kakitangan: Isi Borang<br/>Kerani: Dokumen, Muat Naik"]):::mula --> B["Pilih kategori dokumen"]:::proses
+    B --> C["Borang dibina daripada<br/>definisi medan kategori"]:::proses
+    C --> D["Medan profil diisi automatik<br/>dan dikunci (nama, No. KP, emel,<br/>bahagian, jawatan, telefon)"]:::proses
+    D --> E(["Pengguna mengisi medan dan<br/>melampirkan fail (pilihan)"]):::mula
+  end
+  subgraph PB["B. Semakan"]
+    direction LR
+    F{{"Fail dilampirkan?"}}:::keputusan
+    F -- Ya --> G["Pemeriksaan keselamatan<br/>fail (Rajah 12)"]:::luaran
+    G --> H{{"Fail selamat?"}}:::keputusan
+    H -- Tidak --> X["Fail ditolak;<br/>pentadbir dimaklumkan"]:::ralat
+    H -- Ya --> V{{"Medan wajib dan<br/>format sah?"}}:::keputusan
+    F -- Tidak --> V
+    V -- Tidak --> VX["Ralat dipaparkan pada medan;<br/>pengguna membetulkan"]:::ralat
+    V -- Ya --> V9(["Data sah"]):::mula
+  end
+  subgraph PC["C. Simpan"]
+    direction LR
+    N["No. Rujukan dijana: KOD/TAHUN/TURUTAN<br/>(nombor tidak pernah diguna semula)"]:::proses
+    N --> AU["Log audit: dokumen,<br/>nilai medan dan fail"]:::luaran
+    AU --> SB{{"Butang yang diklik"}}:::keputusan
+    SB -- Simpan --> BD(["Belum Dihantar"]):::tamat
+    SB -- "Simpan dan Hantar" --> DP(["Dalam Proses;<br/>Penyokong dimaklumkan"]):::tamat
+    BD -. "Hantar kemudian" .-> DP
+  end
+  PA ==> PB ==> PC
+</pre></div>
+<p class="nota">Muat naik biasa <b>tidak</b> menjalankan OCR secara automatik supaya borang tidak tergantung. OCR bagi fail yang dimuat naik boleh dijalankan kemudian melalui butang <b>Jalankan OCR</b> pada halaman butiran dokumen.</p>
+</section>
+
+<!-- ============ 7 ============ -->
+<section class="bab" id="c7">
+<h2>7. Imbas &amp; Hantar dan Imbas &amp; Arkib</h2>
+<p class="ringkas"><b>Imbas &amp; Hantar</b> (semua pengguna): borang kertas yang telah diisi dihantar untuk kelulusan. <b>Imbas &amp; Arkib</b> (Kerani dan pentadbir): dokumen fizikal lama yang telah diluluskan didigitalkan. Kedua-duanya menggunakan enjin OCR dan AI yang sama, dan <b>semakan manusia adalah wajib</b> sebelum disimpan.</p>
+<div class="carta sederhana-tinggi"><pre class="mermaid">
+flowchart TB
+  subgraph PA["A. Muat naik"]
+    direction LR
+    A(["Pilih kategori dan satu fail<br/>PDF / JPG / PNG (maks. 10 MB)<br/>atau ambil gambar dengan kamera"]):::mula --> B["Pemeriksaan keselamatan fail"]:::luaran
+    B --> C{{"Fail selamat?"}}:::keputusan
+    C -- Tidak --> X["Ditolak dan dilog"]:::ralat
+    C -- Ya --> D{{"Pekerja latar berjalan?"}}:::keputusan
+    D -- Ya --> Q["Masuk baris gilir; skrin<br/>Menunggu dikemas kini sendiri"]:::luaran
+    D -- Tidak --> R["Diproses terus; pengguna<br/>menunggu di halaman"]:::proses
+  end
+  subgraph PB["B. Analisis dan semakan manusia"]
+    direction LR
+    OCR["Enjin OCR dan AI (Rajah 8):<br/>teks dibaca, medan dicadangkan"]:::luaran
+    OCR --> SK["Skrin Semak dan Sahkan: pratonton<br/>imbasan di sebelah medan berlabel DIISI AI"]:::proses
+    SK --> TT{{"Tulisan tangan<br/>kurang tepat?"}}:::keputusan
+    TT -- Ya --> BS["Baca semula dengan AI<br/>penglihatan GLM-OCR (~30 saat)"]:::luaran
+    BS --> SK
+    TT -- Tidak --> SM(["Pengguna menyemak dan<br/>membetulkan setiap medan"]):::mula
+  end
+  subgraph PC["C. Simpan"]
+    direction LR
+    MOD{{"Mod"}}:::keputusan
+    MOD -- "Imbas dan Arkib" --> AR(["Disimpan terus sebagai<br/>Diluluskan (tanpa aliran)"]):::tamat
+    MOD -- "Imbas dan Hantar" --> HT["Medan profil menggantikan nilai AI;<br/>pengakuan wajib ditanda"]:::proses
+    HT --> DP(["Dalam Proses: masuk aliran<br/>kelulusan (Rajah 9)"]):::tamat
+    AR --> PB2["Nilai AI berbanding nilai akhir<br/>direkod (ukuran ketepatan AI)"]:::luaran
+    DP --> PB2
+  end
+  PA ==> PB ==> PC
+</pre></div>
+<p class="nota">Dalam Imbas &amp; Hantar, bahagian borang yang dikhaskan untuk pegawai (contohnya ruangan sokongan) disembunyikan dan tidak dihantar kepada AI. Fail sementara analisis dipadam secara automatik setiap hari.</p>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="bab" id="c8">
+<h2>8. Enjin Pengecaman Teks (OCR) dan Kecerdasan Buatan (AI)</h2>
+<p class="ringkas">Proses dalaman yang menukar imbasan kepada cadangan nilai medan. Tesseract kekal sebagai pembaca utama; GLM-OCR digunakan bagi halaman tulisan tangan; SEA-LION mengisi medan berdasarkan definisi medan kategori.</p>
+<div class="carta sederhana-tinggi"><pre class="mermaid">
+flowchart TB
+  subgraph PA["A. Imej dan pengecaman teks"]
+    direction LR
+    A(["Fail imbasan"]):::mula --> P{{"Fail PDF?"}}:::keputusan
+    P -- Ya --> PP["Poppler: setiap muka surat<br/>ditukar kepada imej 300 dpi"]:::luaran
+    P -- Tidak --> IM
+    PP --> IM["Imej muka surat"]:::proses
+    IM --> T1["Tesseract serentak pada imej asal<br/>dan imej tanpa garisan kotak;<br/>hasil berkeyakinan tertinggi dipilih"]:::luaran
+    T1 --> TV["Tanda visual dikesan: kotak<br/>bertanda dan perkataan dipotong"]:::proses
+  end
+  subgraph PB["B. Tulisan tangan dan templat"]
+    direction LR
+    K{{"Keyakinan OCR<br/>bawah 80%?"}}:::keputusan
+    K -- Ya --> G["GLM-OCR membaca semula; jika gagal,<br/>teks Tesseract dikekalkan"]:::luaran
+    K -- Tidak --> TP
+    G --> TP{{"Kategori mempunyai<br/>templat borang kosong?"}}:::keputusan
+    TP -- Ya --> TB["Teks dibandingkan dengan templat:<br/>teks bercetak diasingkan daripada<br/>tulisan pengisi"]:::proses
+    TB --> BZ["Perbandingan imej: kotak tanpa<br/>dakwat = kosong; dakwat dibaca semula;<br/>cadangan kategori jika lebih sepadan"]:::proses
+    TP -- Tidak --> LK["Perbandingan templat dilangkau"]:::proses
+  end
+  subgraph PC["C. Pengisian medan oleh AI"]
+    direction LR
+    AI["SEA-LION (Ollama): arahan dibina<br/>daripada senarai medan kategori;<br/>jawapan dalam format JSON"]:::luaran
+    AI --> PN["Penapis tetap: buang teks bercetak,<br/>nama organisasi sendiri, nombor yang<br/>tiada dalam teks; tarikh diseragamkan"]:::proses
+    PN --> OUT(["Cadangan nilai medan, tarikh<br/>dokumen dan perkara ke skrin<br/>Semak dan Sahkan"]):::tamat
+  end
+  PA ==> PB ==> PC
+</pre></div>
+<p class="nota">Ketepatan diukur dengan dokumen ujian berlabel: 45 daripada 52 medan (86.5%) diisi dengan betul. Kegagalan OCR atau AI tidak membatalkan dokumen; medan sentiasa boleh diisi secara manual.</p>
+</section>
+
+<!-- ============ 9 ============ -->
+<section class="bab" id="c9">
+<h2>9. Aliran Sokongan dan Kelulusan</h2>
+<p class="ringkas">Aliran dua peringkat: Pegawai Penyokong, kemudian Pegawai Pelulus. Pemohon tidak boleh menyokong atau meluluskan permohonannya sendiri.</p>
+<div class="carta sederhana-tinggi"><pre class="mermaid">
+flowchart TB
+  subgraph PA["A. Peringkat sokongan"]
+    direction LR
+    A(["Permohonan dihantar:<br/>Dalam Proses"]):::mula --> N1["Notifikasi kepada Penyokong bahagian<br/>pemohon (jika tiada: semua Penyokong)<br/>dan pegawai delegasi"]:::luaran
+    N1 --> S1{{"Permohonan sendiri?"}}:::keputusan
+    S1 -- Ya --> XS["Tiada tindakan dibenarkan;<br/>dikeluarkan daripada giliran"]:::ralat
+    S1 -- Tidak --> K1{{"Keputusan Penyokong"}}:::keputusan
+    K1 -- "Tolak (ulasan wajib)" --> DT1["Ditolak"]:::ralat
+    K1 -- "Sokong" --> DS(["Disokong"]):::mula
+  end
+  subgraph PB["B. Peringkat kelulusan"]
+    direction LR
+    N2["Notifikasi kepada Pegawai Pelulus<br/>(semua bahagian)"]:::luaran
+    N2 --> K2{{"Keputusan Pelulus"}}:::keputusan
+    K2 -- "Tolak (ulasan wajib)" --> DT2["Ditolak"]:::ralat
+    K2 -- "Lulus" --> DL(["Diluluskan"]):::tamat
+  end
+  subgraph PC["C. Selepas keputusan"]
+    direction LR
+    R1["Diluluskan: Slip Kelulusan QR dan<br/>Borang Siap tersedia; pemohon dimaklumkan"]:::proses
+    R2["Ditolak: pemohon dimaklumkan beserta ulasan,<br/>membetulkan dan menghantar semula<br/>(kembali ke Dalam Proses)"]:::proses
+    R3["Setiap tindakan direkod: Sejarah Permohonan,<br/>log audit, dan bagi pihak siapa (delegasi)"]:::luaran
+    R1 --- R2 --- R3
+  end
+  PA ==> PB ==> PC
+</pre></div>
+<ul class="nota-carta">
+  <li><b>Delegasi:</b> Pegawai Penyokong atau Pelulus yang bercuti boleh melantik pegawai pengganti bagi julat tarikh tertentu (maksimum 180 hari). Tindakan pengganti direkodkan sebagai "bagi pihak".</li>
+  <li>Pentadbir Sistem dan Super Admin juga boleh menyokong atau meluluskan pada peringkat yang sepadan.</li>
+</ul>
+</section>
+
+<!-- ============ 10 ============ -->
+<section class="bab" id="c10">
+<h2>10. Dokumen Output dan Pengesahan Slip</h2>
+<div class="carta sederhana-tinggi"><pre class="mermaid">
+flowchart TB
+  subgraph PA["A. Muat turun daripada halaman Butiran Dokumen"]
+    direction LR
+    A(["Halaman Butiran<br/>Dokumen"]):::mula --> B{{"Pilihan muat turun"}}:::keputusan
+    B -- "Fail imbasan" --> C["Salinan terkawal: tera air nama<br/>pemuat turun dan tarikh;<br/>direkod dalam log audit"]:::proses
+    B -- "Borang Siap" --> D["Borang asal PKINK diisi dengan<br/>nilai medan dan cop status semasa"]:::proses
+    D --> D2{{"Diluluskan?"}}:::keputusan
+    D2 -- Ya --> D3["Kod QR pengesahan<br/>turut dicetak"]:::proses
+    B -- "Slip Kelulusan" --> E{{"Diluluskan?"}}:::keputusan
+    E -- Tidak --> EX["Slip tidak tersedia"]:::ralat
+    E -- Ya --> F(["Slip PDF: kod QR dan kod<br/>pengesahan 12 aksara<br/>(tandatangan digital HMAC)"]):::tamat
+  end
+  subgraph PB["B. Pengesahan slip oleh pihak lain"]
+    direction LR
+    G(["Sesiapa mengimbas<br/>kod QR pada slip"]):::mula --> H["Halaman awam Sahkan Slip<br/>(had 30 semakan seminit)"]:::proses
+    H --> I{{"Kod sepadan dan masih<br/>berstatus Diluluskan?"}}:::keputusan
+    I -- Ya --> SAH(["SAH: butiran<br/>permohonan dipaparkan"]):::tamat
+    I -- Tidak --> TS["TIDAK SAH"]:::ralat
+  end
+  PA ==> PB
+</pre></div>
+<p class="nota">Kod pengesahan dikira daripada rekod kelulusan dan kunci rahsia pelayan. Slip yang dipalsukan atau permohonan yang statusnya telah berubah akan dipaparkan sebagai <b>TIDAK SAH</b>.</p>
+</section>
+
+<!-- ============ 11 ============ -->
+<section class="bab" id="c11">
+<h2>11. Pengurusan Rekod: Carian, Pelupusan dan Tong Sampah</h2>
+<div class="carta sederhana-tinggi"><pre class="mermaid">
+flowchart TB
+  subgraph PA["A. Carian dan eksport"]
+    direction LR
+    A(["Senarai Dokumen"]):::mula --> C["Carian kata kunci: No. Rujukan, perkara, nilai medan,<br/>nama fail dan teks OCR; penapis kategori,<br/>bahagian, tarikh dan status"]:::proses
+    C --> EX(["Eksport CSV senarai<br/>yang ditapis"]):::tamat
+  end
+  subgraph PB["B. Tempoh simpanan dan pelupusan"]
+    direction LR
+    TS{{"Tempoh simpanan<br/>kategori tamat?"}}:::keputusan
+    TS -- Tidak --> AKT(["Dokumen kekal aktif"]):::tamat
+    TS -- Ya --> PL["Disenaraikan dalam halaman Pelupusan<br/>(Tamat Tempoh / Akan Tamat)"]:::proses
+    PL --> KP{{"Keputusan pentadbir"}}:::keputusan
+    KP -- Kekalkan --> LJ["Tempoh simpanan dilanjutkan"]:::proses
+    KP -- "Lupuskan (dengan catatan)" --> LP["Ditanda Dilupuskan;<br/>fail asal dikekalkan"]:::proses
+  end
+  subgraph PC["C. Tong Sampah"]
+    direction LR
+    TG(["Dokumen dipadam atau<br/>dilupuskan"]):::mula --> TG2["Tong Sampah: padam lembut<br/>(tiada padam kekal)"]:::proses
+    TG2 --> PU{{"Pulihkan?"}}:::keputusan
+    PU -- Ya --> AK2(["Kembali aktif"]):::tamat
+    PU -- Tidak --> KK(["Kekal dalam Tong Sampah<br/>untuk jejak audit"]):::tamat
+  end
+  PA ==> PB ==> PC
+</pre></div>
+<p class="nota">Nombor rujukan dokumen yang dipadam tidak akan diguna semula. Kategori, bahagian dan kakitangan yang dipadam juga boleh dipulihkan melalui Tong Sampah.</p>
+</section>
+
+<!-- ============ 12 ============ -->
+<section class="bab" id="c12">
+<h2>12. Keselamatan Fail dan Pusat Keselamatan</h2>
+<h3>12.1 Pemeriksaan setiap fail yang dimuat naik</h3>
+<div class="carta rendah"><pre class="mermaid">
+flowchart LR
+  A(["Fail dimuat naik"]):::mula --> J{{"Jenis fail"}}:::keputusan
+  J -- Imej --> I{{"Imej sah dan bawah<br/>had saiz piksel?"}}:::keputusan
+  J -- PDF --> P{{"PDF sah, tiada arahan /Launch<br/>atau fail terbenam, bawah<br/>had muka surat?"}}:::keputusan
+  I -- Tidak --> X["Ditolak"]:::ralat
+  P -- Tidak --> X
+  I -- Ya --> AV{{"Imbasan antivirus"}}:::keputusan
+  P -- Ya --> AV
+  AV -- Ancaman --> XB["Ditolak, dilog,<br/>pentadbir dimaklumkan"]:::ralat
+  AV -- Bersih --> OK(["Disimpan dalam<br/>storan peribadi"]):::tamat
+  AV -- "Tidak dapat diimbas" --> W{{"Antivirus<br/>diwajibkan?"}}:::keputusan
+  W -- Ya --> X
+  W -- Tidak --> OK
+</pre></div>
+<h3>12.2 Pemantauan dan tindak balas</h3>
+<div class="carta rendah"><pre class="mermaid">
+flowchart LR
+  E1(["Log masuk gagal berulang"]):::mula --> PK
+  E2(["Log masuk pentadbir dari IP baharu"]):::mula --> PK
+  E3(["Fail berbahaya ditolak"]):::mula --> PK
+  E4(["Semakan berkala setiap jam"]):::luaran --> PK
+  PK["Pusat Keselamatan: amaran kepada<br/>pentadbir (loceng dan peranti)"]:::proses --> T{{"Tindakan pentadbir"}}:::keputusan
+  T --> T1["Sekat IP (24 jam / kekal)"]:::proses
+  T --> T2["Kunci akaun dan<br/>tamatkan sesinya"]:::proses
+  T --> T3["Log keluar semua pengguna"]:::proses
+  T --> T4["Mod Kecemasan: Super Admin<br/>sahaja, sistem baca sahaja"]:::ralat
+</pre></div>
+</section>
+
+<!-- ============ 13 ============ -->
+<section class="bab" id="c13">
+<h2>13. Proses Latar, Penjadual dan Sandaran</h2>
+<h3>13.1 Penjadual tugas</h3>
+<div class="carta" style="--t:1"><pre class="mermaid">
+flowchart LR
+  PJ(["Penjadual<br/>(berjalan setiap minit)"]):::luaran --> DG["Degupan penjadual<br/>(dipantau Status Sistem)"]:::proses
+  PJ --> H1["Setiap jam:<br/>semakan keselamatan"]:::proses
+  PJ --> H2["Setiap hari: padam fail<br/>sementara Imbas dan Arkib"]:::proses
+  PJ --> W1["Setiap Rabu: ujian pemulihan<br/>sandaran ke DB sementara"]:::proses
+  PJ --> W2["Setiap Isnin: semakan integriti<br/>fail imbasan (hash)"]:::proses
+  PJ --> SB{{"Sandaran<br/>diaktifkan?"}}:::keputusan
+  SB -- Ya --> S1["Setiap hari: pangkalan data,<br/>fail imbasan dan templat dalam<br/>satu zip bersulit AES-256"]:::proses
+  S1 --> S2["Simpanan bertingkat:<br/>14 harian, 8 mingguan,<br/>6 bulanan"]:::proses
+  S2 --> LT(["Salinan luar talian mingguan<br/>ke cakera luaran (manual)"]):::mula
+  SB -- Tidak --> SL["Pelayan menggunakan<br/>sandaran sendiri"]:::proses
+</pre></div>
+<h3>13.2 Pekerja latar OCR/AI</h3>
+<div class="carta rendah"><pre class="mermaid">
+flowchart LR
+  PK(["Pekerja latar<br/>OCR/AI"]):::luaran --> PK1["Mengambil kerja dari baris gilir:<br/>analisis Imbas, Jalankan OCR,<br/>OCR templat"]:::proses
+  PK1 --> PK2["Satu kerja pada satu masa<br/>(GPU memuatkan satu model)"]:::proses
+  PK2 --> PK3["Status: Dalam Giliran,<br/>Sedang Diproses, Selesai<br/>atau Ralat"]:::proses
+  PK3 --> SS(["Status Sistem memantau degupan<br/>pekerja latar dan penjadual"]):::tamat
+</pre></div>
+</section>
+
+<!-- ============ 14 ============ -->
+<section class="bab" id="c14">
+<h2>14. Model Data</h2>
+<p class="ringkas">Reka bentuk <b>EAV (Entiti–Atribut–Nilai)</b>: kategori dan medan baharu ditambah oleh pentadbir melalui antara muka tanpa mengubah struktur pangkalan data. Rajah ini menunjukkan jadual teras sahaja; ERD lengkap (22 jadual) terdapat dalam folder <code>docs/erd/</code> pakej.</p>
+<div class="carta" style="max-height:120mm"><pre class="mermaid">
+erDiagram
+  JENIS_DOKUMEN ||--o{ DOKUMEN_FIELD : "mempunyai medan"
+  JENIS_DOKUMEN ||--o{ DOKUMEN : "mengkategorikan"
+  JENIS_DOKUMEN ||--o{ TEMPLAT_BORANG : "templat kosong"
+  DOKUMEN ||--o{ DOKUMEN_DATA : "nilai medan"
+  DOKUMEN_FIELD ||--o{ DOKUMEN_DATA : "ditakrif oleh"
+  DOKUMEN ||--o{ DOKUMEN_SCAN : "fail imbasan"
+  DOKUMEN ||--o| BORANG : "rekod kelulusan"
+  BORANG ||--o{ BORANG_SEJARAH : "sejarah status"
+  USERS ||--o{ DOKUMEN : "memuat naik"
+  USERS }o--o{ ROLES : "user_roles"
+  BAHAGIAN ||--o{ USERS : "kakitangan"
+  USERS ||--o{ LOG_AUDIT : "tindakan"
+  JENIS_DOKUMEN {
+    string kod_dokumen
+    string nama_dokumen
+    int tempoh_simpanan_tahun
+  }
+  DOKUMEN_FIELD {
+    string label
+    string jenis_data
+    json tetapan
+    bool is_required
+  }
+  DOKUMEN {
+    string no_rujukan
+    date tarikh_dokumen
+    string perkara
+  }
+  DOKUMEN_DATA {
+    text nilai_data
+  }
+  BORANG {
+    string status_permohonan
+    datetime tarikh_kelulusan
+  }
+</pre></div>
+<p class="akhir">Dokumen ini disediakan untuk kegunaan dalaman Perbadanan Kemajuan Iktisad Negeri Kelantan.</p>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  const KELAS = [
+    'classDef mula fill:#e3f4ec,stroke:#25a979,color:#13603f',
+    'classDef proses fill:#e8f1fc,stroke:#1769d2,color:#1c3048',
+    'classDef keputusan fill:#fff4d6,stroke:#c99a06,color:#5c4500',
+    'classDef tamat fill:#183f68,stroke:#183f68,color:#ffffff',
+    'classDef ralat fill:#fbe3e6,stroke:#c43d4e,color:#8e2433',
+    'classDef luaran fill:#efe8fb,stroke:#7b5bc4,color:#3e2a78',
+    'classDef data fill:#f1f4f7,stroke:#68798d,color:#1c3048',
+  ].join('\n');
+  document.querySelectorAll('pre.mermaid').forEach(p => {
+    // <br/> dalam <pre> dihurai sebagai elemen; tukar semula kepada teks sebelum textContent dibaca
+    p.querySelectorAll('br').forEach(b => b.replaceWith(document.createTextNode('<br/>')));
+    if (p.textContent.trim().startsWith('flowchart')) p.textContent = p.textContent.trimEnd() + '\n' + KELAS + '\n';
+  });
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    flowchart: { curve: 'basis', htmlLabels: true, useMaxWidth: true, nodeSpacing: 22, rankSpacing: 30, padding: 8, wrappingWidth: 260 },
+    stateDiagram: { useMaxWidth: true },
+    er: { useMaxWidth: true },
+    themeVariables: {
+      fontFamily: '"Segoe UI", Arial, sans-serif', fontSize: '14px',
+      primaryColor: '#e8f1fc', primaryBorderColor: '#1769d2', primaryTextColor: '#1c3048',
+      lineColor: '#5b6f86', clusterBkg: '#f7fafd', clusterBorder: '#b8c5d4',
+      edgeLabelBackground: '#ffffff'
+    }
+  });
+  mermaid.run().then(() => { document.body.setAttribute('data-siap', '1'); });
+</script>
+</body>
+</html>
