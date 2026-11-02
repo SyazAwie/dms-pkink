@@ -8,6 +8,7 @@
  * Output (di luar repositori):
  *   ../Pakej_DMS_PKINK/pdf/MANUAL_PENGGUNA_DMS_PKINK.pdf   docs/pakej/manual/MANUAL_PENGGUNA.html
  *   ../Pakej_DMS_PKINK/pdf/PANDUAN_PEMASANGAN.pdf          docs/pakej/PANDUAN_PEMASANGAN.md
+ *   ../Pakej_DMS_PKINK/pdf/PANDUAN_UJIAN_KOMPUTER_RIBA.pdf docs/pakej/PANDUAN_UJIAN_KOMPUTER_RIBA.md
  *   ../Pakej_DMS_PKINK/pdf/MANUAL_TEMPLAT_BORANG.pdf       docs/MANUAL_TEMPLAT_BORANG.md
  *   ../Pakej_DMS_PKINK/pdf/PELAN_TINDAK_BALAS_INSIDEN.pdf  docs/PELAN_TINDAK_BALAS_INSIDEN.md
  *   ../Pakej_DMS_PKINK/rahsia/AKAUN_UAT.pdf                ../Pakej_DMS_PKINK/rahsia/AKAUN_UAT.md (jika ada)
@@ -63,6 +64,7 @@ lapor($pdfManual, 'halaman bab '.json_encode($halaman));
 // ---------------------------------------------------------------- Dokumen Markdown
 $dokumen = [
     ['docs/pakej/PANDUAN_PEMASANGAN.md', $folderPdf.'/PANDUAN_PEMASANGAN.pdf', 'Pentadbir pelayan dan Bahagian Digital', 'Dalaman', ''],
+    ['docs/pakej/PANDUAN_UJIAN_KOMPUTER_RIBA.md', $folderPdf.'/PANDUAN_UJIAN_KOMPUTER_RIBA.pdf', 'Pegawai penilai sistem', 'Dalaman', ''],
     ['docs/MANUAL_TEMPLAT_BORANG.md', $folderPdf.'/MANUAL_TEMPLAT_BORANG.pdf', 'Super Admin dan Pentadbir Sistem', 'Dalaman', ''],
     ['docs/PELAN_TINDAK_BALAS_INSIDEN.md', $folderPdf.'/PELAN_TINDAK_BALAS_INSIDEN.pdf', 'Pengurusan, ICTSO dan Pentadbir Sistem', 'Terhad', ''],
 ];

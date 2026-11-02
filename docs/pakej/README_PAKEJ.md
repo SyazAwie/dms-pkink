@@ -26,6 +26,7 @@ PHP 8.3 · Laravel 13 · MySQL 8 / MariaDB 10.4+ · Tesseract OCR · Poppler · 
 | Dokumen | Untuk |
 |---|---|
 | `docs/PANDUAN_PEMASANGAN.pdf` | Pentadbir pelayan: keperluan, pemasangan (Windows & Linux), sandaran, keselamatan, penyelesaian masalah |
+| `docs/PANDUAN_UJIAN_KOMPUTER_RIBA.pdf` | Penilai sistem: memasang dan menguji sistem pada komputer riba Windows sebelum pemasangan di pelayan |
 | `docs/MANUAL_PENGGUNA_DMS_PKINK.pdf` | Semua pengguna: cara menggunakan sistem mengikut peranan |
 | `docs/MANUAL_TEMPLAT_BORANG.pdf` | Pentadbir sistem: menyediakan templat borang kosong |
 | `docs/PELAN_TINDAK_BALAS_INSIDEN.pdf` | Pengurusan & pentadbir: langkah ketika insiden keselamatan |
@@ -34,9 +35,11 @@ PHP 8.3 · Laravel 13 · MySQL 8 / MariaDB 10.4+ · Tesseract OCR · Poppler · 
 
 ## Pemasangan ringkas
 
+Untuk menilai sistem pada komputer riba Windows, ikut `docs/PANDUAN_UJIAN_KOMPUTER_RIBA.pdf`. Langkah di bawah adalah untuk pelayan.
+
 1. Sediakan pelayan mengikut keperluan dalam `docs/PANDUAN_PEMASANGAN.pdf` (bahagian 2).
 2. Import `database/dms_pkink.sql` ke pangkalan data baharu.
-3. Salin `.env.example` kepada `.env` dan lengkapkan tetapan; jalankan `php artisan key:generate` dan `php artisan webpush:vapid`.
+3. Salin `.env.example` kepada `.env` dan lengkapkan tetapan; jalankan `php artisan key:generate --force` dan `php artisan webpush:vapid`.
 4. Tetapkan dokumen root pelayan web kepada folder `public/`.
 5. Pasang Tesseract, Poppler, Ollama dan model AI; daftarkan pekerja latar dan penjadual (`skrip/`).
 6. Log masuk dengan akaun UAT (dokumen `AKAUN_UAT.pdf`, diserahkan berasingan) dan semak **Status Sistem**.
