@@ -77,7 +77,7 @@ class StatusSistemController extends Controller
     {
         return [
             config('app.debug')
-                ? $this->semakan('Mod debug', 'amaran', 'APP_DEBUG=true', 'Tetapkan APP_DEBUG=false sebelum demo awam / produksi.')
+                ? $this->semakan('Mod debug', 'amaran', 'APP_DEBUG=true', 'Tetapkan APP_DEBUG=false sebelum sistem digunakan secara rasmi.')
                 : $this->semakan('Mod debug', 'ok', 'APP_DEBUG=false'),
             $this->semakan('Persekitaran', 'ok', config('app.env').' · '.config('app.locale').' · '.config('app.timezone')),
         ];
@@ -140,7 +140,7 @@ class StatusSistemController extends Controller
             }
             $panas = $dimuat->contains(fn ($m) => $m === $nama || str_starts_with($m, $nama.':'));
 
-            return $this->semakan($label, 'ok', $nama.($panas ? ' · dimuat dalam memori' : ''), $panas ? null : 'Belum dimuat: php artisan ai:panaskan sebelum demo.');
+            return $this->semakan($label, 'ok', $nama.($panas ? ' · dimuat dalam memori' : ''), $panas ? null : 'Belum dimuat ke memori. Jalankan php artisan ai:panaskan supaya analisis pertama lebih pantas.');
         };
 
         return [
@@ -161,7 +161,7 @@ class StatusSistemController extends Controller
         $ec = @openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
         if (! $ec) {
             return $this->semakan('Notifikasi peranti (Web Push)', 'ralat', 'OpenSSL gagal mencipta kunci EC',
-                'Tetapkan OPENSSL_CONF (README 10) dan mulakan semula pelayan.');
+                'Windows: tetapkan pemboleh ubah persekitaran OPENSSL_CONF (Panduan Pemasangan) dan mulakan semula pelayan.');
         }
         try {
             $bil = DB::table(config('webpush.table_name', 'push_subscriptions'))->count();
@@ -176,41 +176,41 @@ class StatusSistemController extends Controller
     {
         return config('services.notifikasi.emel')
             ? $this->semakan('Notifikasi emel', 'ok', 'Hidup · '.config('mail.default'))
-            : $this->semakan('Notifikasi emel', 'amaran', 'Mati (NOTIFIKASI_EMEL=false)', 'Hidupkan semasa serahan bila akaun sebenar digunakan.');
+            : $this->semakan('Notifikasi emel', 'amaran', 'Mati (NOTIFIKASI_EMEL=false)', 'Hidupkan bila sistem digunakan dengan akaun dan alamat emel sebenar.');
     }
 
     private function penjadual(): array
     {
         $degupan = Cache::get('penjadual:degupan');
         if (! $degupan) {
-            return $this->semakan('Penjadual (Task Scheduler)', 'ralat', 'Tiada degupan', 'Cipta tugas Task Scheduler (README 10, langkah 12).');
+            return $this->semakan('Penjadual (Task Scheduler / cron)', 'ralat', 'Tiada degupan', 'Jadualkan php artisan schedule:run setiap minit: Windows Task Scheduler (skrip/pasang-tugas-windows.ps1) atau cron di Linux (Panduan Pemasangan).');
         }
         $minit = (int) Carbon::parse($degupan)->diffInMinutes(now());
 
         return $minit <= 3
-            ? $this->semakan('Penjadual (Task Scheduler)', 'ok', "Degupan terakhir {$minit} minit lalu")
-            : $this->semakan('Penjadual (Task Scheduler)', 'ralat', 'Degupan terakhir '.Carbon::parse($degupan)->diffForHumans(), 'Semak tugas "DMS PKINK Penjadual".');
+            ? $this->semakan('Penjadual (Task Scheduler / cron)', 'ok', "Degupan terakhir {$minit} minit lalu")
+            : $this->semakan('Penjadual (Task Scheduler / cron)', 'ralat', 'Degupan terakhir '.Carbon::parse($degupan)->diffForHumans(), 'Semak tugas "DMS PKINK Penjadual" (Windows) atau entri cron (Linux).');
     }
 
     /** Worker queue OCR (T2). Tanpanya OCR/AI masih berfungsi, tetapi segerak (pengguna menunggu). */
     private function workerOcr(): array
     {
-        $nama = 'Worker OCR/AI (queue)';
+        $nama = 'Pekerja Latar OCR/AI';
         if (config('queue.default') === 'sync') {
-            return $this->semakan($nama, 'amaran', 'QUEUE_CONNECTION=sync', 'Tetapkan QUEUE_CONNECTION=database supaya OCR/AI berjalan di latar.');
+            return $this->semakan($nama, 'amaran', 'QUEUE_CONNECTION=sync', 'Tetapkan QUEUE_CONNECTION=database supaya OCR/AI diproses di latar.');
         }
         $d = AntrianOcr::degupan();
         if (! AntrianOcr::workerHidup()) {
             return $this->semakan($nama, 'amaran',
                 $d ? 'Degupan terakhir '.Carbon::createFromTimestamp($d['masa'])->diffForHumans() : 'Tidak berjalan',
-                'OCR/AI dijalankan segerak (pengguna menunggu). Mulakan tugas "DMS PKINK Worker OCR" (README 10, langkah 13).');
+                'OCR/AI dijalankan secara segerak (pengguna perlu menunggu). Mulakan pekerja latar: tugas "DMS PKINK Worker OCR" (Windows) atau perkhidmatan dms-worker-ocr (Linux).');
         }
         $giliran = null;
         try {
             $giliran = DB::connection('antrian')->table('jobs')->where('queue', AntrianOcr::NAMA)->count();
             $gagal = DB::connection('antrian')->table('failed_jobs')->where('failed_at', '>=', now()->subDay())->count();
         } catch (\Throwable) {
-            return $this->semakan($nama, 'ralat', 'Jadual jobs tiada', 'Jalankan SQL jadual jobs & failed_jobs (README 10, langkah 13).');
+            return $this->semakan($nama, 'ralat', 'Jadual jobs tiada', 'Jadual jobs & failed_jobs tiada dalam pangkalan data; import semula database/dms_pkink.sql.');
         }
 
         return $gagal > 0
@@ -227,6 +227,9 @@ class StatusSistemController extends Controller
 
     private function sandaran(): array
     {
+        if (! config('services.sandaran.aktif', true)) {
+            return $this->semakan('Sandaran', 'amaran', 'Dimatikan (SANDARAN_AKTIF=false)', 'Pelayan mesti mempunyai sandaran sendiri yang diuji.');
+        }
         $s = $this->statusJson('terakhir.json');
         if (! $s) {
             return $this->semakan('Sandaran', 'ralat', 'Belum pernah dibuat', 'php artisan sandaran:jalan');
@@ -238,7 +241,7 @@ class StatusSistemController extends Controller
         $nilai = $bila->diffForHumans().' · '.number_format(($s['saiz'] ?? 0) / 1048576, 1).' MB'.(! empty($s['salinan']) ? ' · salinan OneDrive' : '');
 
         return $bila->lt(now()->subHours(36))
-            ? $this->semakan('Sandaran', 'amaran', $nilai, 'Lebih 36 jam: laptop mungkin dimatikan pada 12:30. Jalankan php artisan sandaran:jalan.')
+            ? $this->semakan('Sandaran', 'amaran', $nilai, 'Lebih 36 jam: pelayan/penjadual mungkin tidak berjalan pada '.config('services.sandaran.masa', '12:30').'. Jalankan php artisan sandaran:jalan.')
             : $this->semakan('Sandaran', 'ok', $nilai);
     }
 
@@ -252,7 +255,7 @@ class StatusSistemController extends Controller
 
         return ($s['utuh'] ?? false)
             ? $this->semakan('Integriti fail imbasan', 'ok', "{$s['disemak']} fail utuh · {$bila}")
-            : $this->semakan('Integriti fail imbasan', 'ralat', "{$s['hilang']} hilang, {$s['berubah']} berubah · {$bila}", 'Pulihkan daripada sandaran (README 10.2).');
+            : $this->semakan('Integriti fail imbasan', 'ralat', "{$s['hilang']} hilang, {$s['berubah']} berubah · {$bila}", 'Pulihkan daripada sandaran: php artisan sandaran:pulih (Panduan Pemasangan).');
     }
 
     private function storan(): array

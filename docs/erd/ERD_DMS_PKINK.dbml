@@ -1,6 +1,6 @@
 Project DMS_PKINK {
   database_type: 'MySQL'
-  Note: 'Sistem Arkib Digital (DMS) PKINK. Skema daripada dms_pkink_db (22 jadual domain; cache, cache_locks, jobs, failed_jobs, password_reset_tokens tidak dimasukkan).'
+  Note: 'Sistem Arkib Digital (DMS) PKINK. Skema pangkalan data sistem (22 jadual domain; cache, cache_locks, jobs, failed_jobs, password_reset_tokens tidak dimasukkan).'
 }
 
 Table bahagian {
@@ -158,7 +158,6 @@ Table dokumen {
   no_rujukan varchar(100) [not null, unique]
   tarikh_dokumen date [not null]
   perkara varchar(255)
-  status varchar(50) [not null, default: 'Archived']
   tarikh_tamat_simpanan date
   status_pelupusan varchar(30)
   tarikh_pelupusan datetime

@@ -36,7 +36,7 @@ return [
     ],
 
     'ocr' => [
-        'bahasa' => env('OCR_BAHASA', 'msa+eng'),
+        'bahasa' => env('OCR_BAHASA', 'eng'),
         'tesseract_bin' => env('OCR_TESSERACT_BIN', 'tesseract'),
         'pdftoppm_bin' => env('OCR_PDFTOPPM_BIN', 'pdftoppm'),
         // Had masa (saat) bagi permintaan yang menjalankan OCR/AI secara segerak;
@@ -68,7 +68,7 @@ return [
         'beza_min_yakin' => (float) env('OCR_BEZA_MIN_YAKIN', 70),
     ],
 
-    // 2FA (P13): wajib bagi SUPERADMIN/ADMIN bila true. Kekal false hingga serahan (Fasa H)
+    // 2FA (P13): wajib bagi SUPERADMIN/ADMIN bila true. Lalai false; true di pelayan produksi (.env.example)
     // supaya akaun demo tidak memerlukan telefon authenticator.
     'dua_faktor' => [
         'wajib' => (bool) env('DUA_FAKTOR_WAJIB', false),
@@ -80,7 +80,7 @@ return [
         'periksa_fail' => (bool) env('KESELAMATAN_PERIKSA_FAIL', true),
         // Kosong = Windows Defender (MpCmdRun.exe) di Windows, clamdscan di Linux
         'antivirus_bin' => env('ANTIVIRUS_BIN'),
-        // true = tolak muat naik jika imbasan antivirus tidak dapat dibuat (tetapkan semasa serahan)
+        // true = tolak muat naik jika imbasan antivirus tidak dapat dibuat (disyorkan di pelayan produksi)
         'antivirus_wajib' => (bool) env('ANTIVIRUS_WAJIB', false),
         'antivirus_had_masa' => (int) env('ANTIVIRUS_HAD_MASA', 60),
         // Had "bom": PDF kecil beratus muka surat / imej berpiksel gergasi membebankan OCR & cakera
@@ -119,7 +119,7 @@ return [
     ],
 
     // Notifikasi emel (P2): mati secara lalai kerana akaun ujian guna domain @pkink.com yang
-    // mungkin domain sebenar; hidupkan semasa serahan bila akaun sebenar digunakan
+    // mungkin domain sebenar; hidupkan bila akaun dan alamat emel sebenar digunakan
     'notifikasi' => [
         'emel' => (bool) env('NOTIFIKASI_EMEL', false),
     ],
@@ -131,7 +131,15 @@ return [
         'folder' => env('SANDARAN_FOLDER', storage_path('app/sandaran')),
         // Salinan kedua di luar projek (cth. folder OneDrive) supaya selamat jika cakera rosak
         'salinan' => env('SANDARAN_SALINAN'),
+        // Fasa H: matikan bila pelayan sudah ada sandaran sendiri (cth. snapshot VM); amaran
+        // "sandaran tertunggak" turut dimatikan
+        'aktif' => (bool) env('SANDARAN_AKTIF', true),
+        // Masa sandaran harian (HH:MM). Pelayan 24 jam: waktu tidak sibuk, cth. 02:00
+        'masa' => env('SANDARAN_MASA', '12:30'),
         'simpan_hari' => (int) env('SANDARAN_SIMPAN_HARI', 14),
+        // Simpanan bertingkat selepas simpan_hari: terbaharu setiap minggu / bulan (0 = tiada)
+        'simpan_minggu' => (int) env('SANDARAN_SIMPAN_MINGGU', 8),
+        'simpan_bulan' => (int) env('SANDARAN_SIMPAN_BULAN', 6),
         'had_masa' => (int) env('SANDARAN_HAD_MASA', 900),
         // Fasa Keselamatan S4: zip disulitkan AES-256 (simpan kata laluan DI LUAR pelayan)
         'kata_laluan' => env('SANDARAN_KATA_LALUAN'),

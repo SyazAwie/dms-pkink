@@ -26,8 +26,9 @@ use Symfony\Component\Process\Process;
  */
 class OcrService
 {
-    /** Kod bahasa Tesseract. msa = Bahasa Melayu. Gabung dengan eng sebab
-     *  dokumen rasmi kerap bercampur istilah Inggeris. */
+    /** Kod bahasa Tesseract (OCR_BAHASA). Lalai `eng`: diukur 2026-11-03 dengan ocr:nilai,
+     *  `eng` 45/52 medan betul berbanding `msa+eng` 38/52 dan OCR 2x lebih perlahan, kerana
+     *  templat, penapis dan ambang VLM ditala atas output `eng`. Ukur semula sebelum menukar. */
     private string $bahasa;
 
     /** Laluan PENUH ke tesseract.exe / pdftoppm.exe. Tetapkan dalam .env:
@@ -41,7 +42,7 @@ class OcrService
 
     public function __construct()
     {
-        $this->bahasa = config('services.ocr.bahasa', 'msa+eng');
+        $this->bahasa = config('services.ocr.bahasa', 'eng');
         $this->tesseractBin = config('services.ocr.tesseract_bin', 'tesseract');
         $this->pdftoppmBin = config('services.ocr.pdftoppm_bin', 'pdftoppm');
     }

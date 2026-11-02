@@ -79,7 +79,9 @@ class IsiBorangTest extends TestCase
         $this->actingAs($this->staf)->get(route('dokumen.create', ['jenis' => $this->jenis->jenis_dokumen_id]))
             ->assertOk()
             ->assertSee('<h2>Isi Borang: Borang Sewaan Peralatan</h2>', false)
-            ->assertSee('Kembali ke Isi Borang');
+            ->assertSee('Kembali ke Isi Borang')
+            ->assertSee('class="nav-link active">'."
+".'                            <i class="bi bi-ui-checks-grid"', false);
 
         $this->get(route('dokumen.create'))->assertOk()
             ->assertSee('<h2>Muat Naik Dokumen</h2>', false)

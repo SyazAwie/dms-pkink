@@ -89,7 +89,11 @@ class AntrianOcr
         return $d['sibuk'] && $umur <= self::hadKerja() && ($d['pid'] === null || self::prosesWujud($d['pid']));
     }
 
-    /** Proses PHP dengan PID ini masih berjalan (Windows: tasklist; lain: posix_kill). */
+    /**
+     * Proses PHP dengan PID ini masih berjalan (Windows: tasklist; Linux: /proc/{pid}, kemudian
+     * posix_kill). /proc dahulu kerana worker mungkin dijalankan oleh pengguna sistem lain
+     * daripada pelayan web: posix_kill() memulangkan false (EPERM) walaupun proses hidup.
+     */
     public static function prosesWujud(int $pid): bool
     {
         static $cache = [];
@@ -101,8 +105,11 @@ class AntrianOcr
                 $hasil = Process::timeout(5)
                     ->run(['tasklist', '/FI', "PID eq {$pid}", '/NH', '/FO', 'CSV']);
                 $ada = str_contains($hasil->output(), "\"{$pid}\"") && stripos($hasil->output(), 'php') !== false;
+            } elseif (is_dir('/proc/1')) {
+                $ada = is_dir("/proc/{$pid}");
             } elseif (function_exists('posix_kill')) {
-                $ada = posix_kill($pid, 0);
+                // EPERM (1) = proses wujud tetapi milik pengguna lain
+                $ada = posix_kill($pid, 0) || (function_exists('posix_get_last_error') && posix_get_last_error() === 1);
             } else {
                 $ada = true;
             }

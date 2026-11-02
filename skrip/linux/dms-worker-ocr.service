@@ -1,0 +1,25 @@
+# Sistem Arkib Digital (DMS) PKINK - pekerja latar OCR/AI (systemd)
+#
+# Pasang (tukar laluan & pengguna ikut pelayan):
+#   sudo cp skrip/linux/dms-worker-ocr.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now dms-worker-ocr
+# Semak:   systemctl status dms-worker-ocr   |   journalctl -u dms-worker-ocr -f
+# Selepas mengemas kini kod: php artisan queue:restart (systemd memulakan semula pekerja latar)
+#
+# Hanya satu pekerja latar: GPU hanya memuatkan satu model AI pada satu masa.
+
+[Unit]
+Description=DMS PKINK pekerja latar OCR/AI
+After=network.target mysql.service mariadb.service ollama.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/dms_pkink
+ExecStart=/usr/bin/php /var/www/dms_pkink/artisan queue:work --queue=ocr --sleep=2 --tries=1 --timeout=0 --memory=512
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

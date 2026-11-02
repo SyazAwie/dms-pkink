@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<title>Manual Pengguna Sistem Arkib Digital (DMS) PKINK</title>
+<link rel="stylesheet" href="gaya_cetak.css">
+</head>
+<body>
+
+<!-- ========================= KULIT ========================= -->
+<section class="kulit">
+  <img src="../../../public/images/Logo_PKINK_Tulisan_Jawi_Bawah.png" alt="Logo PKINK" class="kulit-logo">
+  <div class="kulit-org">PERBADANAN KEMAJUAN IKTISAD NEGERI KELANTAN</div>
+  <h1>Manual Pengguna</h1>
+  <div class="kulit-sistem">Sistem Arkib Digital (DMS) PKINK</div>
+  <div class="kulit-sub">Sistem Pengurusan Dokumen Digital</div>
+  <table class="kulit-info">
+    <tr><td>Versi dokumen</td><td>1.0</td></tr>
+    <tr><td>Tarikh</td><td>November 2026</td></tr>
+    <tr><td>Disediakan untuk</td><td>Semua pengguna sistem PKINK</td></tr>
+    <tr><td>Klasifikasi</td><td>Dalaman</td></tr>
+  </table>
+</section>
+
+<!-- ========================= KANDUNGAN ========================= -->
+<section class="kandungan">
+  <h2 class="tanpa-nombor">Kandungan</h2>
+  <ol class="senarai-kandungan">
+    <li><a href="#b1">Pengenalan</a></li>
+    <li><a href="#b2">Akses Sistem</a></li>
+    <li><a href="#b3">Kakitangan: Mengisi dan Menghantar Borang</a></li>
+    <li><a href="#b4">Kerani Arkib: Muat Naik dan Imbas &amp; Arkib</a></li>
+    <li><a href="#b5">Pegawai Penyokong dan Pegawai Pelulus</a></li>
+    <li><a href="#b6">Pengurus Bahagian</a></li>
+    <li><a href="#b7">Juruaudit</a></li>
+    <li><a href="#b8">Pentadbir Sistem</a></li>
+    <li><a href="#b9">Soalan Lazim dan Penyelesaian Masalah</a></li>
+    <li><a href="#b10">Glosari</a></li>
+  </ol>
+</section>
+
+<!-- ========================= BAB 1 ========================= -->
+<section class="bab" id="b1">
+<h2>1. Pengenalan</h2>
+
+<h3>1.1 Tujuan sistem</h3>
+<p>Sistem Arkib Digital (DMS) PKINK ialah sistem berasaskan web untuk mendigitalkan, mengarkib dan meluluskan dokumen serta borang PKINK. Sistem ini membolehkan:</p>
+<ul>
+  <li>borang diisi secara digital atau diimbas daripada borang kertas, dengan medan diisi secara automatik oleh pengecaman teks (OCR) dan kecerdasan buatan (AI);</li>
+  <li>permohonan disokong dan diluluskan secara dalam talian, lengkap dengan slip kelulusan berkod QR;</li>
+  <li>dokumen lama diarkib secara digital dan dicari mengikut kandungannya;</li>
+  <li>setiap tindakan direkodkan dalam log audit.</li>
+</ul>
+<p>Semua pemprosesan OCR dan AI berlaku dalam pelayan PKINK. Tiada dokumen dihantar kepada perkhidmatan luar.</p>
+
+<h3>1.2 Peranan pengguna</h3>
+<p>Capaian setiap pengguna ditentukan oleh peranannya. Seorang pengguna boleh memegang lebih daripada satu peranan.</p>
+<table class="jadual">
+  <thead><tr><th>Peranan</th><th>Fungsi utama</th><th>Bab</th></tr></thead>
+  <tbody>
+    <tr><td><b>Kakitangan</b> (STAFF)</td><td>Mengisi borang secara digital atau melalui imbasan, menghantar permohonan dan menyemak status dokumen sendiri</td><td>3</td></tr>
+    <tr><td><b>Kerani Arkib</b> (KERANI)</td><td>Memuat naik dokumen, mengarkib dokumen fizikal melalui Imbas &amp; Arkib, mencari dan mengeksport senarai</td><td>4</td></tr>
+    <tr><td><b>Pegawai Penyokong</b> (PENYOKONG)</td><td>Menyokong atau menolak permohonan (peringkat pertama)</td><td>5</td></tr>
+    <tr><td><b>Pegawai Pelulus</b> (PELULUS)</td><td>Meluluskan atau menolak permohonan (peringkat akhir)</td><td>5</td></tr>
+    <tr><td><b>Pengurus Bahagian</b> (PENGURUS)</td><td>Memantau dan mengurus dokumen bahagian sendiri</td><td>6</td></tr>
+    <tr><td><b>Juruaudit</b> (AUDIT)</td><td>Menyemak log audit dan sejarah log masuk (baca sahaja)</td><td>7</td></tr>
+    <tr><td><b>Pentadbir Sistem</b> (ADMIN)</td><td>Mengurus kakitangan, bahagian, kategori dokumen, templat borang dan tetapan keselamatan</td><td>8</td></tr>
+    <tr><td><b>Super Admin</b> (SUPERADMIN)</td><td>Semua fungsi pentadbir, termasuk menetapkan peranan pengguna</td><td>8</td></tr>
+  </tbody>
+</table>
+
+<h3>1.3 Keperluan</h3>
+<ul>
+  <li>Pelayar web terkini: Google Chrome, Microsoft Edge, Mozilla Firefox atau Safari.</li>
+  <li>Alamat sistem yang diberikan oleh Bahagian Digital PKINK.</li>
+  <li>Akaun pengguna (No. Kad Pengenalan dan kata laluan).</li>
+  <li>Bagi Pentadbir Sistem dan Super Admin: aplikasi pengesah pada telefon pintar (Google Authenticator atau Microsoft Authenticator).</li>
+</ul>
+</section>
+
+<!-- ========================= BAB 2 ========================= -->
+<section class="bab" id="b2">
+<h2>2. Akses Sistem</h2>
+
+<h3>2.1 Log masuk</h3>
+<ol>
+  <li>Buka alamat sistem dalam pelayar web.</li>
+  <li>Masukkan <b>No. Kad Pengenalan</b> (12 digit tanpa sengkang) dan <b>Kata Laluan</b>.</li>
+  <li>Klik <b>Log Masuk</b>.</li>
+</ol>
+<figure><img src="gambar/a1_log_masuk.jpg" class="sederhana"><figcaption>Rajah 2.1: Halaman log masuk</figcaption></figure>
+<p class="nota">Untuk keselamatan, akaun disekat sementara selepas beberapa cubaan log masuk yang gagal.</p>
+
+<h3>2.2 Log masuk kali pertama: tukar kata laluan sementara</h3>
+<p>Akaun baharu diberikan kata laluan sementara. Pada log masuk pertama, sistem memaparkan halaman <b>Tukar Kata Laluan</b> dan halaman lain tidak boleh dibuka sehingga kata laluan ditukar.</p>
+<ol>
+  <li>Masukkan kata laluan baharu: sekurang-kurangnya <b>8 aksara</b>, mengandungi <b>huruf dan nombor</b>, dan berbeza daripada kata laluan sementara.</li>
+  <li>Masukkan semula kata laluan baharu dalam ruangan pengesahan.</li>
+  <li>Klik <b>Simpan Kata Laluan Baharu</b>.</li>
+</ol>
+<figure><img src="gambar/a2_tukar_kata_laluan.jpg"><figcaption>Rajah 2.2: Tukar kata laluan sementara</figcaption></figure>
+
+<h3>2.3 Pengesahan dua faktor (2FA)</h3>
+<p>Pengesahan dua faktor menambah lapisan keselamatan: selain kata laluan, pengguna memasukkan kod 6 digit daripada aplikasi pengesah pada telefon. Pendaftaran 2FA adalah <b>wajib bagi Pentadbir Sistem dan Super Admin</b>, dan pilihan bagi pengguna lain (melalui halaman <b>Profil Saya</b>).</p>
+<p><b>Mendaftar 2FA:</b></p>
+<ol>
+  <li>Pasang <b>Google Authenticator</b> atau <b>Microsoft Authenticator</b> pada telefon.</li>
+  <li>Dalam sistem, buka <b>Profil Saya → Pengesahan Dua Faktor (2FA)</b> dan klik <b>Hidupkan 2FA</b>. (Bagi pentadbir, halaman ini dipaparkan secara automatik selepas log masuk pertama.)</li>
+  <li>Dalam aplikasi pengesah, pilih tambah akaun dan imbas kod QR yang dipaparkan.</li>
+  <li>Masukkan kod 6 digit daripada aplikasi, kemudian klik <b>Sahkan &amp; Aktifkan</b>.</li>
+  <li>Sistem memaparkan <b>8 kod pemulihan</b>. Simpan kod ini di tempat selamat: setiap kod boleh digunakan sekali jika telefon hilang. Kod ini tidak akan dipaparkan lagi.</li>
+</ol>
+<figure><img src="gambar/a3_2fa_wajib.jpg"><figcaption>Rajah 2.3: Notis 2FA wajib bagi pentadbir</figcaption></figure>
+<figure><img src="gambar/a3_2fa_qr.jpg"><figcaption>Rajah 2.4: Kod QR untuk diimbas oleh aplikasi pengesah</figcaption></figure>
+<figure><img src="gambar/a3_2fa_kod_pemulihan.jpg"><figcaption>Rajah 2.5: Kod pemulihan selepas 2FA diaktifkan</figcaption></figure>
+<p><b>Log masuk dengan 2FA:</b> selepas kata laluan disahkan, masukkan kod 6 digit semasa daripada aplikasi pengesah dan klik <b>Sahkan &amp; Log Masuk</b>. Jika telefon tiada, masukkan salah satu kod pemulihan.</p>
+<figure><img src="gambar/a6_cabaran_2fa.jpg" class="sederhana"><figcaption>Rajah 2.6: Halaman kod pengesahan semasa log masuk</figcaption></figure>
+
+<h3>2.4 Lupa kata laluan</h3>
+<ol>
+  <li>Di halaman log masuk, klik <b>Lupa Kata Laluan?</b></li>
+  <li>Masukkan alamat emel yang berdaftar dan hantar permohonan.</li>
+  <li>Buka emel daripada sistem dan klik pautan tetapan semula (pautan mempunyai tempoh sah).</li>
+  <li>Tetapkan kata laluan baharu mengikut polisi kata laluan.</li>
+</ol>
+<p class="nota">Atas sebab keselamatan, sistem memaparkan mesej yang sama sama ada emel itu berdaftar atau tidak. Jangan kongsi pautan tetapan semula dengan sesiapa.</p>
+
+<h3>2.5 Mendaftar akaun baharu</h3>
+<p>Kakitangan yang belum mempunyai akaun boleh memohon melalui halaman log masuk:</p>
+<ol>
+  <li>Klik <b>Daftar Akaun Baharu</b>.</li>
+  <li>Isi No. Kad Pengenalan, nama penuh, emel rasmi dan bahagian.</li>
+  <li>Klik <b>Hantar Permohonan</b>. Permohonan akan disemak oleh pentadbir sistem.</li>
+  <li>Jika diluluskan, kata laluan sementara dihantar melalui emel. Log masuk dan tukar kata laluan (2.2).</li>
+</ol>
+<figure><img src="gambar/a4_daftar_akaun.jpg" class="sederhana"><figcaption>Rajah 2.7: Borang Daftar Akaun Baharu</figcaption></figure>
+
+<h3>2.6 Antara muka utama</h3>
+<ul>
+  <li><b>Menu sisi (kiri):</b> menu dipaparkan mengikut peranan pengguna.</li>
+  <li><b>Papan Pemuka:</b> ringkasan kerja mengikut peranan, contohnya permohonan sendiri, giliran kelulusan atau aktiviti sistem.</li>
+  <li><b>Loceng notifikasi (atas kanan):</b> memaparkan notifikasi yang belum dibaca dan notifikasi dalam tempoh 24 jam, serta bilangan perkara yang menunggu tindakan. Klik notifikasi untuk membuka dokumen berkaitan. Pautan <b>Lihat semua notifikasi</b> memaparkan sejarah penuh.</li>
+  <li><b>Notifikasi peranti:</b> dalam menu loceng, klik <b>Hidupkan</b> untuk menerima notifikasi pada komputer atau telefon walaupun tab sistem ditutup.</li>
+  <li><b>Nama pengguna (atas kanan):</b> membuka <b>Profil Saya</b> (nama, emel, jawatan, no. telefon, tukar kata laluan, 2FA dan log masuk terkini). Pengguna yang memegang lebih daripada satu peranan boleh <b>menukar peranan aktif</b> melalui menu ini.</li>
+  <li><b>Log keluar:</b> ikon di sudut atas kanan. Sentiasa log keluar selepas selesai, terutamanya pada komputer yang dikongsi.</li>
+</ul>
+<figure><img src="gambar/a5_loceng_notifikasi.jpg"><figcaption>Rajah 2.8: Menu loceng notifikasi</figcaption></figure>
+</section>
+
+<!-- ========================= BAB 3 ========================= -->
+<section class="bab" id="b3">
+<h2>3. Kakitangan: Mengisi dan Menghantar Borang</h2>
+
+<h3>3.1 Halaman Isi Borang</h3>
+<p>Menu <b>Isi Borang</b> menyenaraikan semua borang mengikut kumpulan. Setiap kad borang menunjukkan bilangan medan dan bilangan medan yang diisi secara automatik daripada profil. Terdapat dua cara mengisi borang:</p>
+<ul>
+  <li><b>Isi Digital:</b> mengisi borang terus dalam sistem.</li>
+  <li><b>Imbas &amp; Hantar:</b> memuat naik borang kertas yang telah diisi; sistem membaca dan mengisi medan secara automatik untuk disemak.</li>
+</ul>
+<figure><img src="gambar/b1_isi_borang.jpg"><figcaption>Rajah 3.1: Halaman Isi Borang</figcaption></figure>
+
+<h3>3.2 Isi Digital</h3>
+<ol>
+  <li>Pada kad borang, klik <b>Isi Digital</b>.</li>
+  <li>Semak <b>Tarikh Dokumen</b> dan isi <b>Perkara</b> (pilihan).</li>
+  <li>Isi setiap medan. Medan bertanda <span class="merah">*</span> wajib diisi. Medan berlabel <span class="lencana">DARIPADA PROFIL</span> diisi secara automatik daripada profil anda dan tidak boleh diubah.</li>
+  <li>Bahagian bertanda <i>Untuk kegunaan pejabat</i> diisi oleh pegawai dan boleh dibiarkan kosong oleh pemohon.</li>
+  <li>Lampirkan fail imbasan jika perlu (pilihan; PDF, JPG atau PNG, maksimum 10MB setiap fail). Butang <b>Kamera</b> membolehkan gambar diambil terus daripada telefon.</li>
+  <li>Klik <b>Simpan &amp; Hantar</b> untuk menghantar permohonan untuk kelulusan, atau <b>Simpan</b> untuk menyimpan tanpa menghantar.</li>
+</ol>
+<figure><img src="gambar/b2_isi_digital_atas.jpg"><figcaption>Rajah 3.2: Borang Isi Digital dengan medan daripada profil</figcaption></figure>
+<figure><img src="gambar/b2_isi_digital_bawah.jpg"><figcaption>Rajah 3.3: Bahagian bawah borang: seksyen kegunaan pejabat, fail imbasan dan butang hantar</figcaption></figure>
+<p>Selepas dihantar, sistem menjana <b>No. Rujukan</b> secara automatik (contohnya <code>BRG-EMEL/2026/0001</code>) dan status permohonan menjadi <span class="status kuning">Dalam Proses</span>.</p>
+<figure><img src="gambar/b3_butiran_dalam_proses.jpg"><figcaption>Rajah 3.4: Butiran dokumen selepas dihantar</figcaption></figure>
+
+<h3>3.3 Imbas &amp; Hantar (borang kertas yang telah diisi)</h3>
+<ol>
+  <li>Pada kad borang, klik <b>Imbas &amp; Hantar</b>. Jenis dokumen dipilih secara automatik.</li>
+  <li>Klik <b>Pilih Fail</b> dan pilih imbasan borang (satu fail, PDF/JPG/PNG), atau gunakan <b>Kamera</b>.</li>
+  <li>Klik <b>Analisis &amp; Isi Automatik</b>. Proses mengambil masa kira-kira 10 hingga 60 saat bergantung pada bilangan muka surat.</li>
+  <li>Pada skrin <b>Semak &amp; Sahkan</b>, bandingkan setiap medan dengan pratonton imbasan di sebelah kanan. Medan berlabel <span class="lencana ungu">DIISI AI</span> diisi oleh sistem dan <b>mesti disemak</b>. Betulkan sebarang nilai yang salah.</li>
+  <li>Jika borang ditulis tangan dan banyak medan kosong atau salah, klik <b>Baca semula (tulisan tangan)</b> untuk bacaan dengan AI penglihatan.</li>
+  <li>Tandakan pengakuan <i>Saya sahkan maklumat di atas sepadan dengan borang fizikal yang saya isi</i>, kemudian klik <b>Sahkan &amp; Hantar</b>.</li>
+</ol>
+<figure><img src="gambar/b4_imbas_hantar_muat_naik.jpg"><figcaption>Rajah 3.5: Memilih fail imbasan</figcaption></figure>
+<figure><img src="gambar/b5_semak_atas.jpg"><figcaption>Rajah 3.6: Skrin Semak &amp; Sahkan dengan pratonton imbasan</figcaption></figure>
+<figure><img src="gambar/b5_semak_bawah.jpg"><figcaption>Rajah 3.7: Pengakuan pemohon dan butang Sahkan &amp; Hantar</figcaption></figure>
+<figure><img src="gambar/b6_hantar_berjaya.jpg"><figcaption>Rajah 3.8: Permohonan berjaya dihantar</figcaption></figure>
+<p class="nota">Medan yang diisi daripada profil (contohnya nama pemohon) sentiasa menggunakan maklumat akaun anda, bukan bacaan imbasan.</p>
+
+<h3>3.4 Menyemak status permohonan</h3>
+<ul>
+  <li>Menu <b>Dokumen</b> menyenaraikan dokumen anda beserta status: <span class="status kelabu">Belum Dihantar</span>, <span class="status kuning">Dalam Proses</span>, <span class="status biru">Disokong</span>, <span class="status hijau">Diluluskan</span> atau <span class="status merah">Ditolak</span>.</li>
+  <li>Papan Pemuka memaparkan ringkasan permohonan anda.</li>
+  <li>Loceng notifikasi memaklumkan setiap perubahan status.</li>
+  <li>Pada halaman butiran dokumen, klik <b>Sejarah Permohonan</b> untuk melihat garis masa setiap tindakan beserta ulasan pegawai.</li>
+</ul>
+
+<h3>3.5 Permohonan ditolak</h3>
+<p>Jika permohonan ditolak, ulasan pegawai dipaparkan dalam panel <b>Status Kelulusan</b>. Klik <b>Kemaskini</b> untuk membetulkan maklumat, kemudian hantar semula untuk kelulusan.</p>
+
+<h3>3.6 Muat turun dokumen</h3>
+<ul>
+  <li><b>Fail imbasan:</b> butang muat turun menghasilkan salinan bertera air <i>"SALINAN TERKAWAL PKINK"</i> dengan nama pemuat turun dan tarikh. Fail asal tidak diubah.</li>
+  <li><b>Borang Siap (PDF):</b> borang asal yang diisi dengan nilai dokumen dan cop status semasa (lihat 5.7).</li>
+  <li><b>Slip Kelulusan (PDF):</b> tersedia selepas permohonan diluluskan (lihat 5.6).</li>
+</ul>
+</section>
+
+<!-- ========================= BAB 4 ========================= -->
+<section class="bab" id="b4">
+<h2>4. Kerani Arkib: Muat Naik dan Imbas &amp; Arkib</h2>
+
+<h3>4.1 Muat naik dokumen</h3>
+<ol>
+  <li>Menu <b>Dokumen → Muat Naik Dokumen</b>.</li>
+  <li>Pilih <b>Jenis Dokumen</b>. Medan berkaitan dipaparkan secara automatik.</li>
+  <li>Isi Tarikh Dokumen, Perkara dan medan dokumen.</li>
+  <li>Lampirkan fail imbasan (boleh lebih daripada satu fail).</li>
+  <li>Klik <b>Simpan</b> untuk mengarkib, atau <b>Simpan &amp; Hantar</b> jika dokumen memerlukan kelulusan.</li>
+</ol>
+<figure><img src="gambar/c1_muat_naik.jpg"><figcaption>Rajah 4.1: Borang muat naik (contoh Memo Dalaman)</figcaption></figure>
+<figure><img src="gambar/c2_senarai_dokumen.jpg"><figcaption>Rajah 4.2: Senarai dokumen selepas muat naik</figcaption></figure>
+
+<h3>4.2 Imbas &amp; Arkib (dokumen fizikal sedia lulus)</h3>
+<p><b>Imbas &amp; Arkib</b> digunakan untuk mendigitalkan dokumen lama yang telah diluluskan secara fizikal. Dokumen yang disimpan melalui fungsi ini terus berstatus <span class="status hijau">Diluluskan</span> tanpa melalui aliran sokongan.</p>
+<ol>
+  <li>Menu <b>Imbas &amp; Arkib</b>. Pilih Jenis Dokumen dan fail imbasan.</li>
+  <li>Klik <b>Analisis &amp; Isi Automatik</b> dan tunggu sehingga analisis selesai.</li>
+  <li>Semak setiap medan berbanding imbasan. Sistem memaparkan skor keyakinan OCR dan menandakan muka surat yang dibaca dengan AI penglihatan (tulisan tangan); semak medan tersebut dengan lebih teliti.</li>
+  <li>Betulkan nilai yang salah, kemudian klik <b>Sahkan &amp; Simpan (Diluluskan)</b>.</li>
+</ol>
+<figure><img src="gambar/c3_imbas_arkib_muat_naik.jpg"><figcaption>Rajah 4.3: Langkah 1: pilih jenis dan fail</figcaption></figure>
+<figure><img src="gambar/c3_imbas_arkib_memproses.jpg"><figcaption>Rajah 4.4: Analisis OCR dan AI sedang berjalan</figcaption></figure>
+<figure><img src="gambar/c4_semak_tulisan_tangan.jpg"><figcaption>Rajah 4.5: Skrin semak bagi borang bertulisan tangan</figcaption></figure>
+<figure><img src="gambar/c4_semak_simpan.jpg"><figcaption>Rajah 4.6: Nilai yang telah dibetulkan dan butang simpan</figcaption></figure>
+<figure><img src="gambar/c5_butiran_diluluskan.jpg"><figcaption>Rajah 4.7: Dokumen yang diarkib dengan status Diluluskan</figcaption></figure>
+<p class="nota">Jika sistem mencadangkan kategori lain (kerana imbasan lebih sepadan dengan templat borang lain), semak semula Jenis Dokumen sebelum menyimpan.</p>
+
+<h3>4.3 Carian, penapis dan eksport</h3>
+<ul>
+  <li>Klik <b>Carian &amp; Penapis</b> pada halaman Senarai Dokumen.</li>
+  <li>Carian kata kunci merangkumi No. Rujukan, perkara, nilai medan, nama fail dan teks OCR imbasan.</li>
+  <li>Tapis mengikut Jenis Dokumen, Bahagian dan julat tarikh. Selepas Jenis Dokumen dipilih, <b>Penapis medan</b> membolehkan carian mengikut medan khusus (contohnya julat tarikh atau pilihan tertentu).</li>
+  <li>Klik <b>Eksport CSV</b> untuk memuat turun senarai yang ditapis (boleh dibuka dalam Microsoft Excel).</li>
+</ul>
+<figure><img src="gambar/c6_carian_penapis.jpg"><figcaption>Rajah 4.8: Panel Carian &amp; Penapis dengan penapis medan</figcaption></figure>
+
+<h3>4.4 Butiran dokumen</h3>
+<ul>
+  <li><b>Pratonton</b> fail imbasan dipaparkan dalam halaman.</li>
+  <li><b>Jalankan OCR</b> membaca teks fail imbasan supaya kandungannya boleh dicari. Proses berjalan di latar dan status dikemas kini secara automatik.</li>
+  <li><b>Kemaskini</b> untuk mengubah maklumat atau menambah fail; <b>Padam</b> mengalihkan dokumen ke Tong Sampah (rekod dan fail dikekalkan untuk arkib).</li>
+</ul>
+</section>
+
+<!-- ========================= BAB 5 ========================= -->
+<section class="bab" id="b5">
+<h2>5. Pegawai Penyokong dan Pegawai Pelulus</h2>
+
+<h3>5.1 Aliran kelulusan</h3>
+<p>Setiap permohonan melalui aliran berikut:</p>
+<div class="aliran">Dihantar <span>→</span> Disokong (Penyokong) <span>→</span> Diluluskan (Pelulus)</div>
+<p>Permohonan boleh <b>ditolak</b> pada mana-mana peringkat; ulasan adalah wajib apabila menolak. Pegawai tidak boleh menyokong, meluluskan atau menolak permohonan sendiri. Pegawai Penyokong mengendalikan permohonan bahagian sendiri; Pegawai Pelulus mengendalikan semua bahagian.</p>
+
+<h3>5.2 Giliran tindakan</h3>
+<p>Papan Pemuka dan menu <b>Kelulusan</b> memaparkan permohonan yang menunggu tindakan anda, bermula dengan yang paling lama. Notifikasi baharu turut dipaparkan pada loceng dan sebagai pemberitahuan dalam halaman.</p>
+<figure><img src="gambar/d1_papan_pemuka_penyokong.jpg"><figcaption>Rajah 5.1: Papan pemuka Pegawai Penyokong</figcaption></figure>
+<figure><img src="gambar/d2_senarai_kelulusan.jpg"><figcaption>Rajah 5.2: Senarai Kelulusan</figcaption></figure>
+
+<h3>5.3 Menyokong permohonan</h3>
+<ol>
+  <li>Buka permohonan daripada senarai Kelulusan.</li>
+  <li>Semak medan dokumen dan fail imbasan.</li>
+  <li>Isi <b>Ulasan</b> (pilihan) dan klik <b>Sokong</b>.</li>
+</ol>
+<figure><img src="gambar/d3_sokong.jpg"><figcaption>Rajah 5.3: Panel Status Kelulusan bagi Pegawai Penyokong</figcaption></figure>
+
+<h3>5.4 Meluluskan permohonan</h3>
+<ol>
+  <li>Buka permohonan berstatus <span class="status biru">Disokong</span>.</li>
+  <li>Klik <b>Sejarah Permohonan</b> untuk melihat ulasan Pegawai Penyokong.</li>
+  <li>Isi <b>Ulasan</b> (pilihan) dan klik <b>Luluskan</b>.</li>
+</ol>
+<figure><img src="gambar/d4_luluskan.jpg"><figcaption>Rajah 5.4: Sejarah permohonan dan butang Luluskan</figcaption></figure>
+<figure><img src="gambar/d4_diluluskan.jpg"><figcaption>Rajah 5.5: Permohonan telah diluluskan</figcaption></figure>
+
+<h3>5.5 Menolak permohonan</h3>
+<p>Isi <b>Ulasan</b> yang menerangkan sebab penolakan (wajib), kemudian klik <b>Tolak</b>. Pemohon dimaklumkan dan boleh membetulkan serta menghantar semula permohonan.</p>
+<figure><img src="gambar/d5_ditolak.jpg"><figcaption>Rajah 5.6: Permohonan yang ditolak beserta ulasan pelulus</figcaption></figure>
+
+<h3>5.6 Slip kelulusan dan pengesahan QR</h3>
+<p>Bagi permohonan yang diluluskan, klik <b>Muat Turun Slip Kelulusan (PDF)</b> pada halaman butiran dokumen. Slip mengandungi maklumat permohonan, pegawai yang terlibat dan <b>kod QR pengesahan</b>. Sesiapa yang mengimbas kod QR akan melihat halaman <b>Slip Sah</b> yang mengesahkan status semasa permohonan dalam sistem.</p>
+<figure><img src="gambar/d7_slip_kelulusan.png" class="sederhana bingkai"><figcaption>Rajah 5.7: Slip Kelulusan berkod QR</figcaption></figure>
+<figure><img src="gambar/d9_sahkan_slip.jpg"><figcaption>Rajah 5.8: Halaman pengesahan slip selepas kod QR diimbas</figcaption></figure>
+
+<h3>5.7 Borang siap</h3>
+<p>Butang <b>Muat Turun Borang Siap (PDF)</b> menghasilkan borang asal PKINK yang telah diisi dengan nilai dokumen, cop status semasa (Diisi, Dalam Proses, Disokong, Diluluskan atau Ditolak) dan jalur <i>salinan terkawal</i>. Kod QR pengesahan dicetak apabila permohonan diluluskan.</p>
+<figure><img src="gambar/d8_borang_siap.png" class="sederhana bingkai"><figcaption>Rajah 5.9: Borang siap dengan cop DILULUSKAN</figcaption></figure>
+
+<h3>5.8 Delegasi semasa cuti</h3>
+<p>Pegawai Penyokong dan Pegawai Pelulus boleh melantik pengganti semasa bercuti melalui menu <b>Delegasi</b>:</p>
+<ol>
+  <li>Pilih peranan yang hendak diwakilkan dan pegawai pengganti.</li>
+  <li>Tetapkan tarikh mula dan tarikh tamat (maksimum 180 hari), serta sebab (pilihan).</li>
+  <li>Klik <b>Simpan Delegasi</b>. Pengganti memegang peranan itu dalam julat tarikh tersebut sahaja, dan setiap tindakannya direkodkan sebagai <i>"bagi pihak"</i> anda.</li>
+</ol>
+<figure><img src="gambar/d6_delegasi.jpg"><figcaption>Rajah 5.10: Halaman Delegasi Kelulusan</figcaption></figure>
+<figure><img src="gambar/d10_papan_pemuka_pelulus.jpg"><figcaption>Rajah 5.11: Papan pemuka Pegawai Pelulus</figcaption></figure>
+</section>
+
+<!-- ========================= BAB 6 ========================= -->
+<section class="bab" id="b6">
+<h2>6. Pengurus Bahagian</h2>
+<p>Pengurus Bahagian boleh melihat dan mengemas kini dokumen bahagiannya, serta mengisi borang seperti kakitangan lain (Bab 3). Papan Pemuka memaparkan ringkasan dokumen bahagian, status kelulusan dan kategori yang paling banyak digunakan.</p>
+<figure><img src="gambar/e1_papan_pemuka_pengurus.jpg"><figcaption>Rajah 6.1: Papan pemuka Pengurus Bahagian</figcaption></figure>
+<figure><img src="gambar/e2_dokumen_bahagian.jpg"><figcaption>Rajah 6.2: Senarai dokumen bahagian</figcaption></figure>
+</section>
+
+<!-- ========================= BAB 7 ========================= -->
+<section class="bab" id="b7">
+<h2>7. Juruaudit</h2>
+<p>Juruaudit mempunyai capaian baca sahaja kepada dokumen dan rekod aktiviti sistem.</p>
+
+<h3>7.1 Log Audit</h3>
+<p>Log Audit merekodkan setiap tindakan dalam sistem: siapa, bila, tindakan, jadual dan rekod yang terlibat, alamat IP, serta nilai sebelum dan selepas perubahan. Rekod log tidak boleh diubah.</p>
+<ul>
+  <li>Klik <b>Tapis Log</b> untuk menapis mengikut pengguna, jadual, tindakan, ID rekod dan julat tarikh.</li>
+  <li>Klik ikon pada lajur <b>Butiran</b> untuk melihat perubahan terperinci.</li>
+  <li>Klik <b>Eksport CSV</b> untuk memuat turun log yang ditapis.</li>
+</ul>
+<figure><img src="gambar/f1_papan_pemuka_audit.jpg"><figcaption>Rajah 7.1: Papan pemuka Juruaudit</figcaption></figure>
+<figure><img src="gambar/f2_log_audit.jpg"><figcaption>Rajah 7.2: Halaman Log Audit</figcaption></figure>
+
+<h3>7.2 Sejarah Log Masuk</h3>
+<p>Halaman ini memaparkan setiap cubaan log masuk, berjaya atau gagal, beserta alamat IP dan pelayar. Gunakan penapis untuk menyemak aktiviti pengguna tertentu atau cubaan yang mencurigakan.</p>
+<figure><img src="gambar/f3_sejarah_log_masuk.jpg"><figcaption>Rajah 7.3: Sejarah Log Masuk</figcaption></figure>
+</section>
+
+<!-- ========================= BAB 8 ========================= -->
+<section class="bab" id="b8">
+<h2>8. Pentadbir Sistem</h2>
+<p>Bab ini untuk Pentadbir Sistem (ADMIN) dan Super Admin (SUPERADMIN). Pentadbir turut boleh menggunakan semua fungsi dalam Bab 3 hingga Bab 5.</p>
+
+<h3>8.1 Papan pemuka pentadbir</h3>
+<p>Papan Pemuka memaparkan perkara yang memerlukan perhatian (contohnya pendaftaran yang menunggu pengesahan), jumlah dokumen, permohonan aktif, purata masa kelulusan, aliran kelulusan dan dokumen baharu mengikut bulan.</p>
+<figure><img src="gambar/g1_papan_pemuka_pentadbir.jpg"><figcaption>Rajah 8.1: Papan pemuka pentadbir</figcaption></figure>
+
+<h3>8.2 Pengesahan pendaftaran</h3>
+<ol>
+  <li>Menu <b>Pengesahan Pendaftaran</b> memaparkan permohonan akaun daripada halaman log masuk.</li>
+  <li>Klik <b>Lulus</b> dan pilih peranan: akaun dicipta dan kata laluan sementara dihantar melalui emel.</li>
+  <li>Klik <b>Tolak</b> dan nyatakan sebab: pemohon dimaklumkan melalui emel.</li>
+</ol>
+<figure><img src="gambar/g2_pengesahan_pendaftaran.jpg"><figcaption>Rajah 8.2: Pengesahan Pendaftaran</figcaption></figure>
+
+<h3>8.3 Pengurusan kakitangan</h3>
+<ul>
+  <li><b>Tambah Kakitangan:</b> isi No. Kad Pengenalan, emel, nama, jawatan, no. telefon, bahagian dan kata laluan sementara (sekurang-kurangnya 8 aksara, huruf dan nombor). Kakitangan wajib menukar kata laluan ini pada log masuk pertama.</li>
+  <li><b>Peranan:</b> hanya Super Admin boleh menetapkan peranan. Akaun yang dicipta oleh Pentadbir Sistem menerima peranan Kakitangan.</li>
+  <li><b>Edit</b> untuk mengemas kini maklumat atau menetapkan semula kata laluan; <b>Padam</b> untuk menyahaktifkan akaun (boleh dipulihkan melalui Tong Sampah).</li>
+  <li>Sistem tidak membenarkan Super Admin terakhir dipadam atau kehilangan peranannya.</li>
+</ul>
+<figure><img src="gambar/g3_senarai_kakitangan.jpg"><figcaption>Rajah 8.3: Senarai Kakitangan</figcaption></figure>
+<figure><img src="gambar/g3_tambah_kakitangan.jpg"><figcaption>Rajah 8.4: Borang Tambah Kakitangan</figcaption></figure>
+
+<h3>8.4 Pengurusan bahagian</h3>
+<p>Menu <b>Pengurusan Bahagian</b> untuk menambah, mengemas kini dan memadam bahagian. Bahagian yang masih mempunyai kakitangan aktif atau permohonan pendaftaran yang menunggu tidak boleh dipadam.</p>
+<figure><img src="gambar/g4_bahagian.jpg"><figcaption>Rajah 8.5: Senarai Bahagian</figcaption></figure>
+
+<h3>8.5 Kategori dokumen dan pembina medan</h3>
+<p>Setiap jenis borang atau dokumen ialah satu <b>kategori</b>. Pentadbir membina medan borang sendiri tanpa perubahan kod:</p>
+<ol>
+  <li>Menu <b>Kategori Dokumen → Tambah Kategori</b> (atau <b>Edit</b> kategori sedia ada).</li>
+  <li>Isi kod kategori (contohnya <code>BD-SEWA</code>), nama dokumen, kumpulan dan tempoh simpanan.</li>
+  <li>Dalam <b>Medan Dokumen</b>, klik <b>Tambah Medan</b> bagi setiap medan: nama, kod, jenis data (teks, nombor, wang, tarikh, pilihan, kotak semak, jadual dan lain-lain) dan sama ada medan itu wajib.</li>
+  <li>Tetapan tambahan bagi setiap medan:
+    <ul>
+      <li><b>Teks bantuan</b> yang dipaparkan di bawah medan;</li>
+      <li><b>Tunjuk hanya jika</b>: medan dipaparkan hanya apabila medan lain mempunyai nilai tertentu;</li>
+      <li><b>Isi automatik daripada profil</b>: nama, No. KP, emel, bahagian, jawatan atau telefon pemohon;</li>
+      <li>bagi tajuk seksyen: tanda <b>diisi oleh pegawai/pejabat</b> supaya seksyen itu tidak wajib bagi pemohon.</li>
+    </ul>
+  </li>
+  <li>Klik <b>Simpan</b>.</li>
+</ol>
+<figure><img src="gambar/g5_kategori.jpg"><figcaption>Rajah 8.6: Senarai Kategori Dokumen</figcaption></figure>
+<figure><img src="gambar/g5_kemaskini_kategori.jpg"><figcaption>Rajah 8.7: Kemaskini kategori dan panel Templat Borang Kosong</figcaption></figure>
+<figure><img src="gambar/g5_pembina_medan.jpg"><figcaption>Rajah 8.8: Pembina medan</figcaption></figure>
+<p class="nota">Menukar jenis data medan yang sudah mempunyai nilai akan memaparkan amaran. Nilai lama tidak dipadam.</p>
+
+<h3>8.6 Templat borang kosong</h3>
+<p>Setiap kategori boleh mempunyai <b>templat borang kosong</b> (borang asal yang belum diisi). Templat membantu AI membezakan teks bercetak dengan tulisan pengisi, mencadangkan kategori yang betul, dan menjana <b>Borang Siap</b>. Selepas memuat naik templat, gunakan <b>Susun Kedudukan</b> untuk meletakkan kotak setiap medan pada borang (butang <b>Cadang Automatik</b> mencadangkan kedudukan awal). Panduan lengkap: <b>Manual Templat Borang</b> (<code>docs/MANUAL_TEMPLAT_BORANG.pdf</code>).</p>
+<figure><img src="gambar/g6_susun_kedudukan.jpg"><figcaption>Rajah 8.9: Editor Susun Kedudukan Medan</figcaption></figure>
+
+<h3>8.7 Kelulusan (pentadbir)</h3>
+<p>Pentadbir melihat semua permohonan dalam sistem dengan penapis status (Dalam Proses, Disokong, Diluluskan, Ditolak), dan boleh menyokong atau meluluskan permohonan orang lain.</p>
+<figure><img src="gambar/g7_kelulusan_pentadbir.jpg"><figcaption>Rajah 8.10: Senarai Kelulusan bagi pentadbir</figcaption></figure>
+
+<h3>8.8 Tong Sampah</h3>
+<p>Dokumen, kategori, bahagian dan kakitangan yang dipadam disenaraikan di sini bersama maklumat siapa yang memadam dan bila. Klik <b>Pulihkan</b> untuk mengembalikan rekod. Sistem tidak memadam rekod secara kekal.</p>
+<figure><img src="gambar/g8_tong_sampah.jpg"><figcaption>Rajah 8.11: Tong Sampah</figcaption></figure>
+
+<h3>8.9 Pelupusan dokumen</h3>
+<p>Dokumen yang telah tamat tempoh simpanan (mengikut tetapan kategori) disenaraikan dalam tab <b>Tamat Tempoh</b> dan <b>Akan Tamat</b>. Bagi setiap dokumen, pilih <b>Kekalkan</b> (dengan tempoh lanjutan) atau <b>Lupuskan</b> dengan catatan. Dokumen yang dilupuskan dialihkan ke Tong Sampah dan rekodnya dikekalkan untuk jejak audit.</p>
+<figure><img src="gambar/g9_pelupusan.jpg"><figcaption>Rajah 8.12: Pelupusan Dokumen</figcaption></figure>
+
+<h3>8.10 Status Sistem</h3>
+<p>Halaman <b>Status Sistem</b> menyemak komponen sistem secara langsung: pangkalan data, OCR (Tesseract, Poppler), AI (Ollama dan model), pekerja latar OCR/AI, notifikasi, penjadual, sandaran, integriti fail imbasan dan ruang cakera. Setiap semakan berstatus <b>Baik</b>, <b>Amaran</b> atau <b>Ralat</b> beserta cadangan tindakan. Sebarang ralat hendaklah dirujuk kepada pentadbir pelayan (Panduan Pemasangan).</p>
+<figure><img src="gambar/g10_status_sistem.jpg"><figcaption>Rajah 8.13: Status Sistem</figcaption></figure>
+
+<h3>8.11 Pusat Keselamatan</h3>
+<ul>
+  <li>Ringkasan log masuk gagal, log masuk berjaya, rekod dipadam dan fail berbahaya yang ditolak.</li>
+  <li><b>Tindakan Kecemasan:</b> log keluar semua sesi, kunci akaun, sekat alamat IP dan mod kecemasan. Gunakan hanya ketika insiden keselamatan, mengikut <b>Pelan Tindak Balas Insiden</b>.</li>
+  <li><b>Semakan Pengerasan:</b> senarai semak tetapan keselamatan pelayan dan sistem.</li>
+  <li>Alamat IP yang mencuba meneka kata laluan disekat secara automatik selama 1 jam, dan pentadbir dimaklumkan.</li>
+</ul>
+<figure><img src="gambar/g11_pusat_keselamatan.jpg"><figcaption>Rajah 8.14: Pusat Keselamatan</figcaption></figure>
+</section>
+
+<!-- ========================= BAB 9 ========================= -->
+<section class="bab" id="b9">
+<h2>9. Soalan Lazim dan Penyelesaian Masalah</h2>
+<table class="jadual">
+  <thead><tr><th style="width:38%">Soalan / masalah</th><th>Jawapan / tindakan</th></tr></thead>
+  <tbody>
+    <tr><td>Saya terlupa kata laluan.</td><td>Gunakan <b>Lupa Kata Laluan?</b> di halaman log masuk (2.4), atau hubungi pentadbir sistem untuk menetapkan kata laluan sementara.</td></tr>
+    <tr><td>Telefon dengan aplikasi pengesah 2FA hilang.</td><td>Log masuk menggunakan salah satu <b>kod pemulihan</b>. Jika kod pemulihan juga tiada, hubungi Bahagian Digital PKINK: pentadbir pelayan boleh menetapkan semula 2FA akaun anda, dan anda perlu mendaftar 2FA semula selepas log masuk.</td></tr>
+    <tr><td>Akaun saya dikunci.</td><td>Tunggu tempoh sekatan tamat atau hubungi pentadbir sistem.</td></tr>
+    <tr><td>Menu tertentu tidak dipaparkan.</td><td>Menu bergantung pada peranan. Jika anda memegang beberapa peranan, tukar peranan aktif melalui nama pengguna di atas kanan. Jika masih tiada, hubungi pentadbir sistem.</td></tr>
+    <tr><td>Medan yang diisi AI salah atau kosong.</td><td>Betulkan secara manual pada skrin semak. Bagi borang bertulisan tangan, cuba <b>Baca semula (tulisan tangan)</b>. Pastikan imbasan lurus, jelas dan berwarna atau skala kelabu.</td></tr>
+    <tr><td>Analisis mengambil masa yang lama.</td><td>Analisis biasanya 10 hingga 60 saat. Jika ramai pengguna sedang menganalisis, permohonan anda akan dibariskan dan diproses mengikut giliran.</td></tr>
+    <tr><td>Muat naik fail ditolak.</td><td>Pastikan fail PDF, JPG atau PNG, kurang daripada 10MB dan tidak dilindungi kata laluan. Fail yang dikesan berbahaya oleh antivirus akan ditolak.</td></tr>
+    <tr><td>Medan "Daripada Profil" salah.</td><td>Kemas kini maklumat dalam <b>Profil Saya</b> (nama, jawatan, no. telefon). No. KP dan bahagian hanya boleh diubah oleh pentadbir.</td></tr>
+    <tr><td>Permohonan tidak dapat disokong atau diluluskan.</td><td>Anda tidak boleh bertindak atas permohonan sendiri. Pegawai Penyokong hanya mengendalikan permohonan bahagiannya.</td></tr>
+    <tr><td>Slip kelulusan dinyatakan "Tidak Sah" semasa diimbas.</td><td>Permohonan telah diubah, dipadam atau diluluskan semula selepas slip dicetak. Muat turun slip terkini daripada sistem.</td></tr>
+  </tbody>
+</table>
+<p>Untuk sebarang masalah lain, hubungi <b>Bahagian Digital PKINK</b>. Jangan sekali-kali berkongsi kata laluan, kod 2FA atau kod pemulihan dengan sesiapa, termasuk orang yang mengaku sebagai kakitangan Bahagian Digital.</p>
+</section>
+
+<!-- ========================= BAB 10 ========================= -->
+<section class="bab" id="b10">
+<h2>10. Glosari</h2>
+<table class="jadual">
+  <thead><tr><th style="width:30%">Istilah</th><th>Maksud</th></tr></thead>
+  <tbody>
+    <tr><td>Aplikasi pengesah</td><td>Aplikasi telefon (Google Authenticator atau Microsoft Authenticator) yang menjana kod 6 digit untuk 2FA</td></tr>
+    <tr><td>Borang siap</td><td>Borang asal PKINK dalam PDF yang diisi dengan nilai dokumen dan cop status</td></tr>
+    <tr><td>Delegasi</td><td>Pelantikan pegawai pengganti untuk menyokong atau meluluskan permohonan dalam tempoh tertentu</td></tr>
+    <tr><td>Imbas &amp; Arkib</td><td>Pendigitalan dokumen fizikal yang telah diluluskan; disimpan terus sebagai Diluluskan</td></tr>
+    <tr><td>Imbas &amp; Hantar</td><td>Penghantaran borang kertas yang telah diisi melalui imbasan, untuk melalui aliran kelulusan</td></tr>
+    <tr><td>Isi Digital</td><td>Pengisian borang terus dalam sistem tanpa borang kertas</td></tr>
+    <tr><td>Kategori dokumen</td><td>Jenis borang atau dokumen beserta senarai medannya</td></tr>
+    <tr><td>Kod pemulihan</td><td>Kod sekali guna untuk log masuk jika aplikasi pengesah tidak dapat digunakan</td></tr>
+    <tr><td>No. Rujukan</td><td>Nombor unik dokumen yang dijana secara automatik: KOD/TAHUN/TURUTAN</td></tr>
+    <tr><td>OCR</td><td>Pengecaman aksara optik: pembacaan teks daripada imej imbasan</td></tr>
+    <tr><td>Pengesahan dua faktor (2FA)</td><td>Pengesahan log masuk dengan kata laluan dan kod daripada aplikasi pengesah</td></tr>
+    <tr><td>Peranan aktif</td><td>Peranan yang sedang digunakan oleh pengguna yang memegang lebih daripada satu peranan</td></tr>
+    <tr><td>Salinan terkawal</td><td>Salinan fail yang dimuat turun dengan tera air nama pemuat turun dan tarikh</td></tr>
+    <tr><td>Templat borang kosong</td><td>Salinan borang asal yang belum diisi, digunakan oleh AI dan untuk menjana borang siap</td></tr>
+    <tr><td>Tong Sampah</td><td>Senarai rekod yang dipadam dan boleh dipulihkan</td></tr>
+  </tbody>
+</table>
+<p class="akhir">Dokumen ini disediakan untuk kegunaan dalaman Perbadanan Kemajuan Iktisad Negeri Kelantan.</p>
+</section>
+
+</body>
+</html>

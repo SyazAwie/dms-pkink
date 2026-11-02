@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Bila DUA_FAKTOR_WAJIB=true (ditetapkan semasa serahan, Fasa H), SUPERADMIN/ADMIN
+ * Bila DUA_FAKTOR_WAJIB=true (ditetapkan di pelayan produksi), SUPERADMIN/ADMIN
  * tanpa 2FA dibawa ke Profil untuk mendaftar dahulu sebelum boleh membuka halaman lain.
  * Lalai false: akaun demo tidak memerlukan telefon authenticator.
  *

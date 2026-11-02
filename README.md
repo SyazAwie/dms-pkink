@@ -82,7 +82,7 @@ Beberapa ciri memerlukan perisian sistem tambahan dipasang **terus pada pelayan/
 
 | Perisian | Tujuan | Sumber Pemasangan |
 |---|---|---|
-| **Tesseract OCR** | Pengecaman teks (OCR) daripada imej/PDF imbasan | UB-Mannheim build (Windows), dengan pek bahasa Malay (`msa`) + English (`eng`) |
+| **Tesseract OCR** | Pengecaman teks (OCR) daripada imej/PDF imbasan | UB-Mannheim build (Windows), pek bahasa English (`eng`; `OCR_BAHASA`, lihat 5.11) |
 | **Poppler (`pdftoppm`)** | Tukar muka surat PDF kepada imej sebelum OCR | poppler-windows releases (GitHub) |
 | **Ollama** | Jalankan model AI secara tempatan | ollama.com/download |
 | **Model AI: SEA-LION** | LLM 8 bilion parameter untuk bahasa Asia Tenggara termasuk BM; mengekstrak nilai medan daripada teks OCR | aisingapore/Llama-SEA-LION-v3.5-8B-R, didaftarkan dalam Ollama sebagai `sea-lion-local` |
@@ -399,7 +399,7 @@ Pangkalan data mengandungi **27 jadual** (disemak daripada INFORMATION_SCHEMA, 2
 - **Laluan tetamu** (log masuk, lupa/tetap semula kata laluan) dilindungi middleware `guest`; pengguna yang sudah log masuk dibawa ke papan pemuka
 - **Lupa kata laluan:** pautan tetapan semula dihantar ke emel (kandungan emel dalam BM). Respons **sama** sama ada emel berdaftar, tidak berdaftar atau SMTP gagal, supaya borang tidak boleh digunakan untuk meneka emel. Had: 5 seminit bagi setiap emel + IP, 10 setiap 10 minit bagi setiap IP
 - **Polisi kata laluan** (`PolisiKataLaluan`): sekurang-kurangnya 8 aksara, mengandungi huruf dan nombor. Terpakai untuk kata laluan yang dipilih pengguna sendiri
-- **Pengesahan dua faktor (2FA, P13):** pilihan dari Profil (QR untuk Google/Microsoft Authenticator, 8 kod pemulihan sekali guna, rahsia disulitkan). Kata laluan disemak dengan `Auth::validate()` dahulu; akaun ber-2FA dibawa ke `/log-masuk/dua-faktor` (sesi menunggu sah 5 minit, 5 cubaan seminit) sebelum sesi dibuka. `DUA_FAKTOR_WAJIB=true` (lalai `false` hingga serahan) memaksa SUPERADMIN/ADMIN mendaftar (middleware `wajib.dua.faktor`) dan menghalang mereka mematikannya
+- **Pengesahan dua faktor (2FA, P13):** pilihan dari Profil (QR untuk Google/Microsoft Authenticator, 8 kod pemulihan sekali guna, rahsia disulitkan). Kata laluan disemak dengan `Auth::validate()` dahulu; akaun ber-2FA dibawa ke `/log-masuk/dua-faktor` (sesi menunggu sah 5 minit, 5 cubaan seminit) sebelum sesi dibuka. `DUA_FAKTOR_WAJIB=true` (lalai `false`; `true` dalam templat `.env.example` produksi) memaksa SUPERADMIN/ADMIN mendaftar (middleware `wajib.dua.faktor`) dan menghalang mereka mematikannya
 - **Sejarah log masuk (P13):** setiap cubaan direkod dalam `log_masuk`; halaman **Sejarah Log Masuk** (SUPERADMIN/AUDIT) dengan penapis, dan Profil memaparkan 5 log masuk terkini pengguna
 - **Kata laluan sementara:** kata laluan yang ditetapkan pentadbir untuk orang lain, dan kata laluan dalam emel pendaftaran, mesti ditukar pada log masuk seterusnya (middleware `wajib.tukar` → `/tukar-kata-laluan`). Kata laluan sementara daripada emel pendaftaran tamat selepas 72 jam
 
@@ -525,14 +525,14 @@ Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokon
 
 **Slip kelulusan PDF ber-QR** (`kelulusan.slip`, `SlipKelulusanService`, `bacon/bacon-qr-code` + FPDF): bagi permohonan Diluluskan, sesiapa yang boleh melihat dokumen boleh memuat turun slip (No. Rujukan, kategori, pemohon, penyokong, pelulus, tarikh, ulasan) dan setiap jana dilog. Kod QR membuka halaman **awam** `/sahkan-slip/{borang}/{kod}` (tanpa log masuk, had 30 permintaan/minit) yang memaparkan "Slip Sah" dengan maklumat minimum, atau "Slip Tidak Sah". `kod` = 12 aksara HMAC-SHA256 (APP_KEY) atas borang + dokumen + tarikh kelulusan (`Borang::kodPengesahan()`), jadi rekod tidak boleh diteka dan slip lama menjadi tidak sah bila permohonan dipadam atau diluluskan semula. URL dalam QR mengikut `APP_URL` (tetapkan ke alamat awam semasa demo/produksi). Menukar `APP_KEY` membatalkan semua slip lama.
 
-**Notifikasi emel** (`NOTIFIKASI_EMEL`, **mati secara lalai**): bila dihidupkan, setiap notifikasi loceng (5.4) turut dihantar melalui emel kepada penerima yang ada alamat emel, dengan pautan "Buka dalam Sistem". Dimatikan semasa pembangunan kerana akaun ujian menggunakan domain `@pkink.com`; hidupkan semasa serahan.
+**Notifikasi emel** (`NOTIFIKASI_EMEL`, **mati secara lalai**): bila dihidupkan, setiap notifikasi loceng (5.4) turut dihantar melalui emel kepada penerima yang ada alamat emel, dengan pautan "Buka dalam Sistem". Dimatikan semasa pembangunan kerana akaun ujian menggunakan domain `@pkink.com`; dihidupkan dalam templat `.env.example` produksi.
 
 ### 5.10 OCR (Pengecaman Teks)
 
 **OCR manual:** butang "Jalankan OCR" bagi setiap fail dalam halaman Butiran Dokumen. **OCR automatik:** hanya dalam Imbas & Arkib / Imbas & Hantar. Alur teknikal (`OcrService`):
 
 1. PDF ditukar oleh `pdftoppm` kepada imej PNG 300dpi bagi setiap muka surat
-2. Bagi setiap muka surat, Tesseract (`msa+eng`, output TSV) dijalankan **serentak** atas imej asal dan imej yang garisan kotak/jadualnya dibuang (`BuangGarisan`, GD); hasil berkeyakinan lebih tinggi dipilih
+2. Bagi setiap muka surat, Tesseract (`eng`, output TSV) dijalankan **serentak** atas imej asal dan imej yang garisan kotak/jadualnya dibuang (`BuangGarisan`, GD); hasil berkeyakinan lebih tinggi dipilih
 3. Teks dikumpul **ikut baris**, dengan skor keyakinan purata
 4. Muka surat dengan skor di bawah `OCR_VLM_AMBANG` (80) dibaca semula oleh **GLM-OCR** (`VlmOcrService`); jika gagal, teks Tesseract kekal
 5. Disimpan ke `dokumen_ocr`, dan status fail dikemas kini (`Selesai` / `Ralat` / `Tiada Teks Dikesan`)
@@ -547,6 +547,7 @@ OCR berjalan di latar melalui **queue OCR** (T2, lihat 5.8 dan langkah 13 bahagi
 |---|---|---|
 | Model AI **penuh dalam GPU** (`OLLAMA_NUM_GPU=99`, `OLLAMA_NUM_CTX=4096`); jika gagal dimuat, dicuba semula dengan tetapan lalai | `OllamaExtractionService`, `config/services.php` | RTX 3050 6GB: VRAM 75% → 100%, AI ~1.7× lebih laju |
 | Model kekal dimuat (`OLLAMA_KEEP_ALIVE=30m`) + **dipanaskan** bila halaman Imbas dibuka; `php artisan ai:panaskan` sebelum demo | `ImbasArkibController::panaskanAi` | Imbasan pertama tidak menunggu model dimuat (~7 s) |
+| **Bahasa Tesseract `eng`** (`OCR_BAHASA`, lalai sejak 2026-11-03) | `config/services.php`, `OcrService` | Diukur dengan `ocr:nilai` (2 larian setiap satu): `eng` 45/52 medan betul, OCR 31 s; `msa+eng` (tessdata_fast) 38/52, OCR 63 s. Penapis, templat dan ambang VLM ditala atas output `eng` |
 | **Buang garisan kotak/jadual** sebelum OCR; Tesseract serentak atas imej asal & imej bersih (`OCR_BUANG_GARISAN`) | `App\Support\BuangGarisan`, `OcrService` | Borang huruf dalam kotak: 65% → 81% keyakinan |
 | Teks OCR **kekal ikut baris** | `OcrService::uraiTsv` | AI padankan "Label: nilai" dengan lebih tepat |
 | Prompt: abaikan teks bercetak borang, jangan teka, JSON padat; label borang yang tersalin dibuang | `OllamaExtractionService::binaPrompt` | Kurang nilai rekaan; jawapan lebih pendek |
@@ -833,7 +834,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
 4. Jana kunci aplikasi: `php artisan key:generate`
 5. Import dump SQL `dms_pkink_db` dan jalankan skrip SQL tambahan mengikut turutan dalam HeidiSQL. **Fail SQL tidak disimpan dalam repo ini**; dapatkan daripada pembangun. **Jangan** guna `php artisan migrate`
 6. **Jangan** jalankan `php artisan storage:link`: fail imbasan sengaja disimpan dalam disk peribadi `local`
-7. Pasang Tesseract OCR (dengan pek `msa` + `eng`) dan Poppler, kemudian tetapkan laluan penuh dalam `.env`:
+7. Pasang Tesseract OCR (pek `eng`; `msa+eng` diukur lebih rendah, 45 → 38/52) dan Poppler, kemudian tetapkan laluan penuh dalam `.env`:
    ```
    OCR_TESSERACT_BIN="C:/Program Files/Tesseract-OCR/tesseract.exe"
    OCR_PDFTOPPM_BIN="C:/poppler/Library/bin/pdftoppm.exe"
@@ -869,7 +870,7 @@ Halaman log masuk -> "Daftar Akaun Baharu" -> isi No. KP, nama, emel, bahagian
     Start-ScheduledTask -TaskName 'DMS PKINK Worker OCR'
     ```
     `-ExecutionTimeLimit 0` perlu kerana Windows menghentikan tugas selepas 3 hari secara lalai.
-    Semak di **Status Sistem** ("Worker OCR/AI (queue)"). Log worker: `storage/logs/worker-ocr.log`. Selepas kemas kini kod: `php artisan queue:restart`. Tanpa worker, OCR/AI tetap berfungsi tetapi segerak.
+    Semak di **Status Sistem** ("Pekerja Latar OCR/AI"). Log worker: `storage/logs/worker-ocr.log`. Selepas kemas kini kod: `php artisan queue:restart`. Tanpa worker, OCR/AI tetap berfungsi tetapi segerak.
 14. Sebelum demo: `php artisan ai:panaskan`
 
 **Produksi:** tetapkan `APP_ENV=production`, `APP_DEBUG=false`, dan padam akaun ujian (Bahagian 13).
@@ -998,7 +999,7 @@ php artisan demo:terowong       # tetingkap berasingan
 Dibina ringkas kerana sistem baru digunakan oleh Bahagian Digital untuk mengarkib dokumen sedia lulus:
 - Satu dokumen = satu rekod `borang`; hantar semula menimpa rekod itu, tetapi setiap tindakan kekal dalam `borang_sejarah` (P4)
 - Skop: PENYOKONG ikut bahagian dokumen, PELULUS semua bahagian, dan delegasi semasa cuti (P5). Tiada carta organisasi berbilang peringkat
-- Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); hidupkan semasa serahan
+- Notifikasi emel sudah dibina tetapi **mati secara lalai** (`NOTIFIKASI_EMEL=false`); dihidupkan di pelayan produksi
 - Kebenaran disemak dalam controller, bukan melalui `BorangPolicy`
 
 ### OCR: Queue dengan Satu Worker (T2)
@@ -1013,7 +1014,7 @@ Potongan tangan yang beralun, laluan tulisan tangan (GLM-OCR) tanpa penanda, tah
 
 ### Kerja Akan Datang (dirancang, lihat PROGRESS.md)
 - **Tanda pilihan tulisan tangan dengan beza imej (lanjutan TB4):** peta dakwat TB4 juga boleh mengesan bulatan/✓/potongan tangan dalam apa jua bentuk pada kotak pilihan (kini hanya kotak teks dinilai)
-- **Fasa H (serahan):** SQL buang lajur `dokumen.status` (tidak digunakan sejak R3), padam akaun ujian & tukar kata laluan demo, `.env` produksi, 2FA & antivirus wajib, sandaran ke lokasi PKINK, manual pengguna
+- **Fasa H (pakej pemasangan):** SQL buang lajur `dokumen.status` (tidak digunakan sejak R3), padam akaun ujian & tukar kata laluan demo, `.env` produksi, 2FA & antivirus wajib, sandaran ke lokasi PKINK, manual pengguna
 
 ---
 
@@ -1057,6 +1058,10 @@ Log masuk guna **No. KP**. Kata laluan seragam: `123456789`
 | **Gate / Authorize** | Mekanisme Laravel untuk menyemak kebenaran sebelum tindakan |
 | **SRI** | Subresource Integrity: hash yang memastikan fail CDN tidak diubah |
 | **Had Kadar (Rate Limit)** | Had bilangan cubaan dalam tempoh tertentu (log masuk, pendaftaran) |
+| **Baris Gilir (Queue)** | Senarai kerja OCR/AI yang menunggu untuk diproses satu demi satu (jadual `jobs`) |
+| **Pekerja Latar (Worker)** | Proses yang sentiasa berjalan di latar untuk memproses baris gilir OCR/AI, supaya pengguna tidak perlu menunggu di halaman |
+| **Penjadual (Scheduler)** | Tugas yang berjalan setiap minit (`schedule:run`) untuk sandaran harian, pembersihan fail sementara dan semakan keselamatan |
+| **Templat Borang Kosong** | Salinan borang yang belum diisi bagi satu kategori, digunakan untuk membezakan teks bercetak dengan tulisan pengisi dan menjana borang siap |
 
 ---
 

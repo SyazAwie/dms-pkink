@@ -18,10 +18,8 @@ return [
 
     // Akaun demo yang dipaparkan sebagai butang "Masuk sebagai..." (No. KP, ikut susunan paparan).
     // Hanya akaun ini boleh log masuk semasa mod demo; kata laluan akaun lain dalam salinan dirawakkan.
-    'akaun' => array_values(array_filter(array_map('trim', explode(',', env(
-        'DEMO_AKAUN',
-        '990101010101,990101010102,990101010103,990101010104,990101010107,990101010108,990101010106'
-    ))))),
+    // Ditetapkan dalam .env (DEMO_AKAUN=noKP1,noKP2,...); kosong = tiada butang akaun demo.
+    'akaun' => array_values(array_filter(array_map('trim', explode(',', (string) env('DEMO_AKAUN', ''))))),
 
     // Laluan yang disekat semasa demo (corak nama laluan). Halaman GET kekal boleh dilihat
     // kecuali yang disenaraikan; tindakan ini menjejaskan peserta lain atau keluar dari sistem.

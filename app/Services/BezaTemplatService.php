@@ -184,7 +184,7 @@ class BezaTemplatService
                     imagepng($d['imej'], $fail);
                     $psm = $this->medan[$fid]->jenis_data === 'textarea' ? '6' : '7';
                     $p = new Process([config('services.ocr.tesseract_bin', 'tesseract'), $fail, $folder.DIRECTORY_SEPARATOR."m{$fid}",
-                        '-l', config('services.ocr.bahasa', 'msa+eng'), '--psm', $psm, 'tsv']);
+                        '-l', config('services.ocr.bahasa', 'eng'), '--psm', $psm, 'tsv']);
                     $p->setTimeout(60);
                     $p->start();
                     $proses[$fid] = $p;
@@ -502,7 +502,7 @@ class BezaTemplatService
         $folder = storage_path('app/private/ocr_sementara/beza_t_'.Str::random(12));
         @mkdir($folder, 0775, true);
         try {
-            $p = new Process([config('services.ocr.tesseract_bin', 'tesseract'), $imej, $folder.DIRECTORY_SEPARATOR.'k', '-l', config('services.ocr.bahasa', 'msa+eng'), 'tsv']);
+            $p = new Process([config('services.ocr.tesseract_bin', 'tesseract'), $imej, $folder.DIRECTORY_SEPARATOR.'k', '-l', config('services.ocr.bahasa', 'eng'), 'tsv']);
             $p->setTimeout(120);
             $p->run();
             $kata = [];

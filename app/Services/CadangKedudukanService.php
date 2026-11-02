@@ -544,7 +544,7 @@ class CadangKedudukanService
         @mkdir($folder, 0775, true);
         try {
             $proses = new Process([config('services.ocr.tesseract_bin', 'tesseract'), $imej, $folder.DIRECTORY_SEPARATOR.'k',
-                '-l', config('services.ocr.bahasa', 'msa+eng'), 'tsv']);
+                '-l', config('services.ocr.bahasa', 'eng'), 'tsv']);
             $proses->setTimeout(120);
             $proses->run();
             if (! $proses->isSuccessful()) {

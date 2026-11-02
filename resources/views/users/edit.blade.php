@@ -128,7 +128,7 @@
                                 <i class="bi bi-eye" id="togglePasswordIcon"></i>
                             </button>
                         </div>
-                        <div class="dms-hint">Isi hanya jika mahu menetapkan kata laluan baharu. Kakitangan wajib menukarnya pada log masuk seterusnya.</div>
+                        <div class="dms-hint">Isi hanya jika mahu menetapkan kata laluan baharu (sekurang-kurangnya 8 aksara, huruf dan nombor). Kakitangan wajib menukarnya pada log masuk seterusnya.</div>
                         @error('password') <div class="dms-error">{{ $message }}</div> @enderror
                     </div>
                 </div>

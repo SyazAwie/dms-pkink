@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Console\Commands\SandaranJalan;
 use App\Support\PemulihanSandaran;
 use Illuminate\Support\Facades\File;
+use Tests\SkemaUjian;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -14,11 +15,14 @@ use ZipArchive;
  */
 class SandaranRansomwareTest extends TestCase
 {
+    use SkemaUjian;
+
     private string $folder;
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->sediakanSkema();
         $this->folder = sys_get_temp_dir().DIRECTORY_SEPARATOR.'sandaran_ujian_'.uniqid();
         File::ensureDirectoryExists($this->folder);
         config(['services.sandaran.folder' => $this->folder]);
@@ -50,6 +54,33 @@ class SandaranRansomwareTest extends TestCase
         $this->assertContains('x/sandaran_20260531_123000.zip', $disimpan, 'Bulanan (terbaharu bulan Mei) disimpan');
         $this->assertNotContains('x/sandaran_20260530_123000.zip', $disimpan);
         $this->assertCount(1, array_filter($disimpan, fn ($f) => str_starts_with($f, 'x/sandaran_202606')), 'Satu bagi bulan Jun');
+    }
+
+    public function test_simpanan_boleh_dilaras_atau_tanpa_mingguan_bulanan(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 28)->setTime(13, 0));
+        $fail = [];
+        for ($h = 0; $h < 220; $h++) {
+            $fail[] = 'x/sandaran_'.now()->subDays($h)->format('Ymd').'_123000.zip';
+        }
+
+        $disimpan = array_values(array_diff($fail, SandaranJalan::untukDipadam($fail, 7, 0, 0)));
+        $this->assertCount(7, $disimpan, '7 harian sahaja');
+
+        $disimpan = array_values(array_diff($fail, SandaranJalan::untukDipadam($fail, 7, 4, 3)));
+        $this->assertSame([], array_filter($disimpan, fn ($f) => $f < 'x/sandaran_20260728'), 'Lebih 3 bulan dipadam');
+        $this->assertLessThanOrEqual(7 + 4 + 3, count($disimpan));
+    }
+
+    public function test_sandaran_dimatikan_tiada_amaran_dan_status_jelas(): void
+    {
+        config(['services.sandaran.aktif' => false]);
+
+        \App\Support\Keselamatan::semakBerkala();
+
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('notifications')->count());
+        $this->actingAs($this->buatPengguna(['SUPERADMIN']))->get(route('status-sistem.index'))
+            ->assertOk()->assertSee('Dimatikan (SANDARAN_AKTIF=false)');
     }
 
     public function test_zip_disulitkan_perlu_kata_laluan_betul(): void

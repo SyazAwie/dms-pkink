@@ -17,9 +17,12 @@ Artisan::command('inspire', function () {
 // setiap minit (cron / Task Scheduler). Tanpanya, jalankan arahan ini secara manual.
 Schedule::command('imbas-arkib:bersih')->daily();
 
-// Sandaran pangkalan data + fail imbasan (SandaranJalan). Waktu tengah hari kerana komputer
-// pembangunan biasanya hidup ketika itu; penjadual tidak berjalan bila komputer dimatikan.
-Schedule::command('sandaran:jalan')->dailyAt('12:30')->withoutOverlapping();
+// Sandaran pangkalan data + fail imbasan (SandaranJalan). Lalai 12:30 kerana komputer
+// pembangunan biasanya hidup ketika itu; pelayan 24 jam: SANDARAN_MASA=02:00.
+// SANDARAN_AKTIF=false bila pelayan menggunakan sandaran sendiri.
+if (config('services.sandaran.aktif', true)) {
+    Schedule::command('sandaran:jalan')->dailyAt((string) config('services.sandaran.masa', '12:30'))->withoutOverlapping();
+}
 
 // Degupan penjadual: halaman Status Sistem menyemak penjadual (Task Scheduler) masih berjalan
 Schedule::call(fn () => Cache::forever('penjadual:degupan', now()->toIso8601String()))

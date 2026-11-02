@@ -102,7 +102,7 @@ class Keselamatan
             ? $semak('2FA pentadbir', 'ok', 'Semua '.$pentadbir->count().' akaun pentadbir ada 2FA')
             : $semak('2FA pentadbir', config('services.dua_faktor.wajib') ? 'ralat' : 'amaran',
                 $tanpa2fa->count().' daripada '.$pentadbir->count().' tanpa 2FA: '.$tanpa2fa->pluck('nama_staff')->take(5)->join(', '),
-                'Pentadbir boleh hidupkan 2FA di Profil. Tetapkan DUA_FAKTOR_WAJIB=true semasa serahan.');
+                'Pentadbir boleh hidupkan 2FA di Profil. Tetapkan DUA_FAKTOR_WAJIB=true di pelayan produksi.');
 
         $lemah = self::pentadbirKataLaluanLemah();
         $hasil[] = $lemah->isEmpty()
@@ -127,6 +127,9 @@ class Keselamatan
 
     private static function semakSandaran(callable $semak): array
     {
+        if (! config('services.sandaran.aktif', true)) {
+            return $semak('Sandaran harian', 'amaran', 'Dimatikan (SANDARAN_AKTIF=false)', 'Pastikan pelayan mempunyai sandaran sendiri (cth. snapshot VM) yang diuji.');
+        }
         $s = self::statusJson('terakhir.json');
         if (! $s) {
             return $semak('Sandaran harian', 'ralat', 'Belum pernah dibuat', 'php artisan sandaran:jalan');
@@ -227,6 +230,9 @@ class Keselamatan
     /** Semakan berkala (penjadual): sandaran terlalu lama. */
     public static function semakBerkala(): void
     {
+        if (! config('services.sandaran.aktif', true)) {
+            return; // Fasa H: pelayan menggunakan sandaran sendiri
+        }
         $s = self::statusJson('terakhir.json');
         $lama = ! $s || ! ($s['berjaya'] ?? false) || Carbon::parse($s['masa'])->lt(now()->subHours(26));
         if ($lama && Cache::add('keselamatan:amaran-sandaran', true, now()->addDay())) {

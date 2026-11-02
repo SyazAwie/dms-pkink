@@ -9,7 +9,7 @@ require $argv[1].'/vendor/autoload.php';
 $app = require $argv[1].'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
-$db = 'dms_pkink_db';
+$db = getenv('ERD_DB') ?: 'dms_pkink_db'; // ERD_DB=dms_pkink_pemasangan untuk pakej pemasangan
 // [nama kumpulan, warna kepala, warna garis, senarai jadual]
 $kumpulan = [
     ['Organisasi & Akses', '#dae8fc', '#6c8ebf', ['bahagian', 'roles', 'user_roles', 'users', 'pendaftaran_staf', 'delegasi_kelulusan']],
@@ -50,7 +50,7 @@ $sel = [];
 
 // Legenda
 $legenda = "ERD Sistem Arkib Digital (DMS) PKINK\n".
-    "Sumber: skema sebenar dms_pkink_db (22 jadual domain, 35 FK).\n".
+    "Sumber: skema pangkalan data sistem (22 jadual domain, 35 FK).\n".
     "PK = kunci primer, FK = kunci asing, UK = unik (termasuk lajur dijana untuk soft delete).\n".
     "Garis penuh = FK dalam DB. Garis putus-putus = hubungan logik (tiada FK).\n".
     "|| tepat satu   |o sifar/satu   o{ sifar/banyak.\n".

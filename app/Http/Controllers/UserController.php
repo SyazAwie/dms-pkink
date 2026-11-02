@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Support\PeraturanNama;
 use App\Support\PeraturanProfil;
+use App\Support\PolisiKataLaluan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -42,10 +43,10 @@ class UserController extends Controller
             'nama_staff' => PeraturanNama::peraturan(),
             'email' => ['required', 'email', Rule::unique('users')->whereNull('deleted_at')],
             'bahagian_id' => $this->peraturanBahagian(),
-            'password' => 'required|min:6',
+            'password' => ['required', PolisiKataLaluan::peraturan()],
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,roles_id',
-        ] + PeraturanProfil::peraturan(), $this->mesejBahagian() + PeraturanProfil::mesej());
+        ] + PeraturanProfil::peraturan(), $this->mesejBahagian() + PeraturanProfil::mesej() + PolisiKataLaluan::mesej('password'));
 
         // Hanya SUPERADMIN boleh menetapkan peranan. Jika pendaftar ialah ADMIN
         // (atau tiada peranan dipilih), kakitangan baharu mendapat peranan lalai STAFF.
@@ -100,9 +101,11 @@ class UserController extends Controller
             'nama_staff' => PeraturanNama::peraturan(),
             'email' => ['required', 'email', Rule::unique('users')->ignore($id, 'user_id')->whereNull('deleted_at')],
             'bahagian_id' => $this->peraturanBahagian(),
+            // Fasa H: kata laluan yang ditetapkan admin juga ikut polisi (walaupun wajib ditukar kemudian)
+            'password' => ['nullable', PolisiKataLaluan::peraturan()],
             'roles' => 'nullable|array',
             'roles.*' => 'exists:roles,roles_id',
-        ] + PeraturanProfil::peraturan(), $this->mesejBahagian() + PeraturanProfil::mesej());
+        ] + PeraturanProfil::peraturan(), $this->mesejBahagian() + PeraturanProfil::mesej() + PolisiKataLaluan::mesej('password'));
 
         // Peranan hanya boleh diubah oleh SUPERADMIN, dan hanya jika borang menghantar bahagian peranan
         $tukarPeranan = Auth::user()->hasRole('SUPERADMIN') && $request->boolean('roles_dihantar');

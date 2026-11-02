@@ -155,7 +155,6 @@ CREATE TABLE dokumen (
   no_rujukan VARCHAR(100) NOT NULL,
   tarikh_dokumen DATE NOT NULL,
   perkara VARCHAR(255),
-  status VARCHAR(50) NOT NULL,
   tarikh_tamat_simpanan DATE,
   status_pelupusan VARCHAR(30),
   tarikh_pelupusan DATETIME,
