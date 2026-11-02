@@ -227,6 +227,9 @@ class StatusSistemController extends Controller
 
     private function sandaran(): array
     {
+        if (! config('services.sandaran.aktif', true)) {
+            return $this->semakan('Sandaran', 'amaran', 'Dimatikan (SANDARAN_AKTIF=false)', 'Pelayan mesti mempunyai sandaran sendiri yang diuji.');
+        }
         $s = $this->statusJson('terakhir.json');
         if (! $s) {
             return $this->semakan('Sandaran', 'ralat', 'Belum pernah dibuat', 'php artisan sandaran:jalan');
@@ -238,7 +241,7 @@ class StatusSistemController extends Controller
         $nilai = $bila->diffForHumans().' · '.number_format(($s['saiz'] ?? 0) / 1048576, 1).' MB'.(! empty($s['salinan']) ? ' · salinan OneDrive' : '');
 
         return $bila->lt(now()->subHours(36))
-            ? $this->semakan('Sandaran', 'amaran', $nilai, 'Lebih 36 jam: laptop mungkin dimatikan pada 12:30. Jalankan php artisan sandaran:jalan.')
+            ? $this->semakan('Sandaran', 'amaran', $nilai, 'Lebih 36 jam: pelayan/penjadual mungkin tidak berjalan pada '.config('services.sandaran.masa', '12:30').'. Jalankan php artisan sandaran:jalan.')
             : $this->semakan('Sandaran', 'ok', $nilai);
     }
 

@@ -127,6 +127,9 @@ class Keselamatan
 
     private static function semakSandaran(callable $semak): array
     {
+        if (! config('services.sandaran.aktif', true)) {
+            return $semak('Sandaran harian', 'amaran', 'Dimatikan (SANDARAN_AKTIF=false)', 'Pastikan pelayan mempunyai sandaran sendiri (cth. snapshot VM) yang diuji.');
+        }
         $s = self::statusJson('terakhir.json');
         if (! $s) {
             return $semak('Sandaran harian', 'ralat', 'Belum pernah dibuat', 'php artisan sandaran:jalan');
@@ -227,6 +230,9 @@ class Keselamatan
     /** Semakan berkala (penjadual): sandaran terlalu lama. */
     public static function semakBerkala(): void
     {
+        if (! config('services.sandaran.aktif', true)) {
+            return; // Fasa H: pelayan menggunakan sandaran sendiri
+        }
         $s = self::statusJson('terakhir.json');
         $lama = ! $s || ! ($s['berjaya'] ?? false) || Carbon::parse($s['masa'])->lt(now()->subHours(26));
         if ($lama && Cache::add('keselamatan:amaran-sandaran', true, now()->addDay())) {

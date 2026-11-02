@@ -187,7 +187,8 @@ class SandaranJalan extends Command
     private function padamLama(string $folder, int $hari): int
     {
         $bil = 0;
-        foreach (self::untukDipadam(File::glob("{$folder}/sandaran_*.zip"), $hari) as $fail) {
+        foreach (self::untukDipadam(File::glob("{$folder}/sandaran_*.zip"), $hari,
+            (int) config('services.sandaran.simpan_minggu', 8), (int) config('services.sandaran.simpan_bulan', 6)) as $fail) {
             File::delete($fail);
             $bil++;
         }
@@ -197,13 +198,14 @@ class SandaranJalan extends Command
 
     /**
      * Simpanan bertingkat: semua dalam $hari terakhir; selepas itu terbaharu setiap minggu
-     * ISO hingga 8 minggu, dan terbaharu setiap bulan hingga 6 bulan. Masa diambil daripada
+     * ISO hingga $minggu minggu, dan terbaharu setiap bulan hingga $bulan bulan (lalai 8 & 6;
+     * SANDARAN_SIMPAN_MINGGU / SANDARAN_SIMPAN_BULAN, 0 = tiada). Masa diambil daripada
      * nama fail (sandaran_YYYYMMDD_HHMMSS.zip) kerana salinan OneDrive menukar masa ubah suai.
      *
      * @param  list<string>  $fail
      * @return list<string>
      */
-    public static function untukDipadam(array $fail, int $hari): array
+    public static function untukDipadam(array $fail, int $hari, int $minggu = 8, int $bulan = 6): array
     {
         $masa = [];
         foreach ($fail as $f) {
@@ -213,15 +215,18 @@ class SandaranJalan extends Command
         }
         arsort($masa);
 
+        // Had umur (hari): mingguan hingga $minggu minggu, bulanan hingga $bulan bulan (6 → 183 hari)
+        $hadMinggu = max(0, $minggu) * 7;
+        $hadBulan = max(0, $bulan) * 30.5;
         $simpan = [];
         $kumpulan = [];
         foreach ($masa as $f => $t) {
             $umurHari = $t->diffInDays(now());
             if ($umurHari < $hari) {
                 $simpan[$f] = true;
-            } elseif ($umurHari < 8 * 7 && ! isset($kumpulan['m'.$t->format('o-W')])) {
+            } elseif ($umurHari < $hadMinggu && ! isset($kumpulan['m'.$t->format('o-W')])) {
                 $simpan[$f] = $kumpulan['m'.$t->format('o-W')] = true;
-            } elseif ($umurHari >= 8 * 7 && $umurHari < 183 && ! isset($kumpulan['b'.$t->format('Y-m')])) {
+            } elseif ($umurHari >= $hadMinggu && $umurHari < $hadBulan && ! isset($kumpulan['b'.$t->format('Y-m')])) {
                 $simpan[$f] = $kumpulan['b'.$t->format('Y-m')] = true;
             }
         }

@@ -131,7 +131,15 @@ return [
         'folder' => env('SANDARAN_FOLDER', storage_path('app/sandaran')),
         // Salinan kedua di luar projek (cth. folder OneDrive) supaya selamat jika cakera rosak
         'salinan' => env('SANDARAN_SALINAN'),
+        // Fasa H: matikan bila pelayan sudah ada sandaran sendiri (cth. snapshot VM); amaran
+        // "sandaran tertunggak" turut dimatikan
+        'aktif' => (bool) env('SANDARAN_AKTIF', true),
+        // Masa sandaran harian (HH:MM). Pelayan 24 jam: waktu tidak sibuk, cth. 02:00
+        'masa' => env('SANDARAN_MASA', '12:30'),
         'simpan_hari' => (int) env('SANDARAN_SIMPAN_HARI', 14),
+        // Simpanan bertingkat selepas simpan_hari: terbaharu setiap minggu / bulan (0 = tiada)
+        'simpan_minggu' => (int) env('SANDARAN_SIMPAN_MINGGU', 8),
+        'simpan_bulan' => (int) env('SANDARAN_SIMPAN_BULAN', 6),
         'had_masa' => (int) env('SANDARAN_HAD_MASA', 900),
         // Fasa Keselamatan S4: zip disulitkan AES-256 (simpan kata laluan DI LUAR pelayan)
         'kata_laluan' => env('SANDARAN_KATA_LALUAN'),
