@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<title>ERD Sistem Arkib Digital (DMS) PKINK</title>
+<link rel="stylesheet" href="../../../docs/pakej/manual/gaya_cetak.css">
+<style>
+  @page { @top-right { content: "Rajah Hubungan Entiti (ERD): Sistem Arkib Digital (DMS) PKINK"; } }
+  @page a3 {
+    size: A3 landscape; margin: 10mm 12mm;
+    @top-right { content: "Rajah Hubungan Entiti (ERD): Sistem Arkib Digital (DMS) PKINK"; font: 8pt "Segoe UI", Arial, sans-serif; color: #9aa8b8; }
+    @bottom-center { content: "Halaman " counter(page) " daripada " counter(pages); font: 8.5pt "Segoe UI", Arial, sans-serif; color: #68798d; }
+  }
+  @page landskap {
+    size: A4 landscape; margin: 12mm 14mm;
+    @top-right { content: "Rajah Hubungan Entiti (ERD): Sistem Arkib Digital (DMS) PKINK"; font: 8pt "Segoe UI", Arial, sans-serif; color: #9aa8b8; }
+    @bottom-center { content: "Halaman " counter(page) " daripada " counter(pages); font: 8.5pt "Segoe UI", Arial, sans-serif; color: #68798d; }
+  }
+  .penuh { page: a3; break-before: page; }
+  .modul { page: landskap; break-before: page; }
+  .senarai { page: landskap; }
+  .senarai-kandungan li { padding: 1.6mm 0; }
+  .kandungan .jadual td { padding: 1.4mm 2.5mm; }
+  .penuh h2, .modul h2 { margin-bottom: 2mm; padding-bottom: 1.5mm; font-size: 15pt; }
+  .rajah { text-align: center; }
+  .rajah svg { max-width: 100%; height: auto; }
+  .penuh .rajah svg { max-height: 255mm; }
+  .modul .rajah svg { max-height: 158mm; }
+  p.ringkas { color: var(--malap); font-size: 9.5pt; margin-bottom: 2mm; }
+  .statistik { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; margin: 4mm 0 6mm; }
+  .statistik div { padding: 3mm; border: 1px solid var(--garis); border-radius: 4px; background: var(--latar); text-align: center; }
+  .statistik b { display: block; font-size: 20pt; color: var(--jenama); }
+  .jadual td code { font-size: 8.8pt; }
+  .senarai .jadual { font-size: 8.8pt; }
+  .senarai .jadual td { padding: 1.1mm 2mm; }
+  #hubungan .jadual td { padding: .8mm 2mm; }
+  #hubungan .nota { margin-top: 2mm; }
+  #hubungan .akhir { margin-top: 3mm; }
+  .lencana-k { display: inline-block; padding: 0 1.5mm; border-radius: 2px; font-size: 8pt; font-weight: 700; }
+  .k-pk { color: #fff; background: #b8862b; }
+  .k-fk { color: #fff; background: #1769d2; }
+  .warna { display: inline-block; width: 10px; height: 10px; border: 1px solid #888; vertical-align: -1px; margin-right: 1.5mm; }
+</style>
+</head>
+<body>
+
+<section class="kulit">
+  <img src="../../../public/images/Logo_PKINK_Tulisan_Jawi_Bawah.png" alt="Logo PKINK" class="kulit-logo">
+  <div class="kulit-org">PERBADANAN KEMAJUAN IKTISAD NEGERI KELANTAN</div>
+  <h1>Rajah Hubungan Entiti (ERD)</h1>
+  <div class="kulit-sistem">Sistem Arkib Digital (DMS) PKINK</div>
+  <div class="kulit-sub">Struktur pangkalan data, atribut, kunci primer dan kunci asing</div>
+  <table class="kulit-info">
+    <tr><td>Versi dokumen</td><td>1.0 (sistem v1.0.1)</td></tr>
+    <tr><td>Tarikh</td><td>November 2026</td></tr>
+    <tr><td>Disediakan untuk</td><td>Penyelia dan pegawai penilai sistem</td></tr>
+    <tr><td>Klasifikasi</td><td>Dalaman</td></tr>
+  </table>
+</section>
+
+<section class="kandungan">
+  <h2 class="tanpa-nombor">Ringkasan</h2>
+  <p>Rajah dalam dokumen ini dijana terus daripada skema pangkalan data sistem (versi pemasangan), jadi setiap jadual, atribut dan hubungan sepadan dengan pangkalan data sebenar.</p>
+  <div class="statistik">
+    <div><b id="s-jadual">0</b>jadual</div>
+    <div><b id="s-lajur">0</b>atribut</div>
+    <div><b id="s-fk">0</b>kunci asing (FK)</div>
+    <div><b id="s-logik">0</b>hubungan logik</div>
+  </div>
+  <h3>Kandungan</h3>
+  <ol class="senarai-kandungan" id="kandungan"></ol>
+  <h3>Petunjuk notasi</h3>
+  <table class="jadual">
+    <thead><tr><th style="width:30%">Simbol</th><th>Maksud</th></tr></thead>
+    <tbody>
+      <tr><td><span class="lencana-k k-pk">PK</span></td><td>Kunci primer (<i>primary key</i>): pengecam unik setiap rekod dalam jadual</td></tr>
+      <tr><td><span class="lencana-k k-fk">FK</span></td><td>Kunci asing (<i>foreign key</i>): merujuk kunci primer jadual lain</td></tr>
+      <tr><td>Garis bertanda kaki gagak (crow's foot)</td><td>Hujung bercabang = <b>banyak</b>; garis pendek melintang = <b>satu</b>; bulatan = <b>pilihan</b> (boleh tiada)</td></tr>
+      <tr><td>Satu + satu garis melintang ( ‖ )</td><td>Wajib tepat satu (lajur FK tidak boleh kosong)</td></tr>
+      <tr><td>Bulatan + garis melintang ( o| )</td><td>Sifar atau satu (lajur FK boleh kosong)</td></tr>
+      <tr><td>Bulatan + kaki gagak ( o&lt; )</td><td>Sifar atau banyak rekod</td></tr>
+      <tr><td>Garis putus-putus</td><td>Hubungan logik yang dikuatkuasakan oleh aplikasi (tiada kekangan FK dalam pangkalan data)</td></tr>
+    </tbody>
+  </table>
+  <h3>Modul</h3>
+  <p id="senarai-modul"></p>
+</section>
+
+<section class="penuh" id="r0">
+  <h2>1. ERD Penuh</h2>
+  <p class="ringkas">Semua jadual, atribut dan hubungan. Rajah ini berbentuk vektor; perincian boleh dibesarkan dalam pembaca PDF. Rajah mengikut modul pada halaman berikutnya lebih mudah dibaca apabila dicetak.</p>
+  <div class="rajah" id="rajah-penuh"></div>
+</section>
+
+<div id="modul-modul"></div>
+
+<section class="bab senarai" id="senarai">
+  <h2 id="tajuk-senarai"></h2>
+  <p class="ringkas">Senarai lengkap jadual dalam pangkalan data sistem, mengikut modul.</p>
+  <table class="jadual" id="jadual-senarai">
+    <thead><tr><th style="width:4%">Bil.</th><th style="width:17%">Jadual</th><th style="width:31%">Fungsi</th><th style="width:15%">Kunci primer (PK)</th><th>Kunci asing (FK) → jadual rujukan</th><th style="width:7%">Atribut</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section class="bab senarai" id="hubungan">
+  <h2 id="tajuk-hubungan"></h2>
+  <table class="jadual" id="jadual-hubungan">
+    <thead><tr><th style="width:4%">Bil.</th><th style="width:30%">Jadual anak . atribut (FK)</th><th style="width:22%">Jadual induk . atribut</th><th style="width:16%">Kardinaliti</th><th>Jenis</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <p class="nota">Jadual <code>log_audit</code> merekodkan perubahan bagi mana-mana jadual melalui pasangan atribut <code>nama_jadual</code> dan <code>rekod_id</code> (rujukan polimorfik), jadi tiada garis hubungan dilukis.</p>
+  <p class="akhir">Dokumen ini disediakan untuk kegunaan dalaman Perbadanan Kemajuan Iktisad Negeri Kelantan.</p>
+</section>
+
+<script id="skema" type="application/json">__SKEMA__</script>
+<script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3.4.0/lib/viz-standalone.js"></script>
+<script>
+const HLM = {"r0": "4", "r1": "5", "r2": "6", "r3": "7", "r4": "8", "r5": "9", "r6": "10", "r7": "11", "r8": "12", "senarai": "13", "hubungan": "16"};
+const S = JSON.parse(document.getElementById('skema').textContent);
+const MODUL = [
+  ['Organisasi dan Akses', '#dae8fc', '#6c8ebf', ['bahagian', 'roles', 'user_roles', 'users', 'pendaftaran_staf', 'delegasi_kelulusan']],
+  ['Kategori dan Templat Dokumen (EAV)', '#d5e8d4', '#82b366', ['jenis_dokumen', 'dokumen_field', 'templat_borang']],
+  ['Dokumen', '#fff2cc', '#d6b656', ['dokumen', 'dokumen_data']],
+  ['Imbasan, OCR dan AI', '#e1d5e7', '#9673a6', ['dokumen_scan', 'dokumen_ocr', 'pembetulan_ai']],
+  ['Aliran Kelulusan', '#f8cecc', '#b85450', ['borang', 'borang_sejarah']],
+  ['Audit dan Keselamatan', '#ffe6cc', '#d79b00', ['log_audit', 'log_masuk', 'ip_disekat']],
+  ['Sesi dan Notifikasi', '#e0f2f1', '#4d9a92', ['sessions', 'notifications', 'push_subscriptions', 'password_reset_tokens']],
+  ['Infrastruktur Laravel', '#f0f0f0', '#888888', ['cache', 'cache_locks', 'jobs', 'failed_jobs']],
+];
+const FUNGSI = {
+  bahagian: 'Senarai bahagian / jabatan PKINK',
+  roles: 'Senarai lapan peranan pengguna',
+  user_roles: 'Peranan bagi setiap pengguna (hubungan banyak-ke-banyak)',
+  users: 'Akaun kakitangan: No. KP, emel, kata laluan, 2FA, bahagian',
+  pendaftaran_staf: 'Permohonan pendaftaran akaun baharu dan keputusan semakan',
+  delegasi_kelulusan: 'Delegasi kuasa sokong / lulus kepada pegawai pengganti bagi tempoh tertentu',
+  jenis_dokumen: 'Kategori dokumen: kod, nama, tempoh simpanan',
+  dokumen_field: 'Definisi medan setiap kategori: label, jenis data, pilihan, wajib, susunan',
+  templat_borang: 'Templat borang kosong (berversi), teks OCR templat dan susunan kedudukan medan',
+  dokumen: 'Rekod dokumen: No. Rujukan, kategori, tarikh, perkara, maklumat pelupusan',
+  dokumen_data: 'Nilai medan bagi setiap dokumen (EAV: satu baris bagi setiap medan)',
+  dokumen_scan: 'Fail imbasan / lampiran dokumen: lokasi, hash, status OCR',
+  dokumen_ocr: 'Teks hasil OCR bagi setiap fail imbasan',
+  pembetulan_ai: 'Nilai cadangan AI berbanding nilai akhir yang disimpan (ukuran ketepatan AI)',
+  borang: 'Permohonan dan status kelulusan (satu bagi setiap dokumen)',
+  borang_sejarah: 'Sejarah setiap tindakan permohonan: hantar, sokong, lulus, tolak',
+  log_audit: 'Log audit setiap perubahan data (data lama dan data baharu)',
+  log_masuk: 'Sejarah cubaan log masuk: berjaya / gagal, alamat IP, pelayar',
+  ip_disekat: 'Alamat IP yang disekat (automatik atau oleh pentadbir)',
+  sessions: 'Sesi log masuk pengguna',
+  notifications: 'Notifikasi dalam sistem (loceng notifikasi)',
+  push_subscriptions: 'Langganan notifikasi peranti (Web Push)',
+  password_reset_tokens: 'Token tetapan semula kata laluan',
+  cache: 'Cache aplikasi',
+  cache_locks: 'Kunci cache (mengelak proses bertindih)',
+  jobs: 'Baris gilir kerja latar (analisis OCR/AI)',
+  failed_jobs: 'Rekod kerja latar yang gagal',
+};
+// Hubungan logik (tiada FK dalam pangkalan data): [anak, atribut, induk, atribut induk]
+const LOGIK = [
+  ['templat_borang', 'created_by', 'users', 'user_id'],
+  ['notifications', 'notifiable_id', 'users', 'user_id'],
+  ['push_subscriptions', 'subscribable_id', 'users', 'user_id'],
+  ['delegasi_kelulusan', 'kod_peranan', 'roles', 'kod_roles'],
+];
+const SATU_SATU = { 'borang.dokumen_id': true }; // satu permohonan bagi setiap dokumen (dikuatkuasakan aplikasi)
+
+const modulJadual = {};
+MODUL.forEach((m, i) => m[3].forEach(t => modulJadual[t] = i));
+const semua = Object.keys(S);
+const tiadaModul = semua.filter(t => modulJadual[t] === undefined);
+if (tiadaModul.length) console.error('Jadual tanpa modul: ' + tiadaModul);
+
+const fkSet = t => new Set(S[t].fk.map(f => f.lajur));
+const logikSet = t => new Set(LOGIK.filter(l => l[0] === t).map(l => l[1]));
+
+function label(t, ringkas, warna) {
+  const [fill, border] = warna;
+  const pk = new Set(S[t].pk), fk = fkSet(t);
+  let rows = `<TR><TD COLSPAN="2" BGCOLOR="${fill}" ALIGN="CENTER"><B>${t}</B></TD></TR>`;
+  const lajur = ringkas ? S[t].lajur.filter(c => pk.has(c.nama)) : S[t].lajur;
+  for (const c of lajur) {
+    const k = [pk.has(c.nama) ? 'PK' : '', fk.has(c.nama) ? 'FK' : ''].filter(Boolean).join(', ');
+    const kWarna = pk.has(c.nama) ? '#b8862b' : '#1769d2';
+    const kSel = k ? `<FONT COLOR="${kWarna}"><B>${k}</B></FONT>` : ' ';
+    const nama = pk.has(c.nama) ? `<B>${c.nama}</B>` : c.nama;
+    rows += `<TR><TD ALIGN="LEFT" WIDTH="34" PORT="k_${c.nama}">${kSel}</TD><TD ALIGN="LEFT" PORT="${c.nama}">${nama}</TD></TR>`;
+  }
+  if (ringkas) {
+    const baki = S[t].lajur.length - lajur.length;
+    rows += `<TR><TD COLSPAN="2" ALIGN="LEFT"><FONT COLOR="#68798d" POINT-SIZE="9"><I>+ ${baki} atribut lain (lihat modul ${MODUL[modulJadual[t]][0]})</I></FONT></TD></TR>`;
+  }
+  return `<<TABLE BORDER="1" COLOR="${border}" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">${rows}</TABLE>>`;
+}
+
+function tepiDot(anak, lajur, induk, lajurInduk, logik) {
+  const c = S[anak].lajur.find(x => x.nama === lajur);
+  const hujungInduk = logik ? 'teeodot' : (c && c.null ? 'teeodot' : 'teetee');
+  const hujungAnak = SATU_SATU[`${anak}.${lajur}`] ? 'teeodot' : 'crowodot';
+  const gaya = logik ? 'style=dashed, color="#8a96a3"' : 'color="#4a5d73"';
+  return `"${anak}":"${lajur}" -> "${induk}":"${lajurInduk}" [dir=both, arrowtail=${hujungAnak}, arrowhead=${hujungInduk}, ${gaya}];`;
+}
+
+function semuaTepi() {
+  const tepi = [];
+  for (const t of semua) for (const f of S[t].fk) tepi.push([t, f.lajur, f.rujuk, f.lajur_rujuk, false]);
+  for (const l of LOGIK) tepi.push([...l, true]);
+  return tepi;
+}
+
+const KEPALA = `digraph ERD { graph [rankdir=TB, splines=true, nodesep=0.25, ranksep=0.9, newrank=true, fontname="Segoe UI", fontsize=16, pad=0.2];
+  node [shape=plaintext, fontname="Segoe UI", fontsize=11, margin=0];
+  edge [arrowsize=0.9, penwidth=1.1];`;
+
+function dotPenuh() {
+  let d = KEPALA;
+  MODUL.forEach((m, i) => {
+    d += `subgraph cluster_${i} { label=<<B>${m[0]}</B>>; labeljust=l; style="rounded,filled"; fillcolor="${m[1]}55"; color="${m[2]}"; penwidth=1.5; fontsize=15;`;
+    for (const t of m[3]) d += `"${t}" [label=${label(t, false, [m[1], m[2]])}];`;
+    d += '}';
+  });
+  for (const e of semuaTepi()) d += tepiDot(...e);
+  return d + '}';
+}
+
+function dotModul(i) {
+  const m = MODUL[i], dalam = new Set(m[3]);
+  const tepi = semuaTepi().filter(e => dalam.has(e[0]) || dalam.has(e[2]));
+  // Jadual luar yang MERUJUK modul ini (anak) digabung dalam satu kotak ringkasan jika banyak
+  const anakLuar = tepi.filter(e => !dalam.has(e[0]));
+  const gabung = new Set(anakLuar.map(e => e[0])).size > 4;
+  const luar = new Set();
+  tepi.forEach(e => { if (!dalam.has(e[0]) && !gabung) luar.add(e[0]); if (!dalam.has(e[2])) luar.add(e[2]); });
+  let d = KEPALA.replace('ranksep=0.9', 'ranksep=0.7');
+  d += `subgraph cluster_m { label=<<B>${m[0]}</B>>; labeljust=l; style="rounded,filled"; fillcolor="${m[1]}55"; color="${m[2]}"; penwidth=1.5; fontsize=15;`;
+  for (const t of m[3]) d += `"${t}" [label=${label(t, false, [m[1], m[2]])}];`;
+  d += '}';
+  for (const t of luar) { const mm = MODUL[modulJadual[t]]; d += `"${t}" [label=${label(t, true, [mm[1], '#9aa8b8'])}];`; }
+  if (gabung) {
+    let rows = `<TR><TD BGCOLOR="#eef2f6" ALIGN="CENTER"><B>Jadual modul lain yang merujuk modul ini</B></TD></TR>`;
+    anakLuar.forEach((e, k) => {
+      rows += `<TR><TD ALIGN="LEFT" PORT="p${k}"><FONT COLOR="${e[4] ? '#8a96a3' : '#1769d2'}"><B>${e[4] ? 'logik' : 'FK'}</B></FONT>  ${e[0]}.${e[1]}</TD></TR>`;
+    });
+    d += `"__luar" [label=<<TABLE BORDER="1" COLOR="#9aa8b8" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">${rows}</TABLE>>];`;
+    anakLuar.forEach((e, k) => {
+      const [a, l, ind, li, lg] = e;
+      d += tepiDot(a, l, ind, li, lg).replace(`"${a}":"${l}"`, `"__luar":"p${k}"`);
+    });
+  }
+  for (const e of tepi) {
+    const [a, l, ind, li, lg] = e;
+    if (gabung && !dalam.has(a)) continue;
+    const anakPort = dalam.has(a) || S[a].pk.includes(l) ? l : S[a].pk[0];
+    d += tepiDot(a, l, ind, li, lg).replace(`"${a}":"${l}"`, `"${a}":"${anakPort}"`);
+  }
+  return d + '}';
+}
+
+(async () => {
+  // Statistik & kandungan
+  const bilLajur = semua.reduce((n, t) => n + S[t].lajur.length, 0);
+  const bilFk = semua.reduce((n, t) => n + S[t].fk.length, 0);
+  document.getElementById('s-jadual').textContent = semua.length;
+  document.getElementById('s-lajur').textContent = bilLajur;
+  document.getElementById('s-fk').textContent = bilFk;
+  document.getElementById('s-logik').textContent = LOGIK.length;
+  document.getElementById('senarai-modul').innerHTML = MODUL.map((m, i) =>
+    `<span class="warna" style="background:${m[1]};border-color:${m[2]}"></span><b>${m[0]}</b>: ${m[3].length} jadual`).join('<br>');
+
+  const tempatModul = document.getElementById('modul-modul');
+  MODUL.forEach((m, i) => {
+    const s = document.createElement('section');
+    s.className = 'modul'; s.id = 'r' + (i + 1);
+    s.innerHTML = `<h2>${i + 2}. ERD Modul: ${m[0]}</h2><p class="ringkas">Jadual modul ini dipaparkan dengan semua atribut. Jadual berkaitan daripada modul lain dipaparkan secara ringkas (kunci primer sahaja).</p><div class="rajah" id="rajah-m${i}"></div>`;
+    tempatModul.appendChild(s);
+  });
+  const nSenarai = MODUL.length + 2, nHub = MODUL.length + 3;
+  document.getElementById('tajuk-senarai').textContent = `${nSenarai}. Senarai Jadual`;
+  document.getElementById('tajuk-hubungan').textContent = `${nHub}. Senarai Hubungan`;
+
+  const kandungan = [['r0', 'ERD Penuh'], ...MODUL.map((m, i) => ['r' + (i + 1), 'ERD Modul: ' + m[0]]), ['senarai', 'Senarai Jadual'], ['hubungan', 'Senarai Hubungan']];
+  document.getElementById('kandungan').innerHTML = kandungan.map(([id, t]) => `<li><a href="#${id}">${t}</a><span class="hlm">${(HLM[id] || '')}</span></li>`).join('');
+
+  // Senarai jadual
+  let bil = 0, html = '';
+  MODUL.forEach(m => {
+    html += `<tr><td colspan="6" style="background:${m[1]};font-weight:700">${m[0]}</td></tr>`;
+    for (const t of m[3]) {
+      bil++;
+      const fk = S[t].fk.map(f => `<code>${f.lajur}</code> → ${f.rujuk}`).concat(LOGIK.filter(l => l[0] === t).map(l => `<code>${l[1]}</code> → ${l[2]} <i>(logik)</i>`));
+      html += `<tr><td>${bil}</td><td><code>${t}</code></td><td>${FUNGSI[t] || ''}</td><td><code>${S[t].pk.join(', ')}</code></td><td>${fk.join('<br>') || '–'}</td><td style="text-align:center">${S[t].lajur.length}</td></tr>`;
+    }
+  });
+  document.querySelector('#jadual-senarai tbody').innerHTML = html;
+
+  // Senarai hubungan
+  bil = 0; html = '';
+  for (const [a, l, ind, li, lg] of semuaTepi()) {
+    bil++;
+    const c = S[a].lajur.find(x => x.nama === l);
+    const kard = SATU_SATU[`${a}.${l}`] ? 'Satu-ke-satu' : (lg || (c && c.null) ? 'Sifar/satu-ke-banyak' : 'Satu-ke-banyak');
+    html += `<tr><td>${bil}</td><td><code>${a}.${l}</code></td><td><code>${ind}.${li}</code></td><td>${kard}</td><td>${lg ? 'Logik (aplikasi)' : 'Kunci asing (FK)'}</td></tr>`;
+  }
+  document.querySelector('#jadual-hubungan tbody').innerHTML = html;
+
+  // Lukis rajah
+  const viz = await Viz.instance();
+  document.getElementById('rajah-penuh').appendChild(viz.renderSVGElement(dotPenuh()));
+  MODUL.forEach((m, i) => document.getElementById('rajah-m' + i).appendChild(viz.renderSVGElement(dotModul(i))));
+  document.body.setAttribute('data-siap', '1');
+})().catch(e => { document.body.insertAdjacentHTML('afterbegin', '<pre style="color:red">' + e + '</pre>'); });
+</script>
+</body>
+</html>
