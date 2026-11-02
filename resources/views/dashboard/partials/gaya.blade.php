@@ -121,14 +121,8 @@
     .pp-trend-nilai { color: var(--dms-brand); font-size: 11.5px; font-weight: 800; }
     .pp-trend-label { color: var(--dms-muted); font-size: 11px; font-weight: 600; }
 
-    /* ---- Pentadbir: bahagian berlipat ---- */
-    .pp-lipat { padding: 0; }
-    .pp-lipat summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 18px; color: var(--dms-brand); font-size: 14px; font-weight: 800; cursor: pointer; list-style: none; }
-    .pp-lipat summary::-webkit-details-marker { display: none; }
-    .pp-lipat summary::after { content: "\F282"; margin-left: auto; font-family: bootstrap-icons; transition: transform .2s ease; }
-    .pp-lipat[open] summary::after { transform: rotate(180deg); }
-    .pp-lipat[open] summary .pp-kecil { display: none; }
-    .pp-lipat-isi { padding: 4px 18px 18px; }
+    /* ---- Pentadbir: isi bahagian berlipat (komponen lipat, gaya asas dalam layouts/app) ---- */
+    .pp-lipat-isi { padding: 16px 18px 18px; }
 
     /* ---- Keadaan kosong ---- */
     .pp-kosong { display: grid; justify-items: center; gap: 8px; padding: 28px 18px; color: var(--dms-muted); font-size: 13px; text-align: center; }

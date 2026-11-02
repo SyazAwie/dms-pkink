@@ -75,8 +75,7 @@
     </div>
 
     {{-- 4. Analitik terperinci (berlipat) --}}
-    <details class="glass-panel pp-lipat mb-3">
-        <summary><i class="bi bi-cpu"></i> Prestasi Imbas &amp; AI dan Analitik Dokumen <span class="pp-kecil">(klik untuk buka)</span></summary>
+    <x-lipat class="mb-3" tajuk="Prestasi Imbas & AI dan Analitik Dokumen" ikon="bi-cpu">
         <div class="pp-lipat-isi">
             <div class="pp-kpi">
                 @include('dashboard.partials.kad-kpi', ['label' => 'Diarkib Terus (AI)', 'nilai' => $arkibTerusAi, 'ikon' => 'bi-magic', 'warna' => 'ungu',
@@ -98,7 +97,7 @@
                 </div>
             </div>
         </div>
-    </details>
+    </x-lipat>
 
     {{-- 5. Dokumen terkini --}}
     <div class="glass-panel pp-panel">

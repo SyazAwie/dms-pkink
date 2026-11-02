@@ -180,7 +180,7 @@
 
     <!-- Panel Bantuan / Pratonton -->
     <div class="col-lg-4">
-        <div class="glass-panel preview-panel mb-4">
+        <div class="glass-panel preview-panel mb-4 d-none d-lg-block">{{-- pratonton hanya berguna di sisi borang (desktop) --}}
             <div class="summary-head px-1">
                 <div>
                     <div class="summary-label">PRATONTON PROFIL</div>

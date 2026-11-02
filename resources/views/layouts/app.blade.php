@@ -254,6 +254,23 @@
             -webkit-backdrop-filter: blur(18px);
         }
 
+        /* Bahagian berlipat (components/lipat.blade.php): tajuk + status kekal kelihatan, kandungan dibuka dengan klik */
+        .lipat { padding: 0; overflow: hidden; }
+        .lipat > summary { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 14px 20px; cursor: pointer; list-style: none; }
+        .lipat > summary::-webkit-details-marker { display: none; }
+        .lipat > summary::after { content: "\F282"; flex: 0 0 auto; color: var(--dms-brand); font-family: bootstrap-icons; transition: transform .2s ease; }
+        .lipat[open] > summary { border-bottom: 1px solid var(--dms-line); }
+        .lipat[open] > summary::after { transform: rotate(180deg); }
+        .lipat > summary:hover { background: rgba(23, 105, 210, .03); }
+        .lipat > summary:focus-visible { outline: 2px solid var(--dms-primary); outline-offset: -2px; }
+        .lipat-kepala { display: grid; flex: 1 1 auto; gap: 3px; min-width: 0; }
+        .lipat-tajuk { color: var(--dms-brand); font-size: 15px; font-weight: 800; }
+        .lipat-tajuk > .bi { margin-right: 4px; }
+        .lipat:not([open]) .lipat-tajuk::after { content: "(klik untuk buka)"; margin-left: 6px; color: var(--dms-muted); font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .lipat-sub { color: var(--dms-muted); font-size: 11.5px; line-height: 1.5; }
+        .lipat-lencana { display: flex; flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+        .lencana-penapis { padding: 6px 10px; border-radius: 6px; color: var(--dms-primary); background: rgba(23, 105, 210, .1); font-size: 11px; font-weight: 700; }
+
         .page-intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 18px; margin-bottom: 24px; }
         .page-intro h2 { margin: 0; color: var(--dms-brand); font-size: 24px; font-weight: 800; }
         .page-intro p { margin: 7px 0 0; color: var(--dms-muted); font-size: 13px; line-height: 1.7; }
@@ -368,6 +385,8 @@
             .section-card { padding: 17px; }
             .section-header { align-items: start; }
             .section-header h3 { white-space: normal; }
+            .lipat > summary { padding: 12px 16px; }
+            .lipat-sub { display: none; }
             /* Butang sekunder yang ada ikon jadi ikon sahaja (kecuali .kekal-label);
                butang teks sahaja seperti "Batal"/"Tolak" kekal dengan labelnya */
             .outline-button:has(> .bi):not(.kekal-label) { width: 38px; padding: 0; }
@@ -798,6 +817,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
     <script>
+        // Bahagian berlipat: buka jika pautan #id (cth. redirect ke profil#dua-faktor) menghala ke dalamnya
+        (() => {
+            const bukaIkutHash = () => {
+                const sasaran = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+                const lipat = sasaran && sasaran.closest('details.lipat');
+                if (!lipat || lipat.open) return;
+                lipat.open = true;
+                sasaran.scrollIntoView({ block: 'start' });
+            };
+            bukaIkutHash();
+            window.addEventListener('hashchange', bukaIkutHash);
+        })();
+
         (() => {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('menuToggle');

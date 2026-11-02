@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Borang;
 use App\Models\Dokumen;
+use App\Models\DokumenScan;
 use App\Models\JenisDokumen;
+use App\Models\LogAudit;
+use App\Models\PendaftaranStaf;
 use App\Models\User;
 use Tests\SkemaUjian;
 use Tests\TestCase;
@@ -96,15 +99,15 @@ class DashboardTest extends TestCase
         Borang::create(['dokumen_id' => $arkib->dokumen_id, 'pemohon_id' => $kerani->user_id,
             'status_permohonan' => 'Diluluskan', 'tarikh_permohonan' => now(), 'tarikh_kelulusan' => now()]);
         $this->dokumen($staf, 'Dalam Proses');
-        \App\Models\DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'a.pdf', 'lokasi_fail' => 'x/a.pdf', 'status_ocr' => 'Pending']);
+        DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'a.pdf', 'lokasi_fail' => 'x/a.pdf', 'status_ocr' => 'Pending']);
         // Fail yang gagal OCR juga perlu tindakan (#27)
-        \App\Models\DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'b.pdf', 'lokasi_fail' => 'x/b.pdf', 'status_ocr' => 'Ralat']);
-        \App\Models\DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'c.pdf', 'lokasi_fail' => 'x/c.pdf', 'status_ocr' => 'Selesai']);
+        DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'b.pdf', 'lokasi_fail' => 'x/b.pdf', 'status_ocr' => 'Ralat']);
+        DokumenScan::create(['dokumen_id' => $arkib->dokumen_id, 'nama_fail' => 'c.pdf', 'lokasi_fail' => 'x/c.pdf', 'status_ocr' => 'Selesai']);
 
         $this->actingAs($kerani)->get(route('dashboard'))->assertOk()
             ->assertSee('Arkib Dokumen')
             // Tindakan pantas: Imbas & Arkib dahulu sebagai butang utama
-            ->assertSeeInOrder(['pp-pantas', 'href="' . route('imbas-arkib.create') . '" class="utama"', route('isi-borang.index')], false)
+            ->assertSeeInOrder(['pp-pantas', 'href="'.route('imbas-arkib.create').'" class="utama"', route('isi-borang.index')], false)
             ->assertSeeInOrder(['1', 'Dimuat Naik Bulan Ini', '1', 'Diarkib Bulan Ini', '2', 'Fail Belum Di-OCR', 'Termasuk 1 ralat', '2', 'Jumlah Dokumen'])
             ->assertSee('Dokumen Terkini')
             ->assertDontSee('Permohonan Saya');
@@ -140,7 +143,7 @@ class DashboardTest extends TestCase
         $audit = $this->buatPengguna(['AUDIT']);
         $admin = $this->buatPengguna(['ADMIN'], ['nama_staff' => 'Pentadbir Ujian']);
         foreach (['Cipta', 'Kemaskini', 'Padam (Soft Delete)'] as $t) {
-            \App\Models\LogAudit::create(['user_id' => $admin->user_id, 'tindakan' => $t, 'nama_jadual' => 'dokumen',
+            LogAudit::create(['user_id' => $admin->user_id, 'tindakan' => $t, 'nama_jadual' => 'dokumen',
                 'rekod_id' => 1, 'created_at' => now()]);
         }
 
@@ -164,7 +167,7 @@ class DashboardTest extends TestCase
         Borang::where('dokumen_id', $lulus->dokumen_id)->update([
             'pegawai_pelulus_id' => $admin->user_id, 'tarikh_permohonan' => now()->subHours(48), 'tarikh_kelulusan' => now(),
         ]);
-        \App\Models\PendaftaranStaf::create(['ic_pekerja' => '010101010101', 'nama_staff' => 'Pemohon Baharu',
+        PendaftaranStaf::create(['ic_pekerja' => '010101010101', 'nama_staff' => 'Pemohon Baharu',
             'email' => 'baharu@pkink.test', 'bahagian_id' => $this->buatBahagian()->bahagian_id]);
 
         $this->actingAs($admin)->get(route('dashboard'))->assertOk()
@@ -174,7 +177,8 @@ class DashboardTest extends TestCase
             ->assertSeeInOrder(['Jumlah Dokumen', '2', 'Permohonan Aktif', '2.0', 'hari', 'Purata Kelulusan', 'Kakitangan'])
             ->assertSee('Aliran Kelulusan')
             ->assertSee('Dokumen Baharu (6 Bulan)')
-            ->assertSee('<details class="glass-panel pp-lipat', false)
+            ->assertSee('<details class="glass-panel lipat', false)
+            ->assertDontSee('lipat mb-3" open', false)
             ->assertSee('Prestasi Imbas &amp; AI', false)
             // Satu bahagian sahaja: perbandingan bahagian tidak dipaparkan
             ->assertSee('sekurang-kurangnya 2 bahagian')

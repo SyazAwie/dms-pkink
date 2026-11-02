@@ -21,9 +21,13 @@
     </a>
 </div>
 
-<!-- ============ Penapis ============ -->
-<div class="glass-panel filter-panel mb-4">
-    <form action="{{ route('log-audit.index') }}" method="GET">
+<!-- ============ Penapis (berlipat; dibuka bila penapis digunakan atau ada ralat) ============ -->
+<x-lipat id="penapis-log" class="mb-4" tajuk="Tapis Log" ikon="bi-funnel"
+         sub="Ikut pengguna, jadual, tindakan, ID rekod dan tarikh." :buka="$adaPenapis || $errors->any()">
+    @if($adaPenapis)
+        <x-slot:lencana><span class="badge lencana-penapis">Penapis aktif</span></x-slot:lencana>
+    @endif
+    <form action="{{ route('log-audit.index') }}" method="GET" class="filter-panel">
         <div class="row g-3 align-items-end">
             <div class="col-lg-3 col-md-6">
                 <label class="dms-label">Pengguna</label>
@@ -79,7 +83,7 @@
             </div>
         </div>
     </form>
-</div>
+</x-lipat>
 
 <div class="result-info">
     <strong>{{ $senarai->total() }}</strong> rekod {{ $adaPenapis ? 'ditemui' : 'keseluruhan' }}
@@ -183,8 +187,7 @@
 
 @push('styles')
 <style>
-    .filter-panel { padding: 20px; }
-    .dms-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--dms-text); margin-bottom: 6px; }
+    .filter-panel { padding: 20px; }    .dms-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--dms-text); margin-bottom: 6px; }
     .dms-input {
         width: 100%;
         padding: 11px 14px;

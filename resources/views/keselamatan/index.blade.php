@@ -35,9 +35,18 @@
     <div class="alert alert-danger" role="alert">{{ $ralatK->first() }}</div>
 @endif
 
-{{-- ================= Butang kecemasan (S3) ================= --}}
-<div class="glass-panel mb-4 overflow-hidden ks-kecemasan-panel">
-    <div class="section-header px-4 pt-4 pb-3"><h3><i class="bi bi-exclamation-octagon me-1" aria-hidden="true"></i> Tindakan Kecemasan</h3></div>
+{{-- ================= Butang kecemasan (S3) =================
+     Berlipat supaya bahagian di bawahnya kelihatan; dibuka sendiri bila mod kecemasan aktif atau ada ralat. --}}
+@php $bukaKecemasan = $kecemasan || $ralatK->any() || $errors->hasAny(['sebab', 'alamat_ip']); @endphp
+<x-lipat id="tindakan-kecemasan" class="mb-4 ks-kecemasan-panel" tajuk="Tindakan Kecemasan" ikon="bi-exclamation-octagon"
+         sub="Kunci akaun, log keluar paksa, sekat alamat IP{{ $superadmin ? ' dan mod kecemasan seluruh sistem' : '' }}." :buka="$bukaKecemasan">
+    @if($kecemasan || $dikunci->isNotEmpty() || $ipDisekat->isNotEmpty())
+        <x-slot:lencana>
+            @if($kecemasan)<span class="badge ks-lencana-bil ks-ada">Mod kecemasan AKTIF</span>@endif
+            @if($dikunci->isNotEmpty())<span class="badge ks-lencana-bil ks-ada">{{ $dikunci->count() }} akaun dikunci</span>@endif
+            @if($ipDisekat->isNotEmpty())<span class="badge ks-lencana-bil ks-ada">{{ $ipDisekat->count() }} IP disekat</span>@endif
+        </x-slot:lencana>
+    @endif
     <div class="row g-0">
         <div class="col-lg-6 ks-blok">
             <h4>Akaun disyaki dicuri</h4>
@@ -150,13 +159,14 @@
             </div>
         @endif
     </div>
-</div>
+</x-lipat>
 
-<div class="glass-panel mb-4 overflow-hidden">
-    <div class="section-header px-4 pt-4 pb-3 d-flex justify-content-between align-items-center gap-2">
-        <h3>Semakan Pengerasan</h3>
+{{-- Tertutup secara lalai; lencana (merah jika ada masalah) kekal kelihatan --}}
+<x-lipat id="semakan-pengerasan" class="mb-4" tajuk="Semakan Pengerasan" ikon="bi-shield-check"
+         sub="Tetapan keselamatan pelayan dan aplikasi.">
+    <x-slot:lencana>
         <span class="badge ks-lencana-bil {{ $bilMasalah ? 'ks-ada' : 'ks-tiada' }}">{{ $bilMasalah ? $bilMasalah.' perlu tindakan' : 'Semua baik' }}</span>
-    </div>
+    </x-slot:lencana>
     @foreach($senaraiSemak as $s)
         <div class="ss-baris">
             <span class="ss-lencana ss-{{ $s['status'] }}" title="{{ ['ok' => 'Baik', 'amaran' => 'Amaran', 'ralat' => 'Bahaya'][$s['status']] }}">
@@ -169,7 +179,7 @@
             </div>
         </div>
     @endforeach
-</div>
+</x-lipat>
 
 <div class="row g-4 mb-4">
     <div class="col-lg-7">
@@ -219,8 +229,8 @@
     </div>
 </div>
 
-<div class="glass-panel overflow-hidden mb-4">
-    <div class="section-header px-4 pt-4 pb-3"><h3>Tindakan Sensitif Terkini</h3></div>
+<x-lipat id="tindakan-sensitif" class="mb-4" tajuk="Tindakan Sensitif Terkini" ikon="bi-journal-text"
+         sub="15 terkini: padam rekod, tukar peranan atau kata laluan, kunci akaun, sekat IP dan mod kecemasan.">
     <div class="table-responsive">
         <table class="table dms-table align-middle mb-0">
             <thead><tr><th class="ps-4">Masa</th><th>Pengguna</th><th>Tindakan</th><th class="pe-4">Rekod</th></tr></thead>
@@ -238,7 +248,7 @@
             </tbody>
         </table>
     </div>
-</div>
+</x-lipat>
 
 @endsection
 
@@ -259,7 +269,9 @@
     .ks-ada { background: rgba(220, 53, 69, .1); color: var(--dms-danger); }
     .ks-tiada { background: rgba(37, 169, 121, .12); color: var(--dms-mint); }
     .ss-baris { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; padding: 12px 24px; border-top: 1px solid var(--dms-line); }
-    .section-header + .ss-baris { border-top: 0; padding-top: 16px; }
+    .section-header + .ss-baris, .lipat-isi > .ss-baris:first-child { border-top: 0; padding-top: 16px; }
+    .ks-kecemasan-panel .lipat-isi > .row > .ks-blok:first-child { border-top: 0; }
+    @media (min-width: 992px) { .ks-kecemasan-panel .lipat-isi > .row > .ks-blok:nth-child(2) { border-top: 0; } }
     .ss-lencana { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 9px; font-size: 16px; }
     .ss-lencana.ss-ok { color: var(--dms-mint); background: rgba(37, 169, 121, .12); }
     .ss-lencana.ss-amaran { color: #b45309; background: rgba(245, 158, 11, .14); }
