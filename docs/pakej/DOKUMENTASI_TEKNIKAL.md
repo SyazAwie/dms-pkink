@@ -74,7 +74,7 @@ Beberapa ciri memerlukan perisian sistem tambahan dipasang **terus pada pelayan/
 
 | Perisian | Tujuan | Sumber Pemasangan |
 |---|---|---|
-| **Tesseract OCR** | Pengecaman teks (OCR) daripada imej/PDF imbasan | Windows: UB-Mannheim build; Linux: `apt install tesseract-ocr tesseract-ocr-msa`. Pek bahasa Malay (`msa`) + English (`eng`) |
+| **Tesseract OCR** | Pengecaman teks (OCR) daripada imej/PDF imbasan | Windows: UB-Mannheim build; Linux: `apt install tesseract-ocr tesseract-ocr-eng`. Pek bahasa English (`eng`; `OCR_BAHASA`) |
 | **Poppler (`pdftoppm`)** | Tukar muka surat PDF kepada imej sebelum OCR | Windows: poppler-windows (GitHub); Linux: `apt install poppler-utils` |
 | **Ollama** | Jalankan model AI secara tempatan | ollama.com/download |
 | **Model AI: SEA-LION** | LLM 8 bilion parameter untuk bahasa Asia Tenggara termasuk BM; mengekstrak nilai medan daripada teks OCR | aisingapore/Llama-SEA-LION-v3.5-8B-R, didaftarkan dalam Ollama sebagai `sea-lion-local` |
@@ -517,7 +517,7 @@ Alur: **Hantar** (pemohon, atau sesiapa yang boleh mengedit dokumen) → **Sokon
 **OCR manual:** butang "Jalankan OCR" bagi setiap fail dalam halaman Butiran Dokumen. **OCR automatik:** hanya dalam Imbas & Arkib / Imbas & Hantar. Alur teknikal (`OcrService`):
 
 1. PDF ditukar oleh `pdftoppm` kepada imej PNG 300dpi bagi setiap muka surat
-2. Bagi setiap muka surat, Tesseract (`msa+eng`, output TSV) dijalankan **serentak** atas imej asal dan imej yang garisan kotak/jadualnya dibuang (`BuangGarisan`, GD); hasil berkeyakinan lebih tinggi dipilih
+2. Bagi setiap muka surat, Tesseract (`eng`, output TSV) dijalankan **serentak** atas imej asal dan imej yang garisan kotak/jadualnya dibuang (`BuangGarisan`, GD); hasil berkeyakinan lebih tinggi dipilih
 3. Teks dikumpul **ikut baris**, dengan skor keyakinan purata
 4. Muka surat dengan skor di bawah `OCR_VLM_AMBANG` (80) dibaca semula oleh **GLM-OCR** (`VlmOcrService`); jika gagal, teks Tesseract kekal
 5. Disimpan ke `dokumen_ocr`, dan status fail dikemas kini (`Selesai` / `Ralat` / `Tiada Teks Dikesan`)
@@ -532,6 +532,7 @@ OCR berjalan di latar melalui **queue OCR** (lihat 5.8 dan Panduan Pemasangan): 
 |---|---|---|
 | Model AI **penuh dalam GPU** (`OLLAMA_NUM_GPU=99`, `OLLAMA_NUM_CTX=4096`); jika gagal dimuat, dicuba semula dengan tetapan lalai | `OllamaExtractionService`, `config/services.php` | RTX 3050 6GB: VRAM 75% → 100%, AI ~1.7× lebih laju |
 | Model kekal dimuat (`OLLAMA_KEEP_ALIVE=30m`) + **dipanaskan** bila halaman Imbas dibuka; `php artisan ai:panaskan` sebelum demo | `ImbasArkibController::panaskanAi` | Imbasan pertama tidak menunggu model dimuat (~7 s) |
+| **Bahasa Tesseract `eng`** (`OCR_BAHASA`, lalai sejak 2026-11-03) | `config/services.php`, `OcrService` | Diukur dengan `ocr:nilai` (2 larian setiap satu): `eng` 45/52 medan betul, OCR 31 s; `msa+eng` (tessdata_fast) 38/52, OCR 63 s. Penapis, templat dan ambang VLM ditala atas output `eng` |
 | **Buang garisan kotak/jadual** sebelum OCR; Tesseract serentak atas imej asal & imej bersih (`OCR_BUANG_GARISAN`) | `App\Support\BuangGarisan`, `OcrService` | Borang huruf dalam kotak: 65% → 81% keyakinan |
 | Teks OCR **kekal ikut baris** | `OcrService::uraiTsv` | AI padankan "Label: nilai" dengan lebih tepat |
 | Prompt: abaikan teks bercetak borang, jangan teka, JSON padat; label borang yang tersalin dibuang | `OllamaExtractionService::binaPrompt` | Kurang nilai rekaan; jawapan lebih pendek |

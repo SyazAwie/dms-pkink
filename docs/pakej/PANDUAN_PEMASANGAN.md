@@ -68,7 +68,7 @@ Formula kasar: **17 GB + 29 × saiz data**. Sandaran disyorkan pada cakera atau 
 | PHP | 8.3+ | Sambungan: `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `gd` (dengan FreeType), `iconv`, `mbstring`, `openssl`, `pdo_mysql`, `session`, `tokenizer`, `xml`, `zip` (libzip dengan AES), `zlib`; [Linux] `posix` (disyorkan) |
 | MySQL / MariaDB | MySQL 8.0+ atau MariaDB 10.4+ | Set aksara `utf8mb4` |
 | Pelayan web | [Windows] Apache 2.4 atau IIS; [Linux] nginx + PHP-FPM | Dokumen root = `public/` |
-| Tesseract OCR | 5.x dengan pek bahasa `msa` + `eng` | Pengecaman teks |
+| Tesseract OCR | 5.x dengan pek bahasa `eng` | Pengecaman teks |
 | Poppler (`pdftoppm`) | 22+ | PDF → imej untuk OCR |
 | Ollama | terkini | AI tempatan (tiada data dihantar ke luar) |
 | Antivirus | [Windows] Microsoft Defender; [Linux] ClamAV (`clamdscan`) | Imbas setiap fail yang dimuat naik |
@@ -164,7 +164,7 @@ Hanya folder `public/` boleh dicapai dari pelayar. Fail imbasan disimpan dalam `
 
 ### 3.5 Tesseract OCR & Poppler
 **[Windows]**
-1. Pasang Tesseract (pemasang UB-Mannheim, https://github.com/UB-Mannheim/tesseract/wiki); semasa pemasangan tandakan bahasa **Malay** dan **English**.
+1. Pasang Tesseract (pemasang UB-Mannheim, https://github.com/UB-Mannheim/tesseract/wiki). Pek bahasa **English** (`eng`) dipasang secara lalai dan memadai.
 2. Ekstrak Poppler untuk Windows (https://github.com/oschwartz10612/poppler-windows/releases) ke `C:\poppler`.
 3. Dalam `.env`:
    ```
@@ -174,11 +174,11 @@ Hanya folder `public/` boleh dicapai dari pelayar. Fail imbasan disimpan dalam `
 
 **[Linux]**
 ```
-sudo apt install tesseract-ocr tesseract-ocr-msa tesseract-ocr-eng poppler-utils
+sudo apt install tesseract-ocr tesseract-ocr-eng poppler-utils
 ```
 `.env`: `OCR_TESSERACT_BIN=/usr/bin/tesseract`, `OCR_PDFTOPPM_BIN=/usr/bin/pdftoppm`.
 
-Semak: `tesseract --list-langs` mesti menyenaraikan `msa` dan `eng`.
+Semak: `tesseract --list-langs` mesti menyenaraikan `eng`. Kekalkan `OCR_BAHASA=eng` dalam `.env`: ketepatan sistem diukur dan ditala dengan pek `eng`; gabungan `msa+eng` memberi keputusan lebih rendah dan pemprosesan lebih perlahan.
 
 ### 3.6 AI tempatan: Ollama & model
 1. Pasang Ollama (https://ollama.com/download). **[Linux]** `curl -fsSL https://ollama.com/install.sh | sh` (perkhidmatan `ollama` dicipta automatik). Pastikan pemacu NVIDIA dipasang jika ada GPU.
@@ -255,7 +255,7 @@ Log masuk sebagai SUPERADMIN → **Status Sistem**. Setiap baris sepatutnya hija
 
 | Semakan | Jika merah / kuning |
 |---|---|
-| Tesseract / pek bahasa | Laluan `OCR_TESSERACT_BIN` atau pek `msa` tiada (3.5) |
+| Tesseract / pek bahasa | Laluan `OCR_TESSERACT_BIN` atau pek bahasa dalam `OCR_BAHASA` tiada (3.5) |
 | Poppler | Laluan `OCR_PDFTOPPM_BIN` (3.5) |
 | Ollama / model | Ollama tidak berjalan atau model belum didaftar (3.6) |
 | Pekerja Latar OCR/AI | Tugas atau perkhidmatan pekerja latar (3.7) |
@@ -339,7 +339,7 @@ Selepas pemulihan: `php artisan optimize:clear`, kemudian log masuk dan buka beb
 |---|---|
 | Halaman putih / ralat 500 | Semak `storage/logs`; kebenaran `storage/` & `bootstrap/cache/`; `APP_KEY` kosong (`php artisan key:generate`) |
 | Ralat 419 (sesi tamat) semasa log masuk | `SESSION_SECURE_COOKIE=true` tetapi diakses melalui `http://`; atau `APP_URL` tidak sepadan |
-| "Tesseract not recognized" / OCR gagal | Laluan penuh binari dalam `.env` (3.5); pek bahasa `msa` |
+| "Tesseract not recognized" / OCR gagal | Laluan penuh binari dalam `.env` (3.5); pek bahasa `eng` |
 | Medan tidak diisi AI | Ollama tidak berjalan, model belum didaftar, atau tiada GPU (lebih perlahan). Status Sistem → Ollama |
 | Analisis kekal "Menunggu…" | Pekerja latar OCR tidak berjalan (3.7) |
 | Muat naik ditolak "imbasan antivirus tidak dapat dibuat" | Antivirus tiada/tidak berjalan; pasang (3.8) atau `ANTIVIRUS_WAJIB=false` sementara |

@@ -36,7 +36,7 @@ return [
     ],
 
     'ocr' => [
-        'bahasa' => env('OCR_BAHASA', 'msa+eng'),
+        'bahasa' => env('OCR_BAHASA', 'eng'),
         'tesseract_bin' => env('OCR_TESSERACT_BIN', 'tesseract'),
         'pdftoppm_bin' => env('OCR_PDFTOPPM_BIN', 'pdftoppm'),
         // Had masa (saat) bagi permintaan yang menjalankan OCR/AI secara segerak;
