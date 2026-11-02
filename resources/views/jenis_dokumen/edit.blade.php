@@ -33,7 +33,7 @@
                 @method('PUT')
 
                 <div class="mb-4">
-                    <label class="dms-label">Kod Dokumen <span class="text-danger">*</span></label>
+                    <label class="dms-label" for="kod_dokumen">Kod Dokumen <span class="text-danger">*</span></label>
                     <input type="text"
                            name="kod_dokumen"
                            id="kod_dokumen"
@@ -47,7 +47,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="dms-label">Nama Dokumen <span class="text-danger">*</span></label>
+                    <label class="dms-label" for="nama_dokumen">Nama Dokumen <span class="text-danger">*</span></label>
                     <input type="text"
                            name="nama_dokumen"
                            id="nama_dokumen"
@@ -60,7 +60,7 @@
                 </div>
 
                 <div class="mb-2">
-                    <label class="dms-label">Kategori Kumpulan <span class="dms-optional">(Pilihan)</span></label>
+                    <label class="dms-label" for="kategori">Kategori Kumpulan <span class="dms-optional">(Pilihan)</span></label>
                     <input type="text"
                            name="kategori"
                            id="kategori"
@@ -99,7 +99,7 @@
                 <div class="eav-section">
                     <div class="eav-header">
                         <div>
-                            <label class="dms-label mb-0">Medan Dokumen (EAV)</label>
+                            <div class="dms-label mb-0">Medan Dokumen (EAV)</div>
                             <div class="dms-hint mb-0">Medan input yang akan dipaparkan bila kakitangan muat naik dokumen jenis ini.</div>
                         </div>
                         <button type="button" id="btnTambahMedan" class="btn text-white save-btn eav-btn-tambah">

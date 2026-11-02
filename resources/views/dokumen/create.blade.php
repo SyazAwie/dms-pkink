@@ -42,7 +42,7 @@
                 @csrf
 
                 <div class="mb-4">
-                    <label class="dms-label">Jenis Dokumen <span class="text-danger">*</span></label>
+                    <label class="dms-label" for="jenis_dokumen_id">Jenis Dokumen <span class="text-danger">*</span></label>
                     <select name="jenis_dokumen_id"
                             id="jenis_dokumen_id"
                             class="dms-input @error('jenis_dokumen_id') is-invalid @enderror">
@@ -57,8 +57,8 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="dms-label">Tarikh Dokumen <span class="text-danger">*</span></label>
-                    <input type="date"
+                    <label class="dms-label" for="tarikh_dokumen">Tarikh Dokumen <span class="text-danger">*</span></label>
+                    <input id="tarikh_dokumen" type="date"
                            name="tarikh_dokumen"
                            class="dms-input @error('tarikh_dokumen') is-invalid @enderror"
                            value="{{ old('tarikh_dokumen', date('Y-m-d')) }}">
@@ -67,8 +67,8 @@
                 </div>
 
                 <div class="mb-2">
-                    <label class="dms-label">Perkara <span class="dms-optional">(Pilihan)</span></label>
-                    <input type="text"
+                    <label class="dms-label" for="perkara">Perkara <span class="dms-optional">(Pilihan)</span></label>
+                    <input id="perkara" type="text"
                            name="perkara"
                            class="dms-input @error('perkara') is-invalid @enderror"
                            value="{{ old('perkara') }}"
@@ -81,7 +81,7 @@
 
                 <!-- ============ Medan Dinamik (EAV) ikut Jenis Dokumen ============ -->
                 <div class="eav-section">
-                    <label class="dms-label mb-0">Medan Dokumen</label>
+                    <div class="dms-label mb-0">Medan Dokumen</div>
                     <div class="dms-hint mb-2">Medan berikut akan berubah automatik ikut Jenis Dokumen dipilih.</div>
 
                     {{-- Selepas ralat validasi, medan dirender di sini dengan nilai old(); jika tidak, dimuatkan melalui fetch() --}}
@@ -105,8 +105,8 @@
                 <hr class="dms-divider">
 
                 <div class="mb-2">
-                    <label class="dms-label">Fail Imbasan <span class="dms-optional">(Pilihan)</span></label>
-                    <input type="file"
+                    <label class="dms-label" for="fail_scan">Fail Imbasan <span class="dms-optional">(Pilihan)</span></label>
+                    <input id="fail_scan" type="file"
                            name="fail_scan[]"
                            class="dms-input @error('fail_scan') is-invalid @enderror"
                            accept=".pdf,.jpg,.jpeg,.png"

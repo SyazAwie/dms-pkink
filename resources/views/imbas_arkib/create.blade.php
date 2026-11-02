@@ -44,8 +44,8 @@
                 @csrf
 
                 <div class="mb-4">
-                    <label class="dms-label">Jenis Dokumen <span class="text-danger">*</span></label>
-                    <select name="jenis_dokumen_id" class="dms-input" required>
+                    <label class="dms-label" for="jenis_dokumen_id">Jenis Dokumen <span class="text-danger">*</span></label>
+                    <select id="jenis_dokumen_id" name="jenis_dokumen_id" class="dms-input" required>
                         <option value="">Pilih Jenis Dokumen...</option>
                         @foreach($jenisDokumenSenarai as $jd)
                             <option value="{{ $jd->jenis_dokumen_id }}" {{ $idTerpilih === $jd->jenis_dokumen_id ? 'selected' : '' }}>{{ $jd->nama_dokumen }} ({{ $jd->kod_dokumen }})</option>
@@ -55,8 +55,8 @@
                 </div>
 
                 <div class="mb-2">
-                    <label class="dms-label">Fail Imbasan <span class="text-danger">*</span></label>
-                    <input type="file" name="fail_scan" class="dms-input" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <label class="dms-label" for="fail_scan">Fail Imbasan <span class="text-danger">*</span></label>
+                    <input id="fail_scan" type="file" name="fail_scan" class="dms-input" accept=".pdf,.jpg,.jpeg,.png" required>
                     <div class="dms-hint">PDF, JPG, PNG sahaja. Maksimum 10MB. Satu fail setiap kali.</div>
                 </div>
 

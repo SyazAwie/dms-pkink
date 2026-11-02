@@ -32,7 +32,7 @@
                 @csrf
 
                 <div class="mb-4">
-                    <label class="dms-label">Kod Bahagian <span class="text-danger">*</span></label>
+                    <label class="dms-label" for="kod_bahagian">Kod Bahagian <span class="text-danger">*</span></label>
                     <input type="text"
                            name="kod_bahagian"
                            id="kod_bahagian"
@@ -46,7 +46,7 @@
                 </div>
 
                 <div class="mb-2">
-                    <label class="dms-label">Nama Bahagian <span class="text-danger">*</span></label>
+                    <label class="dms-label" for="nama_bahagian">Nama Bahagian <span class="text-danger">*</span></label>
                     <input type="text"
                            name="nama_bahagian"
                            id="nama_bahagian"
