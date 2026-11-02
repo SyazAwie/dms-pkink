@@ -11,14 +11,20 @@
     </div>
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-4"><div class="glass-panel kad-ringkas"><span>Berjaya hari ini</span><strong>{{ $ringkasan['berjaya'] }}</strong></div></div>
-    <div class="col-md-4"><div class="glass-panel kad-ringkas"><span>Gagal hari ini</span><strong class="{{ $ringkasan['gagal'] ? 'teks-gagal' : '' }}">{{ $ringkasan['gagal'] }}</strong></div></div>
-    <div class="col-md-4"><div class="glass-panel kad-ringkas"><span>Gagal 7 hari</span><strong>{{ $ringkasan['gagal7'] }}</strong></div></div>
+<div class="row g-2 g-md-3 mb-4">
+    <div class="col-4"><div class="glass-panel kad-ringkas"><span>Berjaya hari ini</span><strong>{{ $ringkasan['berjaya'] }}</strong></div></div>
+    <div class="col-4"><div class="glass-panel kad-ringkas"><span>Gagal hari ini</span><strong class="{{ $ringkasan['gagal'] ? 'teks-gagal' : '' }}">{{ $ringkasan['gagal'] }}</strong></div></div>
+    <div class="col-4"><div class="glass-panel kad-ringkas"><span>Gagal 7 hari</span><strong>{{ $ringkasan['gagal7'] }}</strong></div></div>
 </div>
 
-<div class="glass-panel filter-panel mb-4">
-    <form action="{{ route('log-masuk.index') }}" method="GET">
+{{-- Penapis berlipat; dibuka bila penapis digunakan atau ada ralat --}}
+@php $adaPenapis = request()->hasAny(['q', 'status', 'dari', 'hingga']); @endphp
+<x-lipat id="penapis-log-masuk" class="mb-4" tajuk="Tapis Log Masuk" ikon="bi-funnel"
+         sub="Ikut nama pengguna, status dan tarikh." :buka="$adaPenapis || $errors->any()">
+    @if($adaPenapis)
+        <x-slot:lencana><span class="badge lencana-penapis">Penapis aktif</span></x-slot:lencana>
+    @endif
+    <form action="{{ route('log-masuk.index') }}" method="GET" class="filter-panel">
         <div class="row g-3 align-items-end">
             <div class="col-lg-3 col-md-6">
                 <label class="dms-label" for="q">Nama Pengguna</label>
@@ -43,13 +49,13 @@
             </div>
             <div class="col-lg-3 d-flex gap-2">
                 <button type="submit" class="btn text-white save-btn flex-grow-1 justify-content-center"><i class="bi bi-funnel me-2"></i> Tapis</button>
-                @if(request()->hasAny(['q', 'status', 'dari', 'hingga']))
+                @if($adaPenapis)
                     <a href="{{ route('log-masuk.index') }}" class="outline-button text-decoration-none" title="Set semula"><i class="bi bi-x-circle"></i></a>
                 @endif
             </div>
         </div>
     </form>
-</div>
+</x-lipat>
 
 <div class="glass-panel overflow-hidden">
     <div class="table-responsive">
@@ -90,8 +96,7 @@
 
 @push('styles')
 <style>
-    .filter-panel { padding: 20px; }
-    .dms-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--dms-text); margin-bottom: 6px; }
+    .filter-panel { padding: 20px; }    .dms-label { display: block; font-size: 12.5px; font-weight: 700; color: var(--dms-text); margin-bottom: 6px; }
     .dms-input { width: 100%; padding: 10px 12px; border: 1px solid var(--dms-line); border-radius: 10px; background: var(--dms-surface-strong); font-size: 13px; color: var(--dms-text); }
     .dms-input.is-invalid { border-color: var(--dms-danger); }
     .dms-error { font-size: 11.5px; color: var(--dms-danger); font-weight: 600; margin-top: 6px; }
@@ -101,6 +106,11 @@
     .kad-ringkas { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; font-size: 12.5px; color: var(--dms-muted); font-weight: 700; }
     .kad-ringkas strong { color: var(--dms-brand); font-size: 22px; font-weight: 800; }
     .kad-ringkas .teks-gagal { color: var(--dms-danger); }
+    /* Telefon: tiga kad sebaris (angka di bawah label), bukan tiga baris penuh */
+    @media (max-width: 767.98px) {
+        .kad-ringkas { flex-direction: column-reverse; align-items: flex-start; justify-content: flex-end; gap: 2px; height: 100%; padding: 12px; font-size: 11px; line-height: 1.3; }
+        .kad-ringkas strong { font-size: 20px; line-height: 1.1; }
+    }
     .dms-table { font-size: 13px; }
     .dms-table thead th { color: var(--dms-muted); font-size: 11px; font-weight: 800; text-transform: uppercase; }
     .st-badge { font-weight: 700; padding: 5px 9px; border-radius: 6px; font-size: 10.5px; }

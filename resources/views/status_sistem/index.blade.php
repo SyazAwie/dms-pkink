@@ -18,9 +18,15 @@
     <div class="glass-panel ss-kad ss-ralat"><i class="bi bi-x-octagon" aria-hidden="true"></i><strong>{{ $ringkasan['ralat'] }}</strong><span>Ralat</span></div>
 </div>
 
+{{-- Setiap kumpulan berlipat; kumpulan yang ada ralat dibuka sendiri (amaran cukup ditanda pada lencana) --}}
 @foreach($kumpulan as $tajuk => $semakan)
-    <div class="glass-panel mb-4 overflow-hidden">
-        <div class="section-header px-4 pt-4 pb-3"><h3>{{ $tajuk }}</h3></div>
+    @php $bil = collect($semakan)->countBy('status'); @endphp
+    <x-lipat class="mb-3" :tajuk="$tajuk" :buka="($bil['ralat'] ?? 0) > 0">
+        <x-slot:lencana>
+            @if($bil['ralat'] ?? 0)<span class="badge ss-bil ss-bil-ralat">{{ $bil['ralat'] }} ralat</span>@endif
+            @if($bil['amaran'] ?? 0)<span class="badge ss-bil ss-bil-amaran">{{ $bil['amaran'] }} amaran</span>@endif
+            @if($bil['ok'] ?? 0)<span class="badge ss-bil ss-bil-ok">{{ $bil['ok'] }} baik</span>@endif
+        </x-slot:lencana>
         @foreach($semakan as $s)
             <div class="ss-baris">
                 <span class="ss-lencana ss-{{ $s['status'] }}" title="{{ ['ok' => 'Baik', 'amaran' => 'Amaran', 'ralat' => 'Ralat'][$s['status']] }}">
@@ -33,14 +39,12 @@
                 </div>
             </div>
         @endforeach
-    </div>
+    </x-lipat>
 @endforeach
 
 {{-- P16: ketepatan AI ikut pembetulan staf --}}
-<div class="glass-panel mb-4 overflow-hidden">
-    <div class="section-header px-4 pt-4 pb-3">
-        <h3>Ketepatan AI (Pembetulan Staf)</h3>
-    </div>
+<x-lipat class="mt-4 mb-4" tajuk="Ketepatan AI (Pembetulan Staf)" ikon="bi-bullseye"
+         sub="Nilai cadangan AI berbanding nilai akhir yang disimpan staf, ikut kategori.">
     @if($ketepatanAi['kategori']->isEmpty())
         <div class="ss-baris"><span></span><div class="ss-teks"><span>Belum ada data. Setiap dokumen yang disimpan melalui Imbas &amp; Arkib atau Imbas &amp; Hantar merekod nilai AI berbanding nilai akhir staf.</span></div></div>
     @else
@@ -69,7 +73,7 @@
             </ul>
         @endif
     @endif
-</div>
+</x-lipat>
 
 @endsection
 
@@ -82,7 +86,11 @@
     .ss-kad span { color: var(--dms-muted); font-size: 12px; font-weight: 700; }
     .ss-ok i { color: var(--dms-mint); } .ss-amaran i { color: #b45309; } .ss-ralat i { color: var(--dms-danger); }
     .ss-baris { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; padding: 12px 24px; border-top: 1px solid var(--dms-line); }
-    .section-header + .ss-baris { border-top: 0; padding-top: 16px; }
+    .section-header + .ss-baris, .lipat-isi > .ss-baris:first-child { border-top: 0; padding-top: 16px; }
+    .ss-bil { padding: 5px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+    .ss-bil-ok { color: var(--dms-mint); background: rgba(37, 169, 121, .12); }
+    .ss-bil-amaran { color: #b45309; background: rgba(245, 158, 11, .14); }
+    .ss-bil-ralat { color: var(--dms-danger); background: rgba(220, 53, 69, .1); }
     .ss-lencana { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 9px; font-size: 16px; }
     .ss-lencana.ss-ok { color: var(--dms-mint); background: rgba(37, 169, 121, .12); }
     .ss-lencana.ss-amaran { color: #b45309; background: rgba(245, 158, 11, .14); }

@@ -105,16 +105,10 @@
             </form>
         </div>
 
-        {{-- Tukar kata laluan --}}
-        <div class="glass-panel form-panel" id="tukar-kata-laluan">
-            <div class="section-header px-4 pt-4 pb-3">
-                <div>
-                    <h3>Tukar Kata Laluan</h3>
-                    <p>Sekurang-kurangnya 8 aksara, mengandungi huruf dan nombor.</p>
-                </div>
-            </div>
-
-            <form action="{{ route('profil.kata-laluan') }}" method="POST" class="px-4 pb-4">
+        {{-- Tukar kata laluan (berlipat; dibuka semula bila ada ralat) --}}
+        <x-lipat id="tukar-kata-laluan" class="mb-4" tajuk="Tukar Kata Laluan" ikon="bi-key"
+                 sub="Sekurang-kurangnya 8 aksara, mengandungi huruf dan nombor." :buka="$ralatKataLaluan->any()">
+            <form action="{{ route('profil.kata-laluan') }}" method="POST" class="px-4 pb-4 pt-4">
                 @csrf
                 @method('PUT')
 
@@ -146,19 +140,21 @@
                     </button>
                 </div>
             </form>
-        </div>
+        </x-lipat>
 
-        {{-- Pengesahan dua faktor (P13) --}}
-        @php $ralat2fa = $errors->duaFaktor; @endphp
-        <div class="glass-panel form-panel mt-4" id="dua-faktor">
-            <div class="section-header px-4 pt-4 pb-3 d-flex justify-content-between align-items-start gap-2">
-                <div>
-                    <h3>Pengesahan Dua Faktor (2FA)</h3>
-                    <p>Selain kata laluan, log masuk memerlukan kod 6 digit daripada aplikasi Google atau Microsoft Authenticator di telefon anda.</p>
-                </div>
+        {{-- Pengesahan dua faktor (P13). Dibuka sendiri bila 2FA wajib tetapi belum aktif, semasa pendaftaran
+             (QR / kod pemulihan dipapar) atau ada ralat; redirect ke #dua-faktor juga membukanya. --}}
+        @php
+            $ralat2fa = $errors->duaFaktor;
+            $buka2fa = $ralat2fa->any() || session('kod_pemulihan') || $rahsiaBaharu || ($duaFaktorWajib && ! $user->duaFaktorAktif());
+        @endphp
+        <x-lipat id="dua-faktor" class="mb-4" tajuk="Pengesahan Dua Faktor (2FA)" ikon="bi-phone"
+                 sub="Selain kata laluan, log masuk memerlukan kod 6 digit daripada aplikasi Google atau Microsoft Authenticator di telefon anda."
+                 :buka="$buka2fa">
+            <x-slot:lencana>
                 <span class="badge fa-status {{ $user->duaFaktorAktif() ? 'fa-aktif' : 'fa-mati' }}">{{ $user->duaFaktorAktif() ? 'Aktif' : 'Tidak aktif' }}</span>
-            </div>
-            <div class="px-4 pb-4 pt-3">
+            </x-slot:lencana>
+            <div class="px-4 pb-4 pt-4">
                 @if(session('kod_pemulihan'))
                     <div class="fa-kod-pemulihan mb-3">
                         <strong><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i> Simpan kod pemulihan ini sekarang.</strong>
@@ -223,17 +219,16 @@
                     </form>
                 @endif
             </div>
-        </div>
+        </x-lipat>
 
         {{-- Aktiviti log masuk terkini (P13) --}}
-        <div class="glass-panel form-panel mt-4">
-            <div class="section-header px-4 pt-4 pb-3">
-                <div>
-                    <h3>Log Masuk Terkini</h3>
-                    <p>Jika ada cubaan yang tidak anda kenali, tukar kata laluan dan hubungi pentadbir sistem.</p>
-                </div>
-            </div>
-            <ul class="fa-log px-4 pb-3 pt-2 mb-0">
+        @php $bilGagal = $logMasukTerkini->where('berjaya', false)->count(); @endphp
+        <x-lipat id="log-masuk-terkini" tajuk="Log Masuk Terkini" ikon="bi-clock-history"
+                 sub="Jika ada cubaan yang tidak anda kenali, tukar kata laluan dan hubungi pentadbir sistem.">
+            @if($bilGagal)
+                <x-slot:lencana><span class="badge fa-status fa-gagal">{{ $bilGagal }} gagal</span></x-slot:lencana>
+            @endif
+            <ul class="fa-log px-4 pb-3 pt-3 mb-0">
                 @forelse($logMasukTerkini as $l)
                     <li>
                         <span class="badge fa-status {{ $l->berjaya ? 'fa-aktif' : 'fa-gagal' }}">{{ $l->berjaya ? 'Berjaya' : 'Gagal' }}</span>
@@ -244,7 +239,7 @@
                     <li class="dms-hint">Belum ada rekod.</li>
                 @endforelse
             </ul>
-        </div>
+        </x-lipat>
     </div>
 
     <div class="col-lg-4">
