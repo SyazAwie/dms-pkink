@@ -239,7 +239,7 @@ class AntrianOcrTest extends TestCase
         $this->assertTrue(AnalisisImbasService::bacaMeta($token)['paksa_vlm']);
 
         $this->jalankanKerjaImbas();
-        $this->ocr->shouldHaveReceived('proses')->with(\Mockery::any(), true)->once();
+        $this->ocr->shouldHaveReceived('proses')->with(\Mockery::any(), true, 'local', null)->once();
         $meta = AnalisisImbasService::bacaMeta($token);
         $this->assertSame('siap', $meta['status']);
         $this->assertArrayNotHasKey('paksa_vlm', $meta);

@@ -56,7 +56,7 @@ class OcrService
      *
      * @throws \RuntimeException jika tesseract/pdftoppm gagal atau tiada dalam PATH
      */
-    public function proses(string $laluanRelatifDiskLocal, bool $paksaVlm = false, string $disk = 'local'): array
+    public function proses(string $laluanRelatifDiskLocal, bool $paksaVlm = false, string $disk = 'local', ?BezaTemplatService $beza = null): array
     {
         $laluanPenuh = Storage::disk($disk)->path($laluanRelatifDiskLocal);
 
@@ -86,8 +86,11 @@ class OcrService
             $vlm = app(VlmOcrService::class);
             $ambang = (float) config('services.ocr.vlm_ambang', 80);
 
-            foreach ($failImej as $imej) {
-                [$teks, $skor] = $this->ocrTerbaik($imej, $folderSementara);
+            foreach ($failImej as $indeks => $imej) {
+                $ocrMuka = $this->ocrTerbaik($imej, $folderSementara);
+                [$teks, $skor] = $ocrMuka;
+                // TB4: beza dengan templat semasa imej muka surat masih wujud (bantuan sahaja)
+                $beza?->muka($indeks, $imej, $ocrMuka[2] ?? []);
                 $enjinMuka = 'tesseract';
 
                 if ($vlm->aktif() && ($paksaVlm || $skor === null || $skor < $ambang)) {
@@ -155,7 +158,7 @@ class OcrService
      * imej asal dan imej tanpa garisan kotak/jadual (App\Support\BuangGarisan); hasil dengan
      * skor keyakinan lebih tinggi dipilih, jadi dokumen tanpa kotak tidak menjadi lebih teruk.
      *
-     * @return array{0: string, 1: float|null}
+     * @return array{0: string, 1: float|null, 2?: list<array>} teks, skor, perkataan TSV
      */
     protected function ocrTerbaik(string $laluanImej, string $folderSementara): array
     {
@@ -192,7 +195,7 @@ class OcrService
             }
         }
 
-        return [$hasil[0], $hasil[1]];
+        return [$hasil[0], $hasil[1], $hasil[2] ?? []];
     }
 
     /** Mulakan tesseract (tak segerak) atas SATU imej, output TSV (teks + skor keyakinan sekali). */
