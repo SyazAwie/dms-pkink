@@ -218,6 +218,22 @@ class TemplatBorangTest extends TestCase
         $this->assertSame(['Nyahaktifkan Templat', 'Padam Templat'], LogAudit::where('nama_jadual', 'templat_borang')->orderBy('log_audit_id')->pluck('tindakan')->all());
     }
 
+    public function test_padam_templat_buang_cache_latar_dan_cache_yatim(): void
+    {
+        $t = $this->templat($this->jenis);
+        $kekal = $this->templat($this->jenis, self::TEKS_TEMPLAT, ['versi' => 2]);
+        $local = Storage::disk('local');
+        $local->put("templat_cache/{$t->templat_borang_id}_abc123/meta.json", '[]');
+        $local->put("templat_cache/{$kekal->templat_borang_id}_def456/meta.json", '[]');
+        $local->put('templat_cache/9999_yatim/meta.json', '[]');
+
+        $this->actingAs($this->admin)->delete(route('templat.destroy', $t->templat_borang_id))->assertSessionHas('success');
+
+        $this->assertFalse($local->exists("templat_cache/{$t->templat_borang_id}_abc123"));
+        $this->assertFalse($local->exists('templat_cache/9999_yatim'));
+        $this->assertTrue($local->exists("templat_cache/{$kekal->templat_borang_id}_def456/meta.json"));
+    }
+
     public function test_bukan_pentadbir_tidak_boleh_urus_templat(): void
     {
         $t = $this->templat($this->jenis);

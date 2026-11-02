@@ -57,6 +57,15 @@ return [
         'vlm_aktif' => (bool) env('OCR_VLM_AKTIF', true),
         'vlm_model' => env('OCR_VLM_MODEL', 'glm-ocr:q8_0'),
         'vlm_ambang' => (float) env('OCR_VLM_AMBANG', 80),
+        // TB4: beza imej templat borang kosong (disusun TB6) dengan imbasan: medan tanpa dakwat
+        // pengisi = kosong, dan keratan dakwat dibaca semula sebagai petunjuk AI
+        // (App\Services\BezaTemplatService). Ambang dakwat: piksel 300dpi & nisbah luas kotak.
+        // Ukuran 4 borang BD: 44 -> 45/52 (biasa & tanpa few-shot, 2 larian setiap satu), +~0.5 s OCR.
+        'beza_templat' => (bool) env('OCR_BEZA_TEMPLAT', true),
+        'beza_min_piksel' => (int) env('OCR_BEZA_MIN_PIKSEL', 60),
+        'beza_min_nisbah' => (float) env('OCR_BEZA_MIN_NISBAH', 0.003),
+        // Bacaan semula keratan dakwat diberi kepada AI hanya jika keyakinan Tesseract >= ini
+        'beza_min_yakin' => (float) env('OCR_BEZA_MIN_YAKIN', 70),
     ],
 
     // 2FA (P13): wajib bagi SUPERADMIN/ADMIN bila true. Kekal false hingga serahan (Fasa H)

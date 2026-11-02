@@ -112,6 +112,26 @@ class BorangSiapService
     }
 
     /**
+     * Padam cache latar templat ini, dan cache yatim bagi templat yang sudah tiada / dipadam
+     * (folder templat_cache/{id}_{hash}). Dipanggil bila templat dipadam.
+     */
+    public function bersihCache(?TemplatBorang $templat = null): int
+    {
+        $local = Storage::disk('local');
+        $hidup = TemplatBorang::pluck('templat_borang_id')->map(fn ($id) => (int) $id)->flip();
+        $dipadam = 0;
+        foreach ($local->directories('templat_cache') as $folder) {
+            $id = (int) strtok(basename($folder), '_');
+            if (($templat && $id === (int) $templat->templat_borang_id) || ! $hidup->has($id)) {
+                $local->deleteDirectory($folder);
+                $dipadam++;
+            }
+        }
+
+        return $dipadam;
+    }
+
+    /**
      * Jana PDF borang siap.
      *
      * @param  array<int|string, string|null>  $nilai  dokumen_field_id => nilai_data

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\JenisDokumen;
 use App\Models\PembetulanAi;
+use App\Services\BezaTemplatService;
 use App\Services\OcrService;
 use App\Services\OllamaExtractionService;
 use App\Services\TemplatBorangService;
@@ -32,6 +33,8 @@ class OcrNilai extends Command
         {--jana-label= : Kod kategori; jana draf label bagi fail yang belum berlabel}
         {--tanpa-few-shot : Matikan contoh pembetulan staf (P16) dalam prompt}
         {--tanpa-templat : Jangan tanda isian berbanding templat borang kosong (Fasa TB)}
+        {--beza : Paksa hidup beza imej templat (TB4, OCR_BEZA_TEMPLAT)}
+        {--tanpa-beza : Paksa mati beza imej templat (TB4)}
         {--simpan= : Tulis laporan penuh (JSON) ke fail ini}';
 
     protected $description = 'Ukur ketepatan OCR + AI setiap medan terhadap dokumen berlabel';
@@ -45,6 +48,9 @@ class OcrNilai extends Command
             $this->error("Folder tidak dijumpai: {$folder}");
 
             return self::FAILURE;
+        }
+        if ($this->option('beza') || $this->option('tanpa-beza')) {
+            config(['services.ocr.beza_templat' => (bool) $this->option('beza')]);
         }
         if ($this->option('tanpa-few-shot')) {
             config(['services.ollama.few_shot' => false]);
@@ -187,12 +193,13 @@ class OcrNilai extends Command
 
         try {
             $mula = microtime(true);
-            $ocr = app(OcrService::class)->proses($sementara);
+            $beza = BezaTemplatService::untuk($jenis);
+            $ocr = app(OcrService::class)->proses($sementara, false, 'local', $beza);
             $masaOcr = round(microtime(true) - $mula, 1);
 
             $mula = microtime(true);
             $teksAi = $this->option('tanpa-templat') ? $ocr['teks'] : app(TemplatBorangService::class)->tandaIsian($ocr['teks'], $jenis)['teks'];
-            $ekstrak = $ocr['teks'] === '' ? [] : app(OllamaExtractionService::class)->ekstrak($teksAi, $jenis->fields, true);
+            $ekstrak = $ocr['teks'] === '' ? [] : app(OllamaExtractionService::class)->ekstrak($teksAi, $jenis->fields, true, $beza?->hasil() ?? []);
             $masaAi = round(microtime(true) - $mula, 1);
         } finally {
             Storage::disk('local')->delete($sementara);

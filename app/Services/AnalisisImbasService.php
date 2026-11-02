@@ -217,7 +217,9 @@ class AnalisisImbasService
 
         try {
             $mula = microtime(true);
-            $ocr = app(OcrService::class)->proses($laluanFail, $paksaVlm);
+            // TB4: beza imej dengan templat borang kosong yang disusun (null = mati / tiada templat)
+            $beza = BezaTemplatService::untuk($jenisDokumen);
+            $ocr = app(OcrService::class)->proses($laluanFail, $paksaVlm, 'local', $beza);
             $hasil['masa']['ocr'] = round(microtime(true) - $mula, 1);
             $hasil['teks_ocr'] = $ocr['teks'];
             $hasil['skor_ocr'] = $ocr['skor'];
@@ -245,7 +247,7 @@ class AnalisisImbasService
 
                 $mula = microtime(true);
                 // Turut ekstrak Tarikh Dokumen & Perkara (medan asas, bukan EAV)
-                $hasil['nilai_ekstrak'] = app(OllamaExtractionService::class)->ekstrak($isian['teks'], self::medanUntukMod($jenisDokumen, $modHantar), true);
+                $hasil['nilai_ekstrak'] = app(OllamaExtractionService::class)->ekstrak($isian['teks'], self::medanUntukMod($jenisDokumen, $modHantar), true, $beza?->hasil() ?? []);
                 $hasil['masa']['ai'] = round(microtime(true) - $mula, 1);
             }
         } catch (\Throwable $e) {

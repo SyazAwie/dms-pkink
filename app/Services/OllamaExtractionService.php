@@ -43,11 +43,12 @@ class OllamaExtractionService
      * @param  string  $teksOcr  Teks mentah hasil OcrService::proses()
      * @param  Collection<DokumenField>  $medan
      * @param  bool  $medanAsas  true = turut ekstrak Tarikh Dokumen & Perkara (kunci TARIKH_DOKUMEN/PERKARA)
+     * @param  array<int|string, array>  $beza  TB4 BezaTemplatService::hasil(): dakwat & bacaan semula setiap medan
      * @return array<int|string, mixed> dokumen_field_id => nilai (null jika tak dijumpai/tak sah)
      *
      * @throws \RuntimeException jika Ollama tidak dapat dihubungi atau pulangkan JSON tak sah
      */
-    public function ekstrak(string $teksOcr, Collection $medan, bool $medanAsas = false): array
+    public function ekstrak(string $teksOcr, Collection $medan, bool $medanAsas = false, array $beza = []): array
     {
         // Tajuk seksyen tiada nilai, jadi tidak dihantar kepada AI
         $medan = $medan->filter(fn ($f) => JenisMedan::adaNilai($f))->values();
@@ -59,7 +60,7 @@ class OllamaExtractionService
 
         $badan = [
             'model' => $this->model,
-            'prompt' => $this->binaPrompt(self::normalTahun($teksOcr), $medan, $medanAsas),
+            'prompt' => $this->binaPrompt(self::normalTahun($teksOcr), $medan, $medanAsas, $beza),
             'format' => 'json',
             'stream' => false,
             'keep_alive' => config('services.ollama.keep_alive', '30m'),
@@ -92,7 +93,7 @@ class OllamaExtractionService
             throw new \RuntimeException('Model AI tidak pulangkan JSON yang sah: '.substr((string) $teksJson, 0, 300));
         }
 
-        return $this->bersihkanNilai($data, $medan, $teksOcr)
+        return $this->bersihkanNilai($data, $medan, $teksOcr, $beza)
             + ($medanAsas ? $this->bersihkanAsas($data) : []);
     }
 
@@ -143,7 +144,7 @@ class OllamaExtractionService
             ->post("{$this->urlAsas}/api/generate", $badan);
     }
 
-    private function binaPrompt(string $teksOcr, Collection $medan, bool $medanAsas = false): string
+    private function binaPrompt(string $teksOcr, Collection $medan, bool $medanAsas = false, array $beza = []): string
     {
         // Nama medan + panduan format ikut jenis data (App\Support\JenisMedan)
         $senaraiMedan = $medan
@@ -153,7 +154,7 @@ class OllamaExtractionService
                 '- kod "'.self::PERKARA.'" (Perkara): tajuk utama dokumen seperti tertulis (perkara surat/memo, tajuk penuh minit mesyuarat, atau nama borang), maksimum 200 aksara'
             ))
             ->implode("\n");
-        $contoh = $this->blokPembetulan($medan);
+        $contoh = $this->blokPembetulan($medan).self::blokBeza($medan, $beza);
         // T6: peraturan penanda tanda visual hanya bila teks mengandunginya, supaya prompt
         // dokumen lain (memo, surat, minit, tulisan tangan melalui VLM) kekal sama seperti dahulu
         $peraturanTanda = preg_match(TandaVisual::CORAK_PENANDA, $teksOcr)
@@ -276,14 +277,14 @@ PROMPT;
      * Sahkan setiap nilai ikut jenis_data medan (peraturan sama dengan borang);
      * nilai tak sah jadi null. Nilai dipulangkan dalam bentuk simpanan.
      */
-    private function bersihkanNilai(array $data, Collection $medan, string $teksOcr = ''): array
+    private function bersihkanNilai(array $data, Collection $medan, string $teksOcr = '', array $beza = []): array
     {
         // Label borang yang disalin sebagai nilai (cth. "Jabatan/ Bahagian" bagi medan nama) dibuang
         $label = $medan->map(fn ($f) => self::normalLabel($f->nama_field))->filter()->flip();
         $digitOcr = preg_replace('/\D+/', '', $teksOcr);
 
         return $medan
-            ->mapWithKeys(function ($f) use ($data, $label, $digitOcr, $teksOcr) {
+            ->mapWithKeys(function ($f) use ($data, $label, $digitOcr, $teksOcr, $beza) {
                 $nilai = $data[$f->kod_field] ?? null;
                 if (in_array($f->jenis_data, ['tarikh', 'tarikh_masa'], true)) {
                     $nilai = self::normalTarikhAi($nilai);
@@ -297,6 +298,10 @@ PROMPT;
                     || preg_match(TandaVisual::CORAK_PENANDA, $nilai)
                     || (in_array($f->jenis_data, ['teks', 'textarea'], true) && self::teksBercetak($nilai, $teksOcr, $f->nama_field)))) {
                     $nilai = null;
+                }
+                // Akhiran bercetak yang melekat pada isian (cth. "syazmi" + "@pkink.gov.my" bercetak)
+                if (is_string($nilai) && $f->jenis_data === 'teks') {
+                    $nilai = self::buangAkhiranBercetak($nilai, $teksOcr);
                 }
                 $nilai = JenisMedan::bersihkanAi($f, $nilai);
 
@@ -317,9 +322,58 @@ PROMPT;
                     $nilai = null;
                 }
 
+                // TB4: kotak medan pada imbasan tiada dakwat pengisi langsung = kosong pasti
+                if ($nilai !== null && ($beza[$f->dokumen_field_id]['kosong'] ?? false)
+                    && in_array($f->jenis_data, BezaTemplatService::JENIS_DINILAI, true)) {
+                    $nilai = null;
+                }
+
                 return [$f->dokumen_field_id => $nilai];
             })
             ->all();
+    }
+
+    /**
+     * TB4: bacaan semula keratan dakwat (tanpa cetakan borang) bagi medan yang yakin dibaca,
+     * sebagai petunjuk ejaan/digit. Kosong (prompt tidak berubah) bila tiada.
+     */
+    private static function blokBeza(Collection $medan, array $beza): string
+    {
+        $min = (float) config('services.ocr.beza_min_yakin', 70);
+        $baris = $medan
+            ->filter(fn ($f) => ($h = $beza[$f->dokumen_field_id] ?? null) && ! $h['kosong'] && $h['teks'] !== null && ($h['conf'] ?? 0) >= $min)
+            ->map(fn ($f) => "- kod \"{$f->kod_field}\": ".json_encode($beza[$f->dokumen_field_id]['teks'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->implode('
+');
+
+        return $baris === '' ? '' : "
+Bacaan semula tulisan pengisi bagi medan berikut (imej ruang medan itu sahaja, tanpa cetakan borang).
+Guna untuk membetulkan ejaan/digit nilai yang kabur dalam Teks OCR; jangan salin label:
+{$baris}
+";
+    }
+
+    /**
+     * Teks bercetak borang yang melekat pada hujung isian tanpa ruang, cth. AI memulangkan
+     * "SYAZMI@pkink.gov.my" bagi username kerana borang mencetak "@pkink.gov.my" selepas
+     * kotak. Dibuang hanya jika (1) teks bertanda isian «…» (ada templat), (2) akhiran bermula
+     * dengan tanda baca dan tiada ruang, (3) tiada perkataan akhiran dalam isian, dan (4) akhiran
+     * wujud dalam teks bercetak. Nilai lain dipulangkan tanpa perubahan.
+     */
+    public static function buangAkhiranBercetak(string $nilai, string $teksOcr): string
+    {
+        if (! preg_match_all('/«([^»]*)»/u', $teksOcr, $m)
+            || ! preg_match('/^(.*?[\p{L}\p{N}])([@.\/_\-][\p{L}\p{N}@.\/_\-]*)$/u', trim($nilai), $bahagian)) {
+            return $nilai;
+        }
+        $isian = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower(implode(' ', $m[1])), -1, PREG_SPLIT_NO_EMPTY);
+        $token = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($bahagian[2]), -1, PREG_SPLIT_NO_EMPTY);
+        if (! $token || array_intersect($token, $isian)) {
+            return $nilai;
+        }
+        $cetakan = self::normalLabel(preg_replace('/«[^»]*»/u', ' ', $teksOcr));
+
+        return str_contains($cetakan, self::normalLabel($bahagian[2])) ? trim($bahagian[1]) : $nilai;
     }
 
     /**
