@@ -236,6 +236,26 @@ class BorangSiapTest extends TestCase
         $this->assertEqualsWithDelta(297.0, $muka[0]['tinggi'], 0.1);
     }
 
+    public function test_medan_wang_tanpa_rm_bila_borang_sudah_mencetak_rm(): void
+    {
+        $caj = DokumenField::create(['jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'nama_field' => 'Caj Sewaan', 'kod_field' => 'caj',
+            'jenis_data' => 'wang', 'is_required' => false, 'susunan' => 5]);
+        $kotak = ['muka' => 1, 'x' => 0.5, 'y' => 0.8, 'w' => 0.3, 'h' => 0.02];
+        $templat = $this->templat();
+        $servis = app(BorangSiapService::class);
+
+        $kedudukan = KedudukanMedan::bersihkan(['medan' => [$caj->dokumen_field_id => ['kotak' => $kotak + ['tanpa_unit' => true]]]], $this->jenis->fresh()->fields);
+        $this->assertTrue($kedudukan['medan'][$caj->dokumen_field_id]['kotak']['tanpa_unit']);
+        $templat->update(['kedudukan_medan' => $kedudukan]);
+        $teks = $this->teksPdf($servis->jana($templat->fresh('jenisDokumen.fields'), [$caj->dokumen_field_id => '1250.00'], null, null));
+        $this->assertStringContainsString('(1,250.00) Tj', $teks);
+        $this->assertStringNotContainsString('RM 1,250.00', $teks);
+
+        // Lalai: dengan RM; nilai bukan boolean true diabaikan
+        $templat->update(['kedudukan_medan' => KedudukanMedan::bersihkan(['medan' => [$caj->dokumen_field_id => ['kotak' => $kotak + ['tanpa_unit' => 'ya']]]], $this->jenis->fresh()->fields)]);
+        $this->assertStringContainsString('(RM 1,250.00) Tj', $this->teksPdf($servis->jana($templat->fresh('jenisDokumen.fields'), [$caj->dokumen_field_id => '1250.00'], null, null)));
+    }
+
     public function test_cop_ikut_status_dan_qr_hanya_bila_diluluskan(): void
     {
         $servis = app(BorangSiapService::class);

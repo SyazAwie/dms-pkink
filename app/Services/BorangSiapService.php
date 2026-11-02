@@ -154,7 +154,8 @@ class BorangSiapService
                         continue;
                     }
                     if (isset($k['kotak']) && $k['kotak']['muka'] === $no) {
-                        $this->tulis($pdf, $this->mm($k['kotak'], $m), $this->teksNilai($medan, $v), $medan->jenis_data === 'textarea', $k['kotak']['saiz'] ?? null);
+                        $this->tulis($pdf, $this->mm($k['kotak'], $m), $this->teksNilai($medan, $v, $k['kotak']['tanpa_unit'] ?? false),
+                            $medan->jenis_data === 'textarea', $k['kotak']['saiz'] ?? null);
                     }
                     if (isset($k['pilihan'])) {
                         $this->pilihan($pdf, $m, $no, $medan, $k, $v);
@@ -455,7 +456,7 @@ class BorangSiapService
 
                     continue;
                 }
-                $this->tulis($pdf, $kotak, $this->teksNilai(MedanJadual::medanLajur($lajur), (string) $sel), true, $kl['saiz'] ?? null);
+                $this->tulis($pdf, $kotak, $this->teksNilai(MedanJadual::medanLajur($lajur), (string) $sel, $kl['tanpa_unit'] ?? false), true, $kl['saiz'] ?? null);
             }
         }
 
@@ -587,11 +588,14 @@ class BorangSiapService
         ];
     }
 
-    /** Nilai tersimpan → teks paparan atas borang (seperti JenisMedan::papar, tanpa HTML). */
-    public function teksNilai(DokumenField $medan, string $nilai): string
+    /**
+     * Nilai tersimpan → teks paparan atas borang (seperti JenisMedan::papar, tanpa HTML).
+     * $tanpaUnit: medan wang tanpa "RM" (borang sudah mencetaknya sebelum ruang isian).
+     */
+    public function teksNilai(DokumenField $medan, string $nilai, bool $tanpaUnit = false): string
     {
         return match ($medan->jenis_data) {
-            'wang' => is_numeric($nilai) ? 'RM '.number_format((float) $nilai, 2) : $nilai,
+            'wang' => is_numeric($nilai) ? ($tanpaUnit ? '' : 'RM ').number_format((float) $nilai, 2) : $nilai,
             'tarikh' => $this->formatTarikh($nilai, 'd/m/Y'),
             'tarikh_masa' => $this->formatTarikh($nilai, 'd/m/Y, H:i'),
             'kotak_semak' => implode(', ', JenisMedan::senaraiNilai($nilai)),

@@ -203,6 +203,21 @@
                 b.appendChild(buang);
             }
             senarai.appendChild(b);
+            // Medan wang: borang yang sudah mencetak "RM" sebelum ruang isian → tulis nombor sahaja
+            if (it.wang && ada) {
+                const d = document.createElement('label');
+                d.className = 'susun-tetapan';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.checked = !!dapat(it).tanpa_unit;
+                cb.addEventListener('change', () => {
+                    const k = dapat(it);
+                    if (cb.checked) k.tanpa_unit = true; else delete k.tanpa_unit;
+                    tandaBerubah();
+                });
+                d.append(cb, 'Tanpa "RM" (borang sudah mencetak RM)');
+                senarai.appendChild(d);
+            }
         });
         document.getElementById('bilDiletak').textContent = `${diletak} / ${ITEM.length} diletak`;
     };
@@ -310,6 +325,7 @@
                     const lama = dapat(seret.it);
                     const k = { muka: +halaman.dataset.muka, x: Math.min(p.x, seret.mula.x), y: Math.min(p.y, seret.mula.y), w, h };
                     if (lama && lama.saiz) k.saiz = lama.saiz;
+                    if (lama && lama.tanpa_unit) k.tanpa_unit = true;
                     tetap(seret.it, k);
                     binaSenarai();
                     lukis();
