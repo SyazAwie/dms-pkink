@@ -152,7 +152,7 @@ Route::middleware(['auth', 'wajib.tukar', 'wajib.dua.faktor'])->group(function (
     // ---- Dokumen: kebenaran dikawal oleh DokumenPolicy dalam controller (ikut peranan & skop) ----
     // Eksport CSV (P9): sebelum resource supaya tidak ditafsir sebagai dokumen/{id}
     Route::get('/dokumen/eksport', [DokumenController::class, 'eksport'])->name('dokumen.eksport');
-    Route::resource('dokumen', DokumenController::class);
+    Route::resource('dokumen', DokumenController::class)->parameters(['dokumen' => 'dokumen']);
     Route::get('/dokumen/scan/{id}/papar', [DokumenController::class, 'paparScan'])->name('dokumen.scan.papar');
     // Salinan bertera air (P11): nama pemuat turun + tarikh pada setiap muka surat, direkod dalam log audit
     Route::get('/dokumen/scan/{id}/muat-turun', [DokumenController::class, 'muatTurunScan'])->name('dokumen.scan.muat-turun');
