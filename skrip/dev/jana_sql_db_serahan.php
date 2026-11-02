@@ -33,7 +33,7 @@ const BAHAGIAN_UAT = 'BD'; // akaun UAT dalam Bahagian Digital
 $sumber = config('database.connections.mysql.database');
 $folderKeluar = dirname($akar).DIRECTORY_SEPARATOR.'Serahan_DMS_PKINK';
 @mkdir($folderKeluar.'/sql', 0775, true);
-@mkdir($folderKeluar.'/rahsia', 0775, true);
+@mkdir($folderKeluar.'/rahsia', 0700, true); // kata laluan sementara: pemilik sahaja
 
 // 1. Struktur (baca sahaja)
 $dump = config('services.sandaran.mysqldump_bin', 'mysqldump');
@@ -180,7 +180,11 @@ $md .= "| Peranan | Nama | No. KP (log masuk) | Kata laluan sementara | Emel |\n
 foreach ($senarai as [$kod, $nama, $ic, $kl, $emel]) {
     $md .= "| {$kod} | {$nama} | `{$ic}` | `{$kl}` | {$emel} |\n";
 }
-file_put_contents($folderKeluar.'/rahsia/AKAUN_UAT.md', $md);
+$failRahsia = $folderKeluar.'/rahsia/AKAUN_UAT.md';
+$umask = umask(0077);
+file_put_contents($failRahsia, $md);
+umask($umask);
+@chmod($failRahsia, 0600);
 
 echo "Ditulis: {$folderKeluar}/sql/bina_db_serahan.sql ({$bilJadual} jadual, {$bilFk} kunci asing)\n";
 echo "Ditulis: {$folderKeluar}/rahsia/AKAUN_UAT.md (8 akaun)\n";
