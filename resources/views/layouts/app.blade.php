@@ -475,22 +475,26 @@
                         </a>
                     </li>
                     @endif
+                    @php
+                        // Isi Digital dibuka dari Isi Borang (dokumen.create?jenis=) kekal di bawah menu Isi Borang
+                        $menuIsiBorang = request()->routeIs('isi-borang.*', 'imbas-hantar.*') || (request()->routeIs('dokumen.create') && request()->filled('jenis'));
+                    @endphp
                     @if(Auth::user()->can('create', \App\Models\Dokumen::class))
                     <li>
                         {{-- Isi Borang: pintu masuk Isi Digital & Imbas & Hantar --}}
-                        <a href="{{ route('isi-borang.index') }}" class="nav-link {{ request()->routeIs('isi-borang.*', 'imbas-hantar.*') ? 'active' : '' }}">
+                        <a href="{{ route('isi-borang.index') }}" class="nav-link {{ $menuIsiBorang ? 'active' : '' }}">
                             <i class="bi bi-ui-checks-grid" aria-hidden="true"></i>
                             <span>Isi Borang</span>
-                            @if(request()->routeIs('isi-borang.*', 'imbas-hantar.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                            @if($menuIsiBorang)<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
                     @endif
                     @if(Auth::user()->can('viewAny', \App\Models\Dokumen::class))
                     <li>
-                        <a href="{{ route('dokumen.index') }}" class="nav-link {{ request()->routeIs('dokumen.*') ? 'active' : '' }}">
+                        <a href="{{ route('dokumen.index') }}" class="nav-link {{ request()->routeIs('dokumen.*') && ! $menuIsiBorang ? 'active' : '' }}">
                             <i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i>
                             <span>Dokumen</span>
-                            @if(request()->routeIs('dokumen.*'))<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
+                            @if(request()->routeIs('dokumen.*') && ! $menuIsiBorang)<i class="bi bi-chevron-right" aria-hidden="true"></i>@endif
                         </a>
                     </li>
                     @endif
