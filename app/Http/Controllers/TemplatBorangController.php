@@ -7,6 +7,7 @@ use App\Models\JenisDokumen;
 use App\Models\LogAudit;
 use App\Models\TemplatBorang;
 use App\Rules\FailSelamat;
+use App\Services\BorangSiapService;
 use App\Services\TemplatBorangService;
 use App\Support\Demo;
 use Illuminate\Http\Request;
@@ -69,7 +70,7 @@ class TemplatBorangController extends Controller
         return back()->with('success', "Templat versi {$templat->versi} ".($templat->aktif ? 'diaktifkan.' : 'dinyahaktifkan.'));
     }
 
-    /** Padam (soft delete): fail kekal dalam Templat/ untuk jejak audit. */
+    /** Padam (soft delete): fail kekal dalam Templat/ untuk jejak audit; cache latar dibuang. */
     public function destroy($id)
     {
         $templat = TemplatBorang::findOrFail($id);
@@ -78,6 +79,8 @@ class TemplatBorangController extends Controller
         }
         $templat->delete();
         $this->log('Padam Templat', $templat, ['versi' => $templat->versi, 'nama_fail' => $templat->nama_asal], null);
+        // Imej latar borang siap (TB6) tidak diperlukan lagi; fail templat asal kekal untuk audit
+        app(BorangSiapService::class)->bersihCache($templat);
 
         return back()->with('success', "Templat versi {$templat->versi} dipadam.");
     }
