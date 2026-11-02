@@ -30,6 +30,12 @@ class Notifikasi
     /** Bilangan maksimum notifikasi yang dinilai untuk loceng (ditapis ikut peranan aktif). */
     private const HAD_LOCENG = 100;
 
+    /** Bilangan maksimum item yang dipaparkan dalam loceng. */
+    public const HAD_PAPARAN_LOCENG = 10;
+
+    /** Notifikasi yang sudah dibaca kekal dalam loceng selama tempoh ini (jam). */
+    public const JAM_DIBACA_LOCENG = 24;
+
     public static function permohonanDihantar(Borang $borang): void
     {
         [$rujukan, $nama, $url] = self::maklumatDokumen($borang);
@@ -107,10 +113,32 @@ class Notifikasi
      */
     public static function kelihatan(User $user, bool $belumDibacaSahaja = false, int $had = self::HAD_LOCENG): Collection
     {
-        $peranan = $user->kodPeranan();
         $query = $belumDibacaSahaja ? $user->unreadNotifications() : $user->notifications();
 
-        return $query->latest()->limit($had)->get()
+        return self::tapisPeranan($user, $query->latest()->limit($had)->get());
+    }
+
+    /**
+     * Notifikasi untuk loceng topbar: semua yang belum dibaca (supaya tidak terlepas) dan yang
+     * sudah dibaca hanya jika diterima dalam JAM_DIBACA_LOCENG terakhir, paling banyak
+     * HAD_PAPARAN_LOCENG item. Selebihnya kekal di halaman Notifikasi.
+     *
+     * @return Collection<int, \Illuminate\Notifications\DatabaseNotification>
+     */
+    public static function untukLoceng(User $user): Collection
+    {
+        $query = $user->notifications()->where(fn ($q) => $q->whereNull('read_at')
+            ->orWhere('created_at', '>=', now()->subHours(self::JAM_DIBACA_LOCENG)));
+
+        return self::tapisPeranan($user, $query->latest()->limit(self::HAD_LOCENG)->get())
+            ->take(self::HAD_PAPARAN_LOCENG)->values();
+    }
+
+    private static function tapisPeranan(User $user, Collection $notifikasi): Collection
+    {
+        $peranan = $user->kodPeranan();
+
+        return $notifikasi
             ->filter(fn ($n) => empty($n->data['peranan']) || array_intersect($n->data['peranan'], $peranan))
             ->values();
     }

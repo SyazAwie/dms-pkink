@@ -30,7 +30,7 @@ class NotifikasiController extends Controller
 
         return response()->json([
             'belum_dibaca' => Notifikasi::kelihatan($user, true)->count(),
-            'terkini' => Notifikasi::kelihatan($user, false, 30)->take(6)->map(fn ($n) => [
+            'terkini' => Notifikasi::untukLoceng($user)->map(fn ($n) => [
                 'id' => $n->id,
                 'tajuk' => $n->data['tajuk'] ?? 'Notifikasi',
                 'mesej' => $n->data['mesej'] ?? '',

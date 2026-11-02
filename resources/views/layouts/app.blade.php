@@ -427,7 +427,8 @@
 
             // Notifikasi dalam sistem (P-C), ditapis ikut peranan aktif (App\Support\Notifikasi)
             $bilBelumBaca = \App\Support\Notifikasi::kelihatan($penggunaSemasa, true)->count();
-            $notifTerkini = \App\Support\Notifikasi::kelihatan($penggunaSemasa, false, 30)->take(6);
+            // Loceng: belum dibaca + yang dibaca dalam 24 jam terakhir (yang lain di halaman Notifikasi)
+            $notifTerkini = \App\Support\Notifikasi::untukLoceng($penggunaSemasa);
             $labelLoceng = "Notifikasi: {$bilBelumBaca} belum dibaca"
                 . ($bilGiliran > 0 ? ", {$bilGiliran} perkara menunggu tindakan anda" : '');
         @endphp
@@ -688,7 +689,7 @@
                                         </span>
                                     </a>
                                 @empty
-                                    <div class="loceng-kosong"><i class="bi bi-bell-slash" aria-hidden="true"></i> Tiada notifikasi.</div>
+                                    <div class="loceng-kosong"><i class="bi bi-bell-slash" aria-hidden="true"></i> Tiada notifikasi baharu.</div>
                                 @endforelse
                             </div>
                             @if($bolehKelulusan)
@@ -907,7 +908,7 @@
                     teks.append(elemen('strong', '', n.tajuk), elemen('span', '', n.mesej), elemen('small', '', n.masa));
                     a.append(ikon(n), teks);
                     return a;
-                }) : [Object.assign(elemen('div', 'loceng-kosong', ' Tiada notifikasi.'))]));
+                }) : [Object.assign(elemen('div', 'loceng-kosong', ' Tiada notifikasi baharu.'))]));
             };
 
             let pertama = true;

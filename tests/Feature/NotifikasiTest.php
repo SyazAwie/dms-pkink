@@ -122,6 +122,31 @@ class NotifikasiTest extends TestCase
         $this->actingAs($this->staf)->get(route('notifikasi.buka', $id))->assertNotFound();
     }
 
+    public function test_loceng_hanya_belum_dibaca_dan_dibaca_dalam_24_jam(): void
+    {
+        $admin = $this->buatPengguna(['ADMIN']);
+        Notifikasi::amaranSistem('Lama dibaca', 'x');
+        Notifikasi::amaranSistem('Lama belum dibaca', 'x');
+        Notifikasi::amaranSistem('Baru dibaca', 'x');
+        $n = $admin->notifications()->get()->keyBy('data.tajuk');
+        $n['Lama dibaca']->forceFill(['created_at' => now()->subHours(25), 'read_at' => now()->subHours(24)])->save();
+        $n['Lama belum dibaca']->forceFill(['created_at' => now()->subDays(3)])->save();
+        $n['Baru dibaca']->forceFill(['read_at' => now()])->save();
+
+        $tajuk = $this->actingAs($admin)->getJson(route('notifikasi.ringkasan'))->json('terkini.*.tajuk');
+        $this->assertEqualsCanonicalizing(['Lama belum dibaca', 'Baru dibaca'], $tajuk);
+        $this->get(route('dashboard'))->assertSee('Baru dibaca')->assertDontSee('Lama dibaca');
+
+        // Halaman Notifikasi masih memaparkan semua
+        $this->get(route('notifikasi.index'))->assertSee('Lama dibaca');
+
+        // Paling banyak HAD_PAPARAN_LOCENG item
+        foreach (range(1, Notifikasi::HAD_PAPARAN_LOCENG + 3) as $i) {
+            Notifikasi::amaranSistem("Banyak {$i}", 'x');
+        }
+        $this->assertCount(Notifikasi::HAD_PAPARAN_LOCENG, $this->getJson(route('notifikasi.ringkasan'))->json('terkini'));
+    }
+
     public function test_notifikasi_ditapis_ikut_peranan_aktif(): void
     {
         $dua = $this->buatPengguna(['STAFF', 'PENYOKONG']);
