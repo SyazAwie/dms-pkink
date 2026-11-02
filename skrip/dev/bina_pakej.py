@@ -143,7 +143,8 @@ def main() -> int:
             else:
                 z.write(laluan, rel.as_posix())
     h = hashlib.sha256(nama_zip.read_bytes()).hexdigest()
-    (LUAR / 'SHA256SUMS.txt').write_text(f'{h}  {nama_zip.name}\n', encoding='utf-8')
+    # Hujung baris LF: `sha256sum -c` di Linux gagal membaca nama fail jika CRLF
+    (LUAR / 'SHA256SUMS.txt').write_bytes(f'{h}  {nama_zip.name}\n'.encode('utf-8'))
     print(f'Siap (commit {commit}): {nama_zip.name} ({nama_zip.stat().st_size / 1048576:.1f} MB)\nSHA-256: {h}')
     return 0
 

@@ -77,7 +77,7 @@ class StatusSistemController extends Controller
     {
         return [
             config('app.debug')
-                ? $this->semakan('Mod debug', 'amaran', 'APP_DEBUG=true', 'Tetapkan APP_DEBUG=false sebelum demo awam / produksi.')
+                ? $this->semakan('Mod debug', 'amaran', 'APP_DEBUG=true', 'Tetapkan APP_DEBUG=false sebelum sistem digunakan secara rasmi.')
                 : $this->semakan('Mod debug', 'ok', 'APP_DEBUG=false'),
             $this->semakan('Persekitaran', 'ok', config('app.env').' · '.config('app.locale').' · '.config('app.timezone')),
         ];
@@ -140,7 +140,7 @@ class StatusSistemController extends Controller
             }
             $panas = $dimuat->contains(fn ($m) => $m === $nama || str_starts_with($m, $nama.':'));
 
-            return $this->semakan($label, 'ok', $nama.($panas ? ' · dimuat dalam memori' : ''), $panas ? null : 'Belum dimuat: php artisan ai:panaskan sebelum demo.');
+            return $this->semakan($label, 'ok', $nama.($panas ? ' · dimuat dalam memori' : ''), $panas ? null : 'Belum dimuat ke memori. Jalankan php artisan ai:panaskan supaya analisis pertama lebih pantas.');
         };
 
         return [
