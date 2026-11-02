@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 
 /**
@@ -116,7 +117,20 @@ class PemeriksaFail
         $arahan = $this->jenis() === 'clamav'
             ? [$bin, '--no-summary', $laluan]
             : [$bin, '-Scan', '-ScanType', '3', '-File', $laluan, '-DisableRemediation'];
-        $proses = new Process($arahan);
+        // Defender gagal dimulakan (0x800700a1) bila persekitaran proses PHP tidak lengkap, cth.
+        // di bawah `php artisan serve` atau sesetengah konfigurasi pelayan web: bekalkan pemboleh
+        // ubah sistem Windows yang diperlukan secara eksplisit.
+        $persekitaran = $this->jenis() === 'defender' && PHP_OS_FAMILY === 'Windows' ? array_filter([
+            'SystemRoot' => getenv('SystemRoot') ?: 'C:\\Windows',
+            'windir' => getenv('windir') ?: (getenv('SystemRoot') ?: 'C:\\Windows'),
+            'ProgramData' => getenv('ProgramData') ?: 'C:\\ProgramData',
+            // Tanpa ALLUSERSPROFILE: "autoInitMpCmdRun.Initialize failed with 0x800700a1"
+            'ALLUSERSPROFILE' => getenv('ALLUSERSPROFILE') ?: (getenv('ProgramData') ?: 'C:\\ProgramData'),
+            'ProgramFiles' => getenv('ProgramFiles') ?: 'C:\\Program Files',
+            'TEMP' => getenv('TEMP') ?: sys_get_temp_dir(),
+            'TMP' => getenv('TMP') ?: sys_get_temp_dir(),
+        ]) : null;
+        $proses = new Process($arahan, null, $persekitaran);
         $proses->setTimeout((int) config('services.keselamatan.antivirus_had_masa', 60));
 
         try {
@@ -125,21 +139,39 @@ class PemeriksaFail
             return $this->tanpaImbasan('Pengimbas antivirus gagal dijalankan: '.$e->getMessage());
         }
 
-        // Defender: 0 bersih, 2 ancaman ditemui. ClamAV: 0 bersih, 1 dijangkiti, 2 ralat.
+        // ClamAV: 0 bersih, 1 dijangkiti, 2 ralat. Defender: 0 bersih, 2 = ancaman ditemui ATAU
+        // imbasan gagal (cth. "CmdTool: Failed with hr = 0x80508023"), jadi kod 2 hanya dianggap
+        // ancaman bila output melaporkannya; kegagalan lain = tidak dapat diimbas.
         $kod = $proses->getExitCode();
-        $dijangkiti = $this->jenis() === 'clamav' ? $kod === 1 : $kod === 2;
+        $output = trim($proses->getOutput()."\n".$proses->getErrorOutput());
+        $dijangkiti = $this->jenis() === 'clamav' ? $kod === 1 : $kod === 2 && self::defenderLaporAncaman($output);
         if ($dijangkiti) {
             return $this->berbahaya('Fail ini dikesan mengandungi virus atau perisian hasad oleh antivirus dan telah ditolak.');
         }
         if ($kod !== 0) {
-            return $this->tanpaImbasan("Pengimbas antivirus memulangkan kod {$kod}.");
+            $ringkas = mb_substr(preg_replace('/\s+/', ' ', $output), 0, 200);
+
+            return $this->tanpaImbasan("Pengimbas antivirus gagal (kod {$kod}): {$ringkas}");
         }
 
         return ['status' => self::BERSIH, 'mesej' => null, 'amaran' => null];
     }
 
+    /** Output MpCmdRun melaporkan ancaman (bukan "found no threats" atau ralat CmdTool). */
+    public static function defenderLaporAncaman(string $output): bool
+    {
+        if (preg_match('/found no threats/i', $output) || preg_match('/CmdTool:\s*Failed/i', $output)) {
+            return false;
+        }
+
+        return (bool) preg_match('/Threat\s+information|found\s+[1-9]\d*\s+threats?|^\s*Threat\s*:/im', $output);
+    }
+
     private function tanpaImbasan(string $sebab): array
     {
+        if ($sebab !== '') {
+            Log::warning("Pemeriksaan fail: {$sebab}");
+        }
         if (config('services.keselamatan.antivirus_wajib')) {
             return $this->tolak('Fail tidak dapat diimbas untuk virus buat masa ini. Sila cuba lagi atau hubungi Pentadbir Sistem.');
         }

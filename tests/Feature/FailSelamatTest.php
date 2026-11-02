@@ -93,6 +93,21 @@ class FailSelamatTest extends TestCase
         }
     }
 
+    public function test_kod_2_defender_hanya_ancaman_bila_output_melaporkannya(): void
+    {
+        // Output sebenar MpCmdRun.exe
+        $bersih = "Scan starting...\nScan finished.\nScanning C:\\tmp\\php1.tmp found no threats.";
+        $gagal = "Scan starting...\nCmdTool: Failed with hr = 0x80508023. Check C:\\Users\\x\\AppData\\Local\\Temp\\MpCmdRun.log for more information";
+        $ancaman = "Scan starting...\nScan finished.\nScanning C:\\tmp\\eicar.com found 1 threats.\n\n"
+            ."<===========================LIST OF DETECTED THREATS==========================>\n"
+            ."----------------------------- Threat information ------------------------------\n"
+            .'Threat                  : Virus:DOS/EICAR_Test_File';
+
+        $this->assertFalse(PemeriksaFail::defenderLaporAncaman($bersih));
+        $this->assertFalse(PemeriksaFail::defenderLaporAncaman($gagal), 'imbasan gagal bukan virus');
+        $this->assertTrue(PemeriksaFail::defenderLaporAncaman($ancaman));
+    }
+
     public function test_antivirus_wajib_tolak_bila_tiada_pengimbas(): void
     {
         config(['services.keselamatan.antivirus_wajib' => true]);
