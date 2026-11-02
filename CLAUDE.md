@@ -30,6 +30,7 @@ The schema (`dms_pkink_db`, MySQL) is maintained **by hand in HeidiSQL** from an
 - PHPUnit runs on in-memory SQLite (`phpunit.xml`), which has none of the domain tables. Only the example tests exist today, so a feature test that touches domain models needs its own schema setup first.
 - Every table uses a non-standard PK (`user_id`, `dokumen_id`, `roles_id`, …). Every model sets `$primaryKey`, and every relationship must pass explicit foreign/owner keys.
 - The `user_roles` pivot uses `user_id` + **`role_id`**, while the `roles` PK is `roles_id`. Mixing these up has caused bugs before.
+- `dokumen.status` is a legacy column (always `Archived` by DB default) that the code no longer reads or writes (Fasa R3; dropped in Fasa H). A document's real status is `borang.status_permohonan`.
 - Uniqueness that survives soft deletes (email, ic_pekerja, kod_*) is enforced by DB generated columns. Keep validation rules consistent with that.
 
 ## Architecture

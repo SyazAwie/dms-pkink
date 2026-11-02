@@ -430,7 +430,7 @@ Satu **bahagian bagi setiap peranan**, disusun ikut keutamaan (tugas yang memerl
 
 Responsif: kad 4 lajur (≥1200px) / 2×2 (tablet & telefon); jadual menjadi senarai kad di bawah 576px; carta ialah bar HTML. SQL papan pemuka mudah alih (tiada fungsi khusus MySQL) supaya `DashboardTest` boleh berjalan atas SQLite. Fail: `DashboardController`, `dashboard/index.blade.php`, `dashboard/partials/*`.
 
-**Loceng topbar (semua peranan):** notifikasi dalam sistem (jadual `notifications`), dengan badge belum dibaca, 6 terkini, "Tandakan semua dibaca" dan halaman `/notifikasi`; disemak setiap 30 s dengan popup dalam halaman bila notifikasi baharu masuk, dan ditapis ikut peranan aktif. Penerima (`App\Support\Notifikasi`, observer `BorangNotifikasiObserver` selepas commit): permohonan dihantar → PENYOKONG; disokong → pemohon + PELULUS; diluluskan/ditolak → pemohon; pendaftaran staf baharu dan sandaran/integriti gagal → SUPERADMIN/ADMIN. Menu loceng turut memaparkan giliran kelulusan dan pendaftaran yang menunggu tindakan.
+**Loceng topbar (semua peranan):** notifikasi dalam sistem (jadual `notifications`), dengan badge belum dibaca, senarai yang memaparkan semua notifikasi belum dibaca + yang sudah dibaca dalam 24 jam terakhir (maks 10; `Notifikasi::untukLoceng`), "Tandakan semua dibaca" dan halaman `/notifikasi`; disemak setiap 30 s dengan popup dalam halaman bila notifikasi baharu masuk, dan ditapis ikut peranan aktif. Penerima (`App\Support\Notifikasi`, observer `BorangNotifikasiObserver` selepas commit): permohonan dihantar → PENYOKONG; disokong → pemohon + PELULUS; diluluskan/ditolak → pemohon; pendaftaran staf baharu dan sandaran/integriti gagal → SUPERADMIN/ADMIN. Menu loceng turut memaparkan giliran kelulusan dan pendaftaran yang menunggu tindakan.
 
 **Notifikasi peranti (Web Push):** butang **Hidupkan** dalam menu loceng meminta izin pelayar dan menyimpan langganan peranti (jadual `push_subscriptions`). Setiap notifikasi kemudian turut dipaparkan sebagai notifikasi sistem pengendalian (Windows/Android/Mac) walaupun tab atau pelayar ditutup; klik membuka dokumen berkaitan. Pakej `laravel-notification-channels/webpush`, kunci VAPID dalam `.env`, service worker `public/sw.js`, manifest PWA `public/manifest.webmanifest` (ikon `public/ikon/`). Hanya endpoint perkhidmatan push yang dikenali diterima (FCM, Mozilla, WNS, Apple) dan klien HTTP tidak mengikut redirect (`config/webpush.php`). Langganan berpindah kepada pengguna yang log masuk pada peranti itu, dan dibuang semasa log keluar. Had: memerlukan HTTPS (atau localhost); iPhone hanya selepas "Tambah ke Skrin Utama" (iOS 16.4+); notifikasi pelayar mesti dibenarkan dalam tetapan sistem pengendalian.
 
@@ -1011,8 +1011,7 @@ Potongan tangan yang beralun, laluan tulisan tangan (GLM-OCR) tanpa penanda, tah
 
 ### Kerja Akan Datang (dirancang, lihat PROGRESS.md)
 - **TB4 Beza imej (R&D):** jajarkan templat dengan imbasan (`imageaffine` GD) dan tolak piksel untuk mengesan potongan/bulatan/✓ tangan dalam apa jua bentuk
-- **Fasa R (kemas kod):** aksesibiliti label, `{dokuman}` → `{dokumen}`, lajur `dokumen.status`, Pint semua fail, buang scaffold Vite, seksyen MEDAN LAMA BORANG-ICT
-- **Fasa H (serahan):** padam akaun ujian & tukar kata laluan demo, `.env` produksi, 2FA & antivirus wajib, sandaran ke lokasi PKINK, manual pengguna
+- **Fasa H (serahan):** SQL buang lajur `dokumen.status` (tidak digunakan sejak R3), padam akaun ujian & tukar kata laluan demo, `.env` produksi, 2FA & antivirus wajib, sandaran ke lokasi PKINK, manual pengguna
 
 ---
 
