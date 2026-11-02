@@ -107,7 +107,7 @@ class FasaPKumpulan1Test extends TestCase
 
         $this->actingAs($this->admin)->get(route('status-sistem.index'))->assertOk()
             ->assertSee('Status Sistem')->assertSee('Pangkalan data')->assertSee('v5.4.0')->assertSee('v24.08.0')
-            ->assertSee('Penjadual (Task Scheduler)')->assertSee('Notifikasi emel')->assertDontSee('Pek bahasa tiada');
+            ->assertSee('Penjadual (Task Scheduler / cron)')->assertSee('Notifikasi emel')->assertDontSee('Pek bahasa tiada');
 
         $this->actingAs($this->staf)->get(route('status-sistem.index'))->assertForbidden();
     }

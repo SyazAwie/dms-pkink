@@ -161,7 +161,7 @@ class StatusSistemController extends Controller
         $ec = @openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
         if (! $ec) {
             return $this->semakan('Notifikasi peranti (Web Push)', 'ralat', 'OpenSSL gagal mencipta kunci EC',
-                'Tetapkan OPENSSL_CONF (README 10) dan mulakan semula pelayan.');
+                'Windows: tetapkan pemboleh ubah persekitaran OPENSSL_CONF (Panduan Pemasangan) dan mulakan semula pelayan.');
         }
         try {
             $bil = DB::table(config('webpush.table_name', 'push_subscriptions'))->count();
@@ -183,13 +183,13 @@ class StatusSistemController extends Controller
     {
         $degupan = Cache::get('penjadual:degupan');
         if (! $degupan) {
-            return $this->semakan('Penjadual (Task Scheduler)', 'ralat', 'Tiada degupan', 'Cipta tugas Task Scheduler (README 10, langkah 12).');
+            return $this->semakan('Penjadual (Task Scheduler / cron)', 'ralat', 'Tiada degupan', 'Jadualkan php artisan schedule:run setiap minit: Windows Task Scheduler (skrip/pasang-tugas-windows.ps1) atau cron di Linux (Panduan Pemasangan).');
         }
         $minit = (int) Carbon::parse($degupan)->diffInMinutes(now());
 
         return $minit <= 3
-            ? $this->semakan('Penjadual (Task Scheduler)', 'ok', "Degupan terakhir {$minit} minit lalu")
-            : $this->semakan('Penjadual (Task Scheduler)', 'ralat', 'Degupan terakhir '.Carbon::parse($degupan)->diffForHumans(), 'Semak tugas "DMS PKINK Penjadual".');
+            ? $this->semakan('Penjadual (Task Scheduler / cron)', 'ok', "Degupan terakhir {$minit} minit lalu")
+            : $this->semakan('Penjadual (Task Scheduler / cron)', 'ralat', 'Degupan terakhir '.Carbon::parse($degupan)->diffForHumans(), 'Semak tugas "DMS PKINK Penjadual" (Windows) atau entri cron (Linux).');
     }
 
     /** Worker queue OCR (T2). Tanpanya OCR/AI masih berfungsi, tetapi segerak (pengguna menunggu). */
@@ -203,14 +203,14 @@ class StatusSistemController extends Controller
         if (! AntrianOcr::workerHidup()) {
             return $this->semakan($nama, 'amaran',
                 $d ? 'Degupan terakhir '.Carbon::createFromTimestamp($d['masa'])->diffForHumans() : 'Tidak berjalan',
-                'OCR/AI dijalankan segerak (pengguna menunggu). Mulakan tugas "DMS PKINK Worker OCR" (README 10, langkah 13).');
+                'OCR/AI dijalankan segerak (pengguna menunggu). Mulakan worker: tugas "DMS PKINK Worker OCR" (Windows) atau perkhidmatan dms-worker-ocr (Linux systemd).');
         }
         $giliran = null;
         try {
             $giliran = DB::connection('antrian')->table('jobs')->where('queue', AntrianOcr::NAMA)->count();
             $gagal = DB::connection('antrian')->table('failed_jobs')->where('failed_at', '>=', now()->subDay())->count();
         } catch (\Throwable) {
-            return $this->semakan($nama, 'ralat', 'Jadual jobs tiada', 'Jalankan SQL jadual jobs & failed_jobs (README 10, langkah 13).');
+            return $this->semakan($nama, 'ralat', 'Jadual jobs tiada', 'Jadual jobs & failed_jobs tiada dalam pangkalan data; import semula database/dms_pkink.sql.');
         }
 
         return $gagal > 0
@@ -255,7 +255,7 @@ class StatusSistemController extends Controller
 
         return ($s['utuh'] ?? false)
             ? $this->semakan('Integriti fail imbasan', 'ok', "{$s['disemak']} fail utuh · {$bila}")
-            : $this->semakan('Integriti fail imbasan', 'ralat', "{$s['hilang']} hilang, {$s['berubah']} berubah · {$bila}", 'Pulihkan daripada sandaran (README 10.2).');
+            : $this->semakan('Integriti fail imbasan', 'ralat', "{$s['hilang']} hilang, {$s['berubah']} berubah · {$bila}", 'Pulihkan daripada sandaran: php artisan sandaran:pulih (Panduan Pemasangan).');
     }
 
     private function storan(): array
