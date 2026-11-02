@@ -18,7 +18,7 @@ class SemakPeranan
     {
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(...$peranan)) {
+        if (! $user || ! $user->hasAnyRole(...$peranan)) {
             abort(403, 'Anda tidak mempunyai kebenaran untuk mengakses halaman ini.');
         }
 

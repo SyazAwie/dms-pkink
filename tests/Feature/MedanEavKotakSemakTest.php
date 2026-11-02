@@ -25,6 +25,7 @@ class MedanEavKotakSemakTest extends TestCase
     use SkemaUjian;
 
     private User $admin;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void
@@ -143,7 +144,7 @@ class MedanEavKotakSemakTest extends TestCase
         $this->actingAs($this->admin)->get(route('dokumen.edit', $dokumen->dokumen_id))
             ->assertOk()
             ->assertSee('value="Berita Terkini" checked', false)
-            ->assertSee('value="' . JenisMedan::NILAI_LAIN . '" checked', false)
+            ->assertSee('value="'.JenisMedan::NILAI_LAIN.'" checked', false)
             ->assertSee('value="Buletin PKINK"', false)
             ->assertDontSee('value="Galeri" checked', false)
             ->assertSee('medan-seksyen-tajuk', false);
@@ -184,7 +185,7 @@ class MedanEavKotakSemakTest extends TestCase
 
         $this->assertArrayNotHasKey($this->id('seksyen_bd'), $hasil);
         $this->assertSame('["Galeri"]', $hasil[$this->id('kategori')]);
-        Http::assertSent(fn ($req) => !str_contains($req['prompt'], 'seksyen_bd')
+        Http::assertSent(fn ($req) => ! str_contains($req['prompt'], 'seksyen_bd')
             && str_contains($req['prompt'], '- kod "kategori" (Kategori Maklumat): senarai JSON nilai yang ditanda'));
     }
 }

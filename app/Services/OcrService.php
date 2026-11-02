@@ -36,6 +36,7 @@ class OcrService
      *  Jika tidak ditetapkan, jatuh balik kepada nama arahan ringkas
      *  (bergantung System PATH — tidak disyorkan pada Windows/Herd). */
     private string $tesseractBin;
+
     private string $pdftoppmBin;
 
     public function __construct()
@@ -51,14 +52,15 @@ class OcrService
      * model penglihatan (VlmOcrService, GLM-OCR). Jika model penglihatan gagal, teks Tesseract kekal.
      *
      * @return array{teks: string, skor: float|null, enjin: list<string>} enjin bagi setiap muka surat:
-     *         'tesseract' atau 'vlm'
+     *                                                                    'tesseract' atau 'vlm'
+     *
      * @throws \RuntimeException jika tesseract/pdftoppm gagal atau tiada dalam PATH
      */
     public function proses(string $laluanRelatifDiskLocal, bool $paksaVlm = false, string $disk = 'local'): array
     {
         $laluanPenuh = Storage::disk($disk)->path($laluanRelatifDiskLocal);
 
-        if (!is_file($laluanPenuh)) {
+        if (! is_file($laluanPenuh)) {
             throw new \RuntimeException("Fail sumber tidak wujud: {$laluanRelatifDiskLocal}");
         }
 
@@ -66,11 +68,11 @@ class OcrService
         $ruang = @disk_free_space(sys_get_temp_dir());
         $minMb = (int) config('services.keselamatan.min_ruang_cakera_mb', 1024);
         if ($ruang !== false && $ruang / 1048576 < $minMb) {
-            throw new \RuntimeException('Ruang cakera pelayan tidak mencukupi untuk OCR (kurang ' . $minMb . ' MB). Sila hubungi Pentadbir Sistem.');
+            throw new \RuntimeException('Ruang cakera pelayan tidak mencukupi untuk OCR (kurang '.$minMb.' MB). Sila hubungi Pentadbir Sistem.');
         }
 
         $sambungan = strtolower(pathinfo($laluanPenuh, PATHINFO_EXTENSION));
-        $folderSementara = sys_get_temp_dir() . '/dms_ocr_' . Str::random(10);
+        $folderSementara = sys_get_temp_dir().'/dms_ocr_'.Str::random(10);
         mkdir($folderSementara, 0777, true);
 
         try {
@@ -96,7 +98,7 @@ class OcrService
                             $enjinMuka = 'vlm';
                         }
                     } catch (\Throwable $e) {
-                        Log::warning('OCR penglihatan gagal, guna teks Tesseract: ' . $e->getMessage());
+                        Log::warning('OCR penglihatan gagal, guna teks Tesseract: '.$e->getMessage());
                     }
                 }
 
@@ -125,20 +127,20 @@ class OcrService
      */
     private function pdfKeImej(string $laluanPdf, string $folderSementara): array
     {
-        $awalan = $folderSementara . DIRECTORY_SEPARATOR . 'muka';
+        $awalan = $folderSementara.DIRECTORY_SEPARATOR.'muka';
         $maks = (string) config('services.keselamatan.maks_muka_surat', 50);
 
         $proses = new Process([$this->pdftoppmBin, '-png', '-r', '300', '-l', $maks, $laluanPdf, $awalan]);
         $proses->setTimeout(120);
         $proses->run();
 
-        if (!$proses->isSuccessful()) {
+        if (! $proses->isSuccessful()) {
             throw new \RuntimeException(
-                "pdftoppm gagal (semak OCR_PDFTOPPM_BIN dalam .env — laluan semasa: {$this->pdftoppmBin}): " . $proses->getErrorOutput()
+                "pdftoppm gagal (semak OCR_PDFTOPPM_BIN dalam .env — laluan semasa: {$this->pdftoppmBin}): ".$proses->getErrorOutput()
             );
         }
 
-        $failImej = glob($awalan . '*.png');
+        $failImej = glob($awalan.'*.png');
         sort($failImej);
 
         if (empty($failImej)) {
@@ -163,7 +165,7 @@ class OcrService
         $bersih = null;
         if (config('services.ocr.buang_garisan', true)) {
             // Tesseract imej asal berjalan semasa garisan dibuang
-            $laluanBersih = $folderSementara . DIRECTORY_SEPARATOR . Str::random(8) . '_bersih.png';
+            $laluanBersih = $folderSementara.DIRECTORY_SEPARATOR.Str::random(8).'_bersih.png';
             $bersih = BuangGarisan::proses($laluanImej, $laluanBersih)
                 ? $this->mulaTesseract($laluanBersih, $folderSementara)
                 : null;
@@ -186,7 +188,7 @@ class OcrService
             try {
                 $hasil[0] = self::binaTeks(TandaVisual::anotasi($laluanImej, $hasil[2], $kotak));
             } catch (\Throwable $e) {
-                Log::warning('Tanda visual OCR gagal, guna teks asal: ' . $e->getMessage());
+                Log::warning('Tanda visual OCR gagal, guna teks asal: '.$e->getMessage());
             }
         }
 
@@ -196,7 +198,7 @@ class OcrService
     /** Mulakan tesseract (tak segerak) atas SATU imej, output TSV (teks + skor keyakinan sekali). */
     private function mulaTesseract(string $laluanImej, string $folderSementara): array
     {
-        $awalanOutput = $folderSementara . DIRECTORY_SEPARATOR . Str::random(8);
+        $awalanOutput = $folderSementara.DIRECTORY_SEPARATOR.Str::random(8);
 
         $proses = new Process([$this->tesseractBin, $laluanImej, $awalanOutput, '-l', $this->bahasa, 'tsv']);
         $proses->setTimeout(90);
@@ -209,14 +211,14 @@ class OcrService
     {
         $proses->wait();
 
-        if (!$proses->isSuccessful()) {
+        if (! $proses->isSuccessful()) {
             throw new \RuntimeException(
-                "tesseract gagal (semak OCR_TESSERACT_BIN dalam .env — laluan semasa: {$this->tesseractBin}): " . $proses->getErrorOutput()
+                "tesseract gagal (semak OCR_TESSERACT_BIN dalam .env — laluan semasa: {$this->tesseractBin}): ".$proses->getErrorOutput()
             );
         }
 
-        $laluanTsv = $awalanOutput . '.tsv';
-        if (!is_file($laluanTsv)) {
+        $laluanTsv = $awalanOutput.'.tsv';
+        if (! is_file($laluanTsv)) {
             return ['', null, []];
         }
 
@@ -234,7 +236,7 @@ class OcrService
     private function uraiTsv(string $laluanTsv): array
     {
         $baris = file($laluanTsv, FILE_IGNORE_NEW_LINES);
-        if (!$baris) {
+        if (! $baris) {
             return ['', null, []];
         }
 
@@ -285,7 +287,7 @@ class OcrService
 
     private function bersihkanFolder(string $folder): void
     {
-        foreach (glob($folder . DIRECTORY_SEPARATOR . '*') ?: [] as $f) {
+        foreach (glob($folder.DIRECTORY_SEPARATOR.'*') ?: [] as $f) {
             @unlink($f);
         }
         @rmdir($folder);

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\LogAudit;
 use App\Models\LogMasuk;
+use App\Models\Role;
+use App\Models\User;
 use App\Support\DuaFaktor;
 use App\Support\PeraturanNama;
 use App\Support\PeraturanProfil;
@@ -68,7 +70,7 @@ class ProfilController extends Controller
             'no_telefon' => $data['no_telefon'] ?? null,
         ]);
 
-        if (!$user->isDirty()) {
+        if (! $user->isDirty()) {
             return redirect()->route('profil.index')->with('success', 'Tiada perubahan pada maklumat profil.');
         }
 
@@ -122,8 +124,8 @@ class ProfilController extends Controller
         ]);
 
         $kod = $request->input('peranan');
-        $request->session()->put(\App\Models\User::SESI_PERANAN_AKTIF, $kod);
-        $nama = \App\Models\Role::where('kod_roles', $kod)->value('nama_roles') ?? $kod;
+        $request->session()->put(User::SESI_PERANAN_AKTIF, $kod);
+        $nama = Role::where('kod_roles', $kod)->value('nama_roles') ?? $kod;
 
         return redirect()->route('dashboard')->with('success', "Kini menggunakan peranan {$nama}.");
     }
@@ -131,7 +133,7 @@ class ProfilController extends Controller
     // Skrin wajib tukar kata laluan (selepas log masuk dengan kata laluan sementara)
     public function paparWajibTukar()
     {
-        if (!Auth::user()->perlu_tukar_kata_laluan) {
+        if (! Auth::user()->perlu_tukar_kata_laluan) {
             return redirect()->route('dashboard');
         }
 
@@ -142,7 +144,7 @@ class ProfilController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->perlu_tukar_kata_laluan) {
+        if (! $user->perlu_tukar_kata_laluan) {
             return redirect()->route('dashboard');
         }
 
@@ -166,7 +168,7 @@ class ProfilController extends Controller
         });
 
         return redirect()->route('dashboard')
-                         ->with('success', 'Kata laluan berjaya ditukar. Selamat datang ke Sistem Arkib Digital PKINK.');
+            ->with('success', 'Kata laluan berjaya ditukar. Selamat datang ke Sistem Arkib Digital PKINK.');
     }
 
     /**

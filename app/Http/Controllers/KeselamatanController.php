@@ -10,6 +10,7 @@ use App\Support\Keselamatan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -46,7 +47,7 @@ class KeselamatanController extends Controller
     {
         $laluan = base_path('docs/PELAN_TINDAK_BALAS_INSIDEN.md');
         abort_unless(is_file($laluan), 404, 'Dokumen pelan tindak balas insiden tidak dijumpai.');
-        $html = \Illuminate\Support\Str::markdown((string) file_get_contents($laluan), ['html_input' => 'strip', 'allow_unsafe_links' => false]);
+        $html = Str::markdown((string) file_get_contents($laluan), ['html_input' => 'strip', 'allow_unsafe_links' => false]);
 
         return view('keselamatan.pelan', compact('html'));
     }

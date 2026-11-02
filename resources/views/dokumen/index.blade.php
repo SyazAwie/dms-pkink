@@ -80,16 +80,16 @@
     <form action="{{ route('dokumen.index') }}" method="GET">
         <div class="row g-3 align-items-end">
             <div class="col-lg-5">
-                <label class="dms-label">Carian</label>
+                <label class="dms-label" for="q">Carian</label>
                 <div class="search-wrap">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="q" value="{{ request('q') }}" class="dms-input search-input"
+                    <input id="q" type="text" name="q" value="{{ request('q') }}" class="dms-input search-input"
                            placeholder="No. rujukan, perkara, nilai medan (cth: no. invois), nama fail..." maxlength="100" autocomplete="off">
                 </div>
             </div>
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Jenis Dokumen</label>
-                <select name="jenis" class="dms-input">
+                <label class="dms-label" for="jenis">Jenis Dokumen</label>
+                <select id="jenis" name="jenis" class="dms-input">
                     <option value="">Semua Jenis</option>
                     @foreach($jenisDokumenSenarai as $jd)
                         <option value="{{ $jd->jenis_dokumen_id }}" {{ request('jenis') == $jd->jenis_dokumen_id ? 'selected' : '' }}>
@@ -99,8 +99,8 @@
                 </select>
             </div>
             <div class="col-lg-4 col-md-6">
-                <label class="dms-label">Bahagian</label>
-                <select name="bahagian" class="dms-input">
+                <label class="dms-label" for="bahagian">Bahagian</label>
+                <select id="bahagian" name="bahagian" class="dms-input">
                     <option value="">Semua Bahagian</option>
                     @foreach($bahagianSenarai as $bh)
                         <option value="{{ $bh->bahagian_id }}" {{ request('bahagian') == $bh->bahagian_id ? 'selected' : '' }}>
@@ -111,18 +111,18 @@
             </div>
 
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Tarikh Dokumen: Dari</label>
-                <input type="date" name="dari" value="{{ request('dari') }}" class="dms-input @error('dari') is-invalid @enderror">
+                <label class="dms-label" for="dari">Tarikh Dokumen: Dari</label>
+                <input id="dari" type="date" name="dari" value="{{ request('dari') }}" class="dms-input @error('dari') is-invalid @enderror">
                 @error('dari') <div class="dms-error">{{ $message }}</div> @enderror
             </div>
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Hingga</label>
-                <input type="date" name="hingga" value="{{ request('hingga') }}" class="dms-input @error('hingga') is-invalid @enderror">
+                <label class="dms-label" for="hingga">Hingga</label>
+                <input id="hingga" type="date" name="hingga" value="{{ request('hingga') }}" class="dms-input @error('hingga') is-invalid @enderror">
                 @error('hingga') <div class="dms-error">{{ $message }}</div> @enderror
             </div>
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Susunan</label>
-                <select name="susun" class="dms-input">
+                <label class="dms-label" for="susun">Susunan</label>
+                <select id="susun" name="susun" class="dms-input">
                     <option value="terbaru" {{ request('susun', 'terbaru') === 'terbaru' ? 'selected' : '' }}>Terbaru dimuat naik</option>
                     <option value="tarikh_desc" {{ request('susun') === 'tarikh_desc' ? 'selected' : '' }}>Tarikh dokumen: terbaru</option>
                     <option value="tarikh_asc" {{ request('susun') === 'tarikh_asc' ? 'selected' : '' }}>Tarikh dokumen: terlama</option>
@@ -149,8 +149,8 @@
                     @foreach($medanTapis as $m)
                         @php $k = "medan.{$m->dokumen_field_id}"; $n = "medan[{$m->dokumen_field_id}]"; @endphp
                         <div class="col-lg-4 col-md-6">
-                            <label class="dms-label">{{ $m->nama_field }}</label>
                             @if(in_array($m->jenis_data, \App\Http\Controllers\DokumenController::MEDAN_JULAT, true))
+                                <div class="dms-label">{{ $m->nama_field }}</div>
                                 @php $jenisInput = $m->jenis_data === 'tarikh' ? 'date' : 'number'; @endphp
                                 <div class="d-flex gap-2 align-items-center">
                                     <input type="{{ $jenisInput }}" step="any" name="{{ $n }}[dari]" value="{{ request("{$k}.dari") }}" class="dms-input @error("{$k}.dari") is-invalid @enderror" placeholder="Dari" aria-label="{{ $m->nama_field }} dari">
@@ -160,7 +160,8 @@
                                 @error("{$k}.dari") <div class="dms-error">{{ $message }}</div> @enderror
                                 @error("{$k}.hingga") <div class="dms-error">{{ $message }}</div> @enderror
                             @else
-                                <select name="{{ $n }}[sama]" class="dms-input">
+                                <label class="dms-label" for="tapis_medan_{{ $m->dokumen_field_id }}">{{ $m->nama_field }}</label>
+                                <select id="tapis_medan_{{ $m->dokumen_field_id }}" name="{{ $n }}[sama]" class="dms-input">
                                     <option value="">Semua</option>
                                     @foreach($m->jenis_data === 'ya_tidak' ? \App\Support\JenisMedan::YA_TIDAK : ($m->pilihan ?? []) as $pilihan)
                                         <option value="{{ $pilihan }}" @selected(request("{$k}.sama") === $pilihan)>{{ $pilihan }}</option>

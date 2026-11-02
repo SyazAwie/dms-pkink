@@ -53,7 +53,7 @@ class FailIntegriti extends Command
         if ($masalah) {
             $this->table(['Status', 'ID', 'Dokumen', 'Fail'], array_map(fn ($m) => array_values($m), $masalah));
             $this->error("{$bil['hilang']} fail hilang, {$bil['berubah']} fail berubah. Pulihkan daripada sandaran (README 10.2).");
-            Log::warning('Integriti fail imbasan: ' . json_encode($bil), ['masalah' => $masalah]);
+            Log::warning('Integriti fail imbasan: '.json_encode($bil), ['masalah' => $masalah]);
             Notifikasi::amaranSistem('Fail imbasan bermasalah',
                 "{$bil['hilang']} fail hilang dan {$bil['berubah']} fail berubah dalam semakan integriti. Pulihkan daripada sandaran.");
 
@@ -61,7 +61,7 @@ class FailIntegriti extends Command
         }
 
         $this->info('Semua fail imbasan utuh.');
-        Log::info('Integriti fail imbasan: ' . json_encode($bil));
+        Log::info('Integriti fail imbasan: '.json_encode($bil));
 
         return self::SUCCESS;
     }

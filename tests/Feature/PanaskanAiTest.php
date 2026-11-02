@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\SkemaUjian;
@@ -53,7 +54,7 @@ class PanaskanAiTest extends TestCase
 
     public function test_ollama_mati_tidak_ralat(): void
     {
-        Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('ditolak'));
+        Http::fake(fn () => throw new ConnectionException('ditolak'));
 
         $this->actingAs($this->buatPengguna(['STAFF']))->postJson(route('imbas.panaskan-ai'))
             ->assertOk()->assertJson(['sedia' => false]);

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\DelegasiKelulusan;
 use App\Models\Dokumen;
 use App\Models\JenisDokumen;
 use App\Models\User;
@@ -103,7 +104,7 @@ class PerananAktifTest extends TestCase
     {
         $pemberi = $this->buatPengguna(['PENYOKONG'], ['nama_staff' => 'Pegawai Bercuti']);
         $staf = $this->buatPengguna(['STAFF']);
-        \App\Models\DelegasiKelulusan::create(['pemberi_id' => $pemberi->user_id, 'penerima_id' => $staf->user_id,
+        DelegasiKelulusan::create(['pemberi_id' => $pemberi->user_id, 'penerima_id' => $staf->user_id,
             'kod_peranan' => 'PENYOKONG', 'tarikh_mula' => today(), 'tarikh_tamat' => today()->addDay()]);
 
         // PENYOKONG lebih tinggi daripada STAFF dalam susunan: pengganti bermula sebagai Penyokong

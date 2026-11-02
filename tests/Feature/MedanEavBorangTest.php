@@ -7,6 +7,9 @@ use App\Models\DokumenData;
 use App\Models\DokumenField;
 use App\Models\JenisDokumen;
 use App\Models\User;
+use App\Support\JenisMedan;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\SkemaUjian;
 use Tests\TestCase;
 
@@ -20,7 +23,9 @@ class MedanEavBorangTest extends TestCase
     use SkemaUjian;
 
     private User $kerani;
+
     private JenisDokumen $jenis;
+
     /** @var array<string, DokumenField> */
     private array $medan = [];
 
@@ -60,11 +65,11 @@ class MedanEavBorangTest extends TestCase
             ->assertOk();
 
         $html = $res->getContent();
-        $this->assertMatchesRegularExpression('/<input type="text" [^>]*name="medan_data\[' . $this->id('no_invois') . '\]"/', $html);
-        $this->assertMatchesRegularExpression('/<input type="number" [^>]*name="medan_data\[' . $this->id('jumlah') . '\]"/', $html);
-        $this->assertMatchesRegularExpression('/<input type="date" [^>]*name="medan_data\[' . $this->id('tarikh_invois') . '\]"/', $html);
-        $this->assertMatchesRegularExpression('/<select [^>]*name="medan_data\[' . $this->id('status') . '\]"/', $html);
-        $this->assertMatchesRegularExpression('/<textarea [^>]*name="medan_data\[' . $this->id('catatan') . '\]"/', $html);
+        $this->assertMatchesRegularExpression('/<input type="text" [^>]*name="medan_data\['.$this->id('no_invois').'\]"/', $html);
+        $this->assertMatchesRegularExpression('/<input type="number" [^>]*name="medan_data\['.$this->id('jumlah').'\]"/', $html);
+        $this->assertMatchesRegularExpression('/<input type="date" [^>]*name="medan_data\['.$this->id('tarikh_invois').'\]"/', $html);
+        $this->assertMatchesRegularExpression('/<select [^>]*name="medan_data\['.$this->id('status').'\]"/', $html);
+        $this->assertMatchesRegularExpression('/<textarea [^>]*name="medan_data\['.$this->id('catatan').'\]"/', $html);
         $res->assertSee('<option value="Sudah Bayar"', false)
             ->assertSee('No. Invois');
     }
@@ -91,7 +96,7 @@ class MedanEavBorangTest extends TestCase
             ->assertSee('<option value="Sudah Bayar" selected>', false)
             ->assertSee('Catatan yang ditaip')
             ->assertSee('dms-input is-invalid', false)
-            ->assertSee('medan data.' . $this->id('jumlah'));
+            ->assertSee('medan data.'.$this->id('jumlah'));
     }
 
     public function test_muat_naik_tanpa_ralat_tidak_render_medan_di_pelayan(): void
@@ -120,7 +125,7 @@ class MedanEavBorangTest extends TestCase
 
     public function test_simpan_muat_naik_guna_nilai_medan_kategori_sahaja(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
 
         $this->actingAs($this->kerani)->post(route('dokumen.store'), [
             'jenis_dokumen_id' => $this->jenis->jenis_dokumen_id,
@@ -131,7 +136,7 @@ class MedanEavBorangTest extends TestCase
                 $this->id('catatan') => '',
                 99999 => 'medan palsu',
             ],
-            'fail_scan' => [\Illuminate\Http\UploadedFile::fake()->create('a.pdf', 10, 'application/pdf')],
+            'fail_scan' => [UploadedFile::fake()->create('a.pdf', 10, 'application/pdf')],
         ])->assertRedirect(route('dokumen.index'));
 
         $this->assertEqualsCanonicalizing(
@@ -144,8 +149,8 @@ class MedanEavBorangTest extends TestCase
     {
         $res = $this->actingAs($this->buatPengguna(['ADMIN']))->get(route('jenis-dokumen.create'))->assertOk();
 
-        foreach (array_keys(\App\Support\JenisMedan::SENARAI) as $kod) {
-            $res->assertSee('"' . $kod . '":"', false);
+        foreach (array_keys(JenisMedan::SENARAI) as $kod) {
+            $res->assertSee('"'.$kod.'":"', false);
         }
     }
 }

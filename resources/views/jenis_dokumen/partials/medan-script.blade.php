@@ -122,36 +122,36 @@
             ${rowId ? `<input type="hidden" name="medan[${idx}][id]" value="${escAttr(rowId)}">` : ''}
             <div class="medan-grid">
                 <div class="medan-col-nama">
-                    <label class="dms-label">Nama Medan</label>
-                    <input type="text" name="medan[${idx}][nama_field]" class="dms-input medan-nama"
+                    <label class="dms-label" for="medan_${idx}_nama">Nama Medan</label>
+                    <input type="text" id="medan_${idx}_nama" name="medan[${idx}][nama_field]" class="dms-input medan-nama"
                            value="${escAttr(data.nama_field)}" placeholder="Cth: No. Invois" maxlength="100">
                 </div>
                 <div class="medan-col-kod">
-                    <label class="dms-label">Kod Medan</label>
-                    <input type="text" name="medan[${idx}][kod_field]" class="dms-input medan-kod"
+                    <label class="dms-label" for="medan_${idx}_kod">Kod Medan</label>
+                    <input type="text" id="medan_${idx}_kod" name="medan[${idx}][kod_field]" class="dms-input medan-kod"
                            value="${escAttr(data.kod_field)}" placeholder="cth: no_invois" maxlength="100">
                 </div>
                 <div class="medan-col-jenis">
-                    <label class="dms-label">Jenis Data</label>
-                    <select name="medan[${idx}][jenis_data]" class="dms-input medan-jenis">${opsyenJenis}</select>
+                    <label class="dms-label" for="medan_${idx}_jenis">Jenis Data</label>
+                    <select id="medan_${idx}_jenis" name="medan[${idx}][jenis_data]" class="dms-input medan-jenis">${opsyenJenis}</select>
                 </div>
                 <div class="medan-col-wajib">
-                    <label class="dms-label">&nbsp;</label>
+                    <div class="dms-label" aria-hidden="true">&nbsp;</div>
                     <label class="medan-checkbox">
                         <input type="checkbox" name="medan[${idx}][is_required]" value="1" ${wajib ? 'checked' : ''}>
                         <span>Wajib</span>
                     </label>
                 </div>
                 <div class="medan-col-buang">
-                    <label class="dms-label">&nbsp;</label>
+                    <div class="dms-label" aria-hidden="true">&nbsp;</div>
                     <button type="button" class="btn-buang-medan" title="Buang Medan">
                         <i class="bi bi-trash3"></i>
                     </button>
                 </div>
             </div>
             <div class="medan-pilihan-wrap" style="display:${adaPilihan ? 'flex' : 'none'};">
-                <label class="dms-label">Senarai Pilihan (asingkan dengan koma)</label>
-                <input type="text" name="medan[${idx}][pilihan]" class="dms-input medan-pilihan"
+                <label class="dms-label" for="medan_${idx}_pilihan">Senarai Pilihan (asingkan dengan koma)</label>
+                <input type="text" id="medan_${idx}_pilihan" name="medan[${idx}][pilihan]" class="dms-input medan-pilihan"
                        value="${escAttr(pilihanTeks)}" placeholder="Cth: Baru, Dalam Proses, Selesai">
                 <label class="medan-lain-pilihan">
                     <input type="checkbox" name="medan[${idx}][lain]" value="1" ${lain ? 'checked' : ''}>
@@ -159,15 +159,15 @@
                 </label>
             </div>
             <div class="medan-jadual-pembina" style="display:none;">
-                <label class="dms-label">Lajur Jadual</label>
+                <div class="dms-label">Lajur Jadual</div>
                 <div class="lajur-senarai"></div>
                 <button type="button" class="lajur-tambah"><i class="bi bi-plus-lg"></i> Tambah Lajur</button>
-                <label class="dms-label mt-3">Baris Tetap <span class="dms-optional">(pilihan, asingkan dengan koma)</span></label>
-                <input type="text" name="medan[${idx}][baris_tetap]" class="dms-input medan-baris-tetap" maxlength="1000"
+                <label class="dms-label mt-3" for="medan_${idx}_baris_tetap">Baris Tetap <span class="dms-optional">(pilihan, asingkan dengan koma)</span></label>
+                <input type="text" id="medan_${idx}_baris_tetap" name="medan[${idx}][baris_tetap]" class="dms-input medan-baris-tetap" maxlength="1000"
                        value="${escAttr(barisTetap)}" placeholder="Cth: Emel, Intranet, Makluman — kosongkan jika pengguna tambah baris sendiri">
             </div>
             <div class="medan-tambahan">
-                <input type="text" name="medan[${idx}][bantuan]" class="dms-input medan-bantuan"
+                <input type="text" name="medan[${idx}][bantuan]" class="dms-input medan-bantuan" aria-label="Teks bantuan"
                        value="${escAttr(bantuan)}" maxlength="255" placeholder="Teks bantuan (pilihan), cth: Gunakan huruf kecil">
             </div>
             <div class="medan-syarat">

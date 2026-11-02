@@ -81,13 +81,13 @@ final class JenisMedan
 
     public static function adaLain(DokumenField $medan): bool
     {
-        return in_array($medan->jenis_data, self::ADA_PILIHAN, true) && !empty($medan->tetapan['lain']);
+        return in_array($medan->jenis_data, self::ADA_PILIHAN, true) && ! empty($medan->tetapan['lain']);
     }
 
     /** False bagi jenis paparan sahaja (tajuk seksyen). */
     public static function adaNilai(DokumenField $medan): bool
     {
-        return !in_array($medan->jenis_data, self::TANPA_NILAI, true);
+        return ! in_array($medan->jenis_data, self::TANPA_NILAI, true);
     }
 
     /** Jenis yang boleh menjadi sumber syarat "tunjuk jika" (nilai daripada senarai tetap). */
@@ -97,7 +97,7 @@ final class JenisMedan
     public static function syarat(DokumenField $medan): ?array
     {
         $syarat = $medan->tetapan['tunjuk_jika'] ?? null;
-        if (!is_array($syarat) || empty($syarat['kod']) || !isset($syarat['nilai']) || $syarat['nilai'] === '') {
+        if (! is_array($syarat) || empty($syarat['kod']) || ! isset($syarat['nilai']) || $syarat['nilai'] === '') {
             return null;
         }
 
@@ -107,7 +107,7 @@ final class JenisMedan
     /** Tajuk seksyen bertanda "diisi oleh pegawai/pejabat, bukan pemohon" (tetapan.pejabat). */
     public static function seksyenPejabat(DokumenField $medan): bool
     {
-        return !self::adaNilai($medan) && !empty($medan->tetapan['pejabat']);
+        return ! self::adaNilai($medan) && ! empty($medan->tetapan['pejabat']);
     }
 
     /**
@@ -116,7 +116,7 @@ final class JenisMedan
      * (Muat Naik/Kemaskini), dan diabaikan dalam Imbas & Hantar (tidak dihantar kepada
      * AI, tidak dipaparkan, tidak disimpan). Imbas & Arkib mengisi semuanya seperti biasa.
      *
-     * @param iterable<DokumenField> $medanSemua tersusun ikut susunan
+     * @param  iterable<DokumenField>  $medanSemua  tersusun ikut susunan
      * @return int[]
      */
     public static function idMedanPejabat(iterable $medanSemua): array
@@ -124,7 +124,7 @@ final class JenisMedan
         $hasil = [];
         $dalamPejabat = false;
         foreach ($medanSemua as $medan) {
-            if (!self::adaNilai($medan)) {
+            if (! self::adaNilai($medan)) {
                 $dalamPejabat = self::seksyenPejabat($medan);
             }
             if ($dalamPejabat) {
@@ -180,9 +180,9 @@ final class JenisMedan
      * Nilai medan auto-isi bagi satu Jenis Dokumen: [dokumen_field_id => nilai].
      * Medan ini dikunci dalam borang dan pelayan menggantikan input dengan nilai ini.
      *
-     * @param iterable<DokumenField> $medanSemua
-     * @param array $nilaiSedia (edit) [dokumen_field_id => nilai tersimpan]: nilai tersimpan
-     *                          dikekalkan; hanya yang kosong diisi daripada profil $user
+     * @param  iterable<DokumenField>  $medanSemua
+     * @param  array  $nilaiSedia  (edit) [dokumen_field_id => nilai tersimpan]: nilai tersimpan
+     *                             dikekalkan; hanya yang kosong diisi daripada profil $user
      */
     public static function nilaiAutoIsi(iterable $medanSemua, ?User $user, array $nilaiSedia = []): array
     {
@@ -204,8 +204,8 @@ final class JenisMedan
      * yang medan sumbernya tiada lagi, sentiasa dipaparkan. Medan tersembunyi tidak
      * divalidasi dan nilainya tidak disimpan (sama seperti di pelayar).
      *
-     * @param iterable<DokumenField> $medanSemua semua medan Jenis Dokumen yang sama
-     * @param array $medanData input medan_data borang [dokumen_field_id => nilai]
+     * @param  iterable<DokumenField>  $medanSemua  semua medan Jenis Dokumen yang sama
+     * @param  array  $medanData  input medan_data borang [dokumen_field_id => nilai]
      */
     public static function kelihatan(DokumenField $medan, iterable $medanSemua, array $medanData): bool
     {
@@ -231,7 +231,7 @@ final class JenisMedan
      */
     public static function peraturan(DokumenField $medan): array
     {
-        if (!self::adaNilai($medan)) {
+        if (! self::adaNilai($medan)) {
             return [];
         }
         if ($medan->jenis_data === 'jadual') {
@@ -266,7 +266,7 @@ final class JenisMedan
                 $peraturan[] = 'max:255';
                 break;
             case 'telefon':
-                $peraturan[] = 'regex:' . self::REGEX_TELEFON;
+                $peraturan[] = 'regex:'.self::REGEX_TELEFON;
                 break;
             case 'url':
                 $peraturan[] = 'url:http,https';
@@ -326,7 +326,7 @@ final class JenisMedan
      */
     public static function dariPermintaan(DokumenField $medan, Request $request, ?iterable $medanSemua = null): ?string
     {
-        if ($medanSemua !== null && !self::kelihatan($medan, $medanSemua, (array) $request->input('medan_data', []))) {
+        if ($medanSemua !== null && ! self::kelihatan($medan, $medanSemua, (array) $request->input('medan_data', []))) {
             return null;
         }
 
@@ -341,7 +341,7 @@ final class JenisMedan
      */
     public static function untukSimpan(DokumenField $medan, mixed $nilai, mixed $nilaiLain = null): ?string
     {
-        if (!self::adaNilai($medan) || $nilai === null || $nilai === '' || $nilai === []) {
+        if (! self::adaNilai($medan) || $nilai === null || $nilai === '' || $nilai === []) {
             return null;
         }
 
@@ -354,14 +354,14 @@ final class JenisMedan
             // Ikut susunan senarai pilihan supaya nilai sama sentiasa disimpan sama (diff log audit)
             $hasil = array_values(array_filter($medan->pilihan ?? [], fn ($p) => in_array($p, $dipilih, true)));
             if (in_array(self::NILAI_LAIN, $dipilih, true)) {
-                $hasil[] = self::AWALAN_LAIN . trim((string) $nilaiLain);
+                $hasil[] = self::AWALAN_LAIN.trim((string) $nilaiLain);
             }
 
             return $hasil ? json_encode($hasil, JSON_UNESCAPED_UNICODE) : null;
         }
 
         if ($nilai === self::NILAI_LAIN) {
-            return self::AWALAN_LAIN . trim((string) $nilaiLain);
+            return self::AWALAN_LAIN.trim((string) $nilaiLain);
         }
 
         return match ($medan->jenis_data) {
@@ -423,18 +423,18 @@ final class JenisMedan
         }
 
         $html = match ($medan->jenis_data) {
-            'wang' => is_numeric($nilai) ? 'RM ' . number_format((float) $nilai, 2) : $e($nilai),
+            'wang' => is_numeric($nilai) ? 'RM '.number_format((float) $nilai, 2) : $e($nilai),
             'tarikh' => self::formatTarikh($nilai, 'd/m/Y') ?? $e($nilai),
             'tarikh_masa' => self::formatTarikh($nilai, 'd/m/Y, H:i') ?? $e($nilai),
             'emel' => filter_var($nilai, FILTER_VALIDATE_EMAIL)
-                ? '<a href="mailto:' . $e($nilai) . '">' . $e($nilai) . '</a>'
+                ? '<a href="mailto:'.$e($nilai).'">'.$e($nilai).'</a>'
                 : $e($nilai),
             'url' => preg_match('#^https?://#i', $nilai)
-                ? '<a href="' . $e($nilai) . '" target="_blank" rel="noopener noreferrer">' . $e($nilai) . '</a>'
+                ? '<a href="'.$e($nilai).'" target="_blank" rel="noopener noreferrer">'.$e($nilai).'</a>'
                 : $e($nilai),
             'textarea' => nl2br($e($nilai)),
             'kotak_semak' => implode(' ', array_map(
-                fn ($v) => '<span class="medan-cip">' . $e($v) . '</span>',
+                fn ($v) => '<span class="medan-cip">'.$e($v).'</span>',
                 self::senaraiNilai($nilai)
             )),
             'jadual' => MedanJadual::papar($medan, $nilai),
@@ -458,10 +458,10 @@ final class JenisMedan
             'emel' => 'alamat emel',
             'telefon' => 'nombor telefon/faks',
             'url' => 'pautan laman web bermula http:// atau https://',
-            'dropdown', 'radio' => 'pilih SATU nilai TEPAT daripada [' . implode(', ', $medan->pilihan ?? []) . ']'
-                . (self::adaLain($medan) ? '; jika jawapan lain yang jelas, tulis jawapan itu' : ''),
-            'kotak_semak' => 'senarai JSON nilai yang ditanda, dipilih daripada [' . implode(', ', $medan->pilihan ?? []) . ']'
-                . (self::adaLain($medan) ? '; jawapan lain yang jelas boleh dimasukkan' : '') . ', cth. ["a","b"]',
+            'dropdown', 'radio' => 'pilih SATU nilai TEPAT daripada ['.implode(', ', $medan->pilihan ?? []).']'
+                .(self::adaLain($medan) ? '; jika jawapan lain yang jelas, tulis jawapan itu' : ''),
+            'kotak_semak' => 'senarai JSON nilai yang ditanda, dipilih daripada ['.implode(', ', $medan->pilihan ?? []).']'
+                .(self::adaLain($medan) ? '; jawapan lain yang jelas boleh dimasukkan' : '').', cth. ["a","b"]',
             'ya_tidak' => 'tulis "Ya" atau "Tidak" sahaja',
             'jadual' => MedanJadual::panduanAi($medan),
             // Arahan, bukan label: label seperti "teks panjang" pernah disalin oleh AI sebagai nilai
@@ -478,7 +478,7 @@ final class JenisMedan
      */
     public static function bersihkanAi(DokumenField $medan, mixed $nilai): ?string
     {
-        if (!self::adaNilai($medan)) {
+        if (! self::adaNilai($medan)) {
             return null;
         }
         if ($medan->jenis_data === 'kotak_semak') {
@@ -513,7 +513,8 @@ final class JenisMedan
                 if (in_array($nilai, $medan->pilihan ?? [], true)) {
                     return $nilai;
                 }
-                return self::adaLain($medan) ? self::AWALAN_LAIN . mb_substr($nilai, 0, 255) : null;
+
+                return self::adaLain($medan) ? self::AWALAN_LAIN.mb_substr($nilai, 0, 255) : null;
         }
 
         $peraturan = self::peraturan($medan)["medan_data.{$medan->dokumen_field_id}"];
@@ -551,7 +552,7 @@ final class JenisMedan
         if (is_string($nilai)) {
             $nilai = preg_split('/\s*[,;]\s*/', trim($nilai));
         }
-        if (!is_array($nilai)) {
+        if (! is_array($nilai)) {
             return null;
         }
 
@@ -563,7 +564,7 @@ final class JenisMedan
         $dipilih = [];
         $lain = [];
         foreach ($nilai as $v) {
-            if (!is_scalar($v) || trim((string) $v) === '') {
+            if (! is_scalar($v) || trim((string) $v) === '') {
                 continue;
             }
             $v = trim((string) $v);

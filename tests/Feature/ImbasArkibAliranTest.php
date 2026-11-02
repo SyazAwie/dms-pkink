@@ -30,9 +30,13 @@ class ImbasArkibAliranTest extends TestCase
     private const TEKS_OCR = 'BORANG PERMOHONAN No Siri: ABC123';
 
     private User $kerani;
+
     private JenisDokumen $jenis;
+
     private DokumenField $medanSiri;
+
     private DokumenField $medanJumlah;
+
     private MockInterface $ocr;
 
     protected function setUp(): void
@@ -196,7 +200,7 @@ class ImbasArkibAliranTest extends TestCase
     public function test_token_format_rosak_memberi_404(): void
     {
         $this->actingAs($this->kerani)->get('/imbas-arkib/semak/abc')->assertNotFound();
-        $this->actingAs($this->kerani)->get('/imbas-arkib/semak/' . str_repeat('a', 39) . '.')->assertNotFound();
+        $this->actingAs($this->kerani)->get('/imbas-arkib/semak/'.str_repeat('a', 39).'.')->assertNotFound();
         $this->actingAs($this->kerani)->post('/imbas-arkib/simpan/..%2F..%2Fdokumen_scan')->assertNotFound();
     }
 

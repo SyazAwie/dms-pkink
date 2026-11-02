@@ -88,24 +88,24 @@
                 @csrf
 
                 <div class="mb-4">
-                    <label class="dms-label">Tarikh Dokumen <span class="text-danger">*</span>
+                    <label class="dms-label" for="tarikh_dokumen">Tarikh Dokumen <span class="text-danger">*</span>
                         @if($tarikhAi)<span class="badge tag-ai">Diisi AI</span>@endif
                     </label>
-                    <input type="date" name="tarikh_dokumen" class="dms-input @error('tarikh_dokumen') is-invalid @enderror" value="{{ old('tarikh_dokumen', $tarikhAi ?? date('Y-m-d')) }}">
+                    <input type="date" id="tarikh_dokumen" name="tarikh_dokumen" class="dms-input @error('tarikh_dokumen') is-invalid @enderror" value="{{ old('tarikh_dokumen', $tarikhAi ?? date('Y-m-d')) }}">
                     @unless($tarikhAi)<div class="dms-hint">Tarikh dokumen tidak dikesan; tarikh hari ini digunakan. Sila semak.</div>@endunless
                     @error('tarikh_dokumen') <div class="dms-error">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="mb-2">
-                    <label class="dms-label">Perkara <span class="dms-optional">(Pilihan)</span>
+                    <label class="dms-label" for="perkara">Perkara <span class="dms-optional">(Pilihan)</span>
                         @if($perkaraAi)<span class="badge tag-ai">Diisi AI</span>@endif
                     </label>
-                    <input type="text" name="perkara" class="dms-input" value="{{ old('perkara', $perkaraAi) }}" maxlength="255" placeholder="Ringkasan perkara dokumen">
+                    <input type="text" id="perkara" name="perkara" class="dms-input" value="{{ old('perkara', $perkaraAi) }}" maxlength="255" placeholder="Ringkasan perkara dokumen">
                 </div>
 
                 <hr class="dms-divider">
 
-                <label class="dms-label mb-2">Medan Dokumen — diisi oleh AI, sila semak</label>
+                <div class="dms-label mb-2">Medan Dokumen — diisi oleh AI, sila semak</div>
 
                 @include('dokumen.partials.medan-senarai', [
                     'medanSenarai' => $jenisDokumen->fields,

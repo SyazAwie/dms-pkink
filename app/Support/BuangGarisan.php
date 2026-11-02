@@ -19,10 +19,15 @@ namespace App\Support;
 final class BuangGarisan
 {
     private const LEBAR_RUJUKAN = 2480;
+
     private const AMBANG_GELAP = 140;      // kecerahan 0-255; lebih rendah = piksel gelap
+
     private const MIN_MENDATAR = 120;      // panjang minimum garisan mendatar (px @ 300dpi)
+
     private const MIN_MENEGAK = 70;        // panjang minimum garisan menegak (lebih pendek: sisi kotak huruf)
+
     private const TEBAL = 6;               // jarak semakan sisi; garisan lebih tebal dikekalkan
+
     private const NISBAH_SISI_GELAP = 0.3;
 
     /** Imej lebih besar dilangkau (OCR guna imej asal sahaja); A4 300dpi ~8.7 juta piksel. */
@@ -74,7 +79,7 @@ final class BuangGarisan
         if ($im === false) {
             return false;
         }
-        if (!imageistruecolor($im)) {
+        if (! imageistruecolor($im)) {
             imagepalettetotruecolor($im);
         }
         imagefilter($im, IMG_FILTER_GRAYSCALE);
@@ -105,6 +110,7 @@ final class BuangGarisan
             for ($x = 0; $x <= $w; $x++) {
                 if ($x < $w && $peta[$o + $x] === "\1") {
                     $run++;
+
                     continue;
                 }
                 if ($run >= $minH) {
@@ -125,6 +131,7 @@ final class BuangGarisan
             for ($y = 0; $y <= $h; $y++) {
                 if ($y < $h && $peta[$y * $w + $x] === "\1") {
                     $run++;
+
                     continue;
                 }
                 if ($run >= $minV) {

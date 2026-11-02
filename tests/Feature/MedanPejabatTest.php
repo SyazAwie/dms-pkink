@@ -27,8 +27,11 @@ class MedanPejabatTest extends TestCase
     use SkemaUjian;
 
     private User $admin;
+
     private User $staf;
+
     private JenisDokumen $jenis;
+
     private ?Collection $medanKeAi = null;
 
     protected function setUp(): void
@@ -114,7 +117,7 @@ class MedanPejabatTest extends TestCase
             'jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'tarikh_dokumen' => '2026-10-26',
             'medan_data' => [$this->id('nama_pemohon') => 'Ali'],
         ])->assertSessionHasErrors(["medan_data.{$this->id('catatan')}"])     // medan bukan pejabat kekal wajib
-          ->assertSessionDoesntHaveErrors(["medan_data.{$this->id('keputusan')}"]);
+            ->assertSessionDoesntHaveErrors(["medan_data.{$this->id('keputusan')}"]);
 
         $this->actingAs($this->staf)->post(route('dokumen.store'), [
             'jenis_dokumen_id' => $this->jenis->jenis_dokumen_id, 'tarikh_dokumen' => '2026-10-26',

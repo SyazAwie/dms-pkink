@@ -26,6 +26,7 @@ class VlmOcrService
 
     /**
      * @return string teks yang dibaca (kosong jika model tidak memulangkan teks)
+     *
      * @throws \RuntimeException jika Ollama gagal
      */
     public function baca(string $laluanImej): string
@@ -40,10 +41,10 @@ class VlmOcrService
                 + ($this->numGpu() !== null ? ['num_gpu' => $this->numGpu()] : []),
         ];
         $respons = Http::timeout((int) config('services.ollama.had_masa', 180))
-            ->post(rtrim(config('services.ollama.url'), '/') . '/api/generate', $badan);
+            ->post(rtrim(config('services.ollama.url'), '/').'/api/generate', $badan);
 
         if ($respons->failed()) {
-            throw new \RuntimeException('Model penglihatan (' . $badan['model'] . ') gagal: HTTP ' . $respons->status());
+            throw new \RuntimeException('Model penglihatan ('.$badan['model'].') gagal: HTTP '.$respons->status());
         }
 
         return trim((string) $respons->json('response'));

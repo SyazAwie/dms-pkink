@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\JenisDokumen;
+use Illuminate\Support\Str;
 
 /**
  * Templat permulaan bagi pembina medan Kategori Dokumen (memo, surat, minit
@@ -162,7 +163,7 @@ final class TemplatKategori
     ): array {
         return [
             'nama_field' => $nama,
-            'kod_field' => $kod ?? \Illuminate\Support\Str::slug($nama, '_'),
+            'kod_field' => $kod ?? Str::slug($nama, '_'),
             'jenis_data' => $jenis,
             'is_required' => $wajib ? '1' : '',
             'pilihan' => $pilihan,

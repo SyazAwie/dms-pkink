@@ -30,6 +30,7 @@ class BersihImbasArkib extends Command
         $jam = (int) $this->option('jam');
         if ($jam < 1) {
             $this->error('Nilai --jam mesti sekurang-kurangnya 1.');
+
             return self::FAILURE;
         }
 
@@ -38,7 +39,7 @@ class BersihImbasArkib extends Command
         $calon = [];
 
         foreach ($disk->directories(self::FOLDER) as $folder) {
-            if (!preg_match('/^[A-Za-z0-9]{40}$/', basename($folder))) {
+            if (! preg_match('/^[A-Za-z0-9]{40}$/', basename($folder))) {
                 continue;
             }
             $fail = $disk->allFiles($folder);
@@ -50,7 +51,7 @@ class BersihImbasArkib extends Command
         }
 
         foreach ($disk->files(self::FOLDER) as $fail) {
-            if (!preg_match('/^[A-Za-z0-9]{20}_.+/', basename($fail))) {
+            if (! preg_match('/^[A-Za-z0-9]{20}_.+/', basename($fail))) {
                 continue;
             }
             $masa = $disk->lastModified($fail);
@@ -59,8 +60,9 @@ class BersihImbasArkib extends Command
             }
         }
 
-        if (!$calon) {
+        if (! $calon) {
             $this->info("Tiada fail sementara Imbas & Arkib yang lebih lama daripada {$jam} jam.");
+
             return self::SUCCESS;
         }
 
@@ -74,7 +76,8 @@ class BersihImbasArkib extends Command
         $jumlahKb = number_format(array_sum(array_column($calon, 'saiz')) / 1024, 1);
 
         if ($this->option('cuba')) {
-            $this->warn('Mod --cuba: ' . count($calon) . " item ({$jumlahKb} KB) AKAN dipadam. Tiada apa-apa dipadam.");
+            $this->warn('Mod --cuba: '.count($calon)." item ({$jumlahKb} KB) AKAN dipadam. Tiada apa-apa dipadam.");
+
             return self::SUCCESS;
         }
 
@@ -82,7 +85,8 @@ class BersihImbasArkib extends Command
             $c['jenis'] === 'folder' ? $disk->deleteDirectory($c['laluan']) : $disk->delete($c['laluan']);
         }
 
-        $this->info(count($calon) . " item ({$jumlahKb} KB) dipadam.");
+        $this->info(count($calon)." item ({$jumlahKb} KB) dipadam.");
+
         return self::SUCCESS;
     }
 }

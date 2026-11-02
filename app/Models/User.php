@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
@@ -176,9 +176,9 @@ class User extends Authenticatable
         $dimiliki = $this->kodPeranan();
 
         if (empty($kod)) {
-            return !empty($dimiliki);
+            return ! empty($dimiliki);
         }
 
-        return !empty(array_intersect($kod, $dimiliki));
+        return ! empty(array_intersect($kod, $dimiliki));
     }
 }

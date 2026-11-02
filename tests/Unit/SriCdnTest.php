@@ -12,7 +12,7 @@ class SriCdnTest extends TestCase
 {
     public function test_semua_tag_cdn_ada_integrity(): void
     {
-        $views = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(dirname(__DIR__, 2) . '/resources/views'));
+        $views = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(dirname(__DIR__, 2).'/resources/views'));
         $tanpaSri = [];
         $jumlah = 0;
 
@@ -24,7 +24,7 @@ class SriCdnTest extends TestCase
             foreach ($padanan[0] as $tag) {
                 $jumlah++;
                 if (! str_contains($tag, 'integrity="sha384-') || ! str_contains($tag, 'crossorigin="anonymous"')) {
-                    $tanpaSri[] = $fail->getFilename() . ': ' . $tag;
+                    $tanpaSri[] = $fail->getFilename().': '.$tag;
                 }
             }
         }

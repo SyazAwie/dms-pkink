@@ -6,9 +6,10 @@ use App\Models\DokumenField;
 use App\Models\PembetulanAi;
 use App\Support\JenisMedan;
 use App\Support\TandaVisual;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Collection;
 
 /**
  * Ekstrak nilai medan EAV daripada teks OCR, guna model AI TEMPATAN melalui
@@ -24,6 +25,7 @@ use Illuminate\Support\Collection;
 class OllamaExtractionService
 {
     private string $urlAsas;
+
     private string $model;
 
     public function __construct()
@@ -34,12 +36,13 @@ class OllamaExtractionService
 
     /** Kunci medan asas dokumen (bukan EAV) dalam hasil ekstrak() bila $medanAsas = true. */
     public const TARIKH_DOKUMEN = '_tarikh_dokumen';
+
     public const PERKARA = '_perkara';
 
     /**
-     * @param string $teksOcr Teks mentah hasil OcrService::proses()
-     * @param Collection<\App\Models\DokumenField> $medan
-     * @param bool $medanAsas true = turut ekstrak Tarikh Dokumen & Perkara (kunci TARIKH_DOKUMEN/PERKARA)
+     * @param  string  $teksOcr  Teks mentah hasil OcrService::proses()
+     * @param  Collection<DokumenField>  $medan
+     * @param  bool  $medanAsas  true = turut ekstrak Tarikh Dokumen & Perkara (kunci TARIKH_DOKUMEN/PERKARA)
      * @return array<int|string, mixed> dokumen_field_id => nilai (null jika tak dijumpai/tak sah)
      *
      * @throws \RuntimeException jika Ollama tidak dapat dihubungi atau pulangkan JSON tak sah
@@ -49,7 +52,7 @@ class OllamaExtractionService
         // Tajuk seksyen tiada nilai, jadi tidak dihantar kepada AI
         $medan = $medan->filter(fn ($f) => JenisMedan::adaNilai($f))->values();
 
-        if (($medan->isEmpty() && !$medanAsas) || trim($teksOcr) === '') {
+        if (($medan->isEmpty() && ! $medanAsas) || trim($teksOcr) === '') {
             return $medan->mapWithKeys(fn ($f) => [$f->dokumen_field_id => null])->all()
                 + ($medanAsas ? [self::TARIKH_DOKUMEN => null, self::PERKARA => null] : []);
         }
@@ -78,15 +81,15 @@ class OllamaExtractionService
 
         if ($respons->failed()) {
             throw new \RuntimeException(
-                "Ollama tidak dapat dihubungi (pastikan servis Ollama berjalan): HTTP {$respons->status()} — " . $respons->body()
+                "Ollama tidak dapat dihubungi (pastikan servis Ollama berjalan): HTTP {$respons->status()} — ".$respons->body()
             );
         }
 
         $teksJson = $respons->json('response');
         $data = json_decode((string) $teksJson, true);
 
-        if (!is_array($data)) {
-            throw new \RuntimeException('Model AI tidak pulangkan JSON yang sah: ' . substr((string) $teksJson, 0, 300));
+        if (! is_array($data)) {
+            throw new \RuntimeException('Model AI tidak pulangkan JSON yang sah: '.substr((string) $teksJson, 0, 300));
         }
 
         return $this->bersihkanNilai($data, $medan, $teksOcr)
@@ -122,7 +125,7 @@ class OllamaExtractionService
         $model = Http::timeout(3)->get("{$this->urlAsas}/api/ps")->json('models') ?? [];
 
         return collect($model)->contains(fn ($m) => in_array($this->model, [$m['name'] ?? null, $m['model'] ?? null], true)
-            || str_starts_with((string) ($m['name'] ?? ''), $this->model . ':'));
+            || str_starts_with((string) ($m['name'] ?? ''), $this->model.':'));
     }
 
     /** Opsyen prestasi Ollama yang menentukan cara model dimuat (config services.ollama). */
@@ -134,7 +137,7 @@ class OllamaExtractionService
             + ($numGpu !== null && $numGpu !== '' ? ['num_gpu' => (int) $numGpu] : []);
     }
 
-    private function hantar(array $badan): \Illuminate\Http\Client\Response
+    private function hantar(array $badan): Response
     {
         return Http::timeout((int) config('services.ollama.had_masa', 180))
             ->post("{$this->urlAsas}/api/generate", $badan);
@@ -144,10 +147,10 @@ class OllamaExtractionService
     {
         // Nama medan + panduan format ikut jenis data (App\Support\JenisMedan)
         $senaraiMedan = $medan
-            ->map(fn ($f) => "- kod \"{$f->kod_field}\" ({$f->nama_field}): " . JenisMedan::panduanAi($f))
+            ->map(fn ($f) => "- kod \"{$f->kod_field}\" ({$f->nama_field}): ".JenisMedan::panduanAi($f))
             ->when($medanAsas, fn ($s) => $s->push(
-                '- kod "' . self::TARIKH_DOKUMEN . '" (Tarikh Dokumen): tarikh dokumen itu sendiri (tarikh surat, memo atau mesyuarat, atau tarikh borang diisi oleh pemohon; BUKAN tarikh dalam bahagian pengesahan/sokongan/kegunaan pejabat), format YYYY-MM-DD',
-                '- kod "' . self::PERKARA . '" (Perkara): tajuk utama dokumen seperti tertulis (perkara surat/memo, tajuk penuh minit mesyuarat, atau nama borang), maksimum 200 aksara'
+                '- kod "'.self::TARIKH_DOKUMEN.'" (Tarikh Dokumen): tarikh dokumen itu sendiri (tarikh surat, memo atau mesyuarat, atau tarikh borang diisi oleh pemohon; BUKAN tarikh dalam bahagian pengesahan/sokongan/kegunaan pejabat), format YYYY-MM-DD',
+                '- kod "'.self::PERKARA.'" (Perkara): tajuk utama dokumen seperti tertulis (perkara surat/memo, tajuk penuh minit mesyuarat, atau nama borang), maksimum 200 aksara'
             ))
             ->implode("\n");
         $contoh = $this->blokPembetulan($medan);
@@ -209,7 +212,7 @@ PROMPT;
         try {
             $contoh = PembetulanAi::contohTerkini((int) $medan->first()->jenis_dokumen_id, $medan->pluck('dokumen_field_id')->all());
         } catch (\Throwable $e) {
-            Log::warning('Contoh pembetulan AI tidak dapat dibaca: ' . $e->getMessage());
+            Log::warning('Contoh pembetulan AI tidak dapat dibaca: '.$e->getMessage());
 
             return '';
         }
@@ -246,7 +249,7 @@ PROMPT;
 
         return preg_replace_callback(
             '#(?<![\d/])(0?[1-9]|[12]\d|3[01])\s*([/.-])\s*(0?[1-9]|1[0-2])\s*\2\s*(\d{2})(?![\d/])#',
-            fn ($m) => "{$m[1]}/{$m[3]}/" . ((int) $m[4] <= $had ? '20' : '19') . $m[4],
+            fn ($m) => "{$m[1]}/{$m[3]}/".((int) $m[4] <= $had ? '20' : '19').$m[4],
             $teks
         );
     }

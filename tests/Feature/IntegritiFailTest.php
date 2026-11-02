@@ -19,6 +19,7 @@ class IntegritiFailTest extends TestCase
     use SkemaUjian;
 
     private Dokumen $dokumen;
+
     private string $folder;
 
     protected function setUp(): void
@@ -26,7 +27,7 @@ class IntegritiFailTest extends TestCase
         parent::setUp();
         $this->sediakanSkema();
         Storage::fake('local');
-        $this->folder = sys_get_temp_dir() . '/integriti_ujian_' . uniqid();
+        $this->folder = sys_get_temp_dir().'/integriti_ujian_'.uniqid();
         config(['services.sandaran.folder' => $this->folder]);
 
         $staf = $this->buatPengguna(['STAFF']);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\OllamaExtractionService;
+use App\Support\Keselamatan;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Artisan;
@@ -25,7 +26,7 @@ Schedule::call(fn () => Cache::forever('penjadual:degupan', now()->toIso8601Stri
     ->everyMinute()->name('degupan-penjadual');
 
 // Fasa Keselamatan: amaran bila sandaran tertunggak (sekali sehari)
-Schedule::call(fn () => \App\Support\Keselamatan::semakBerkala())->hourly()->name('semak-keselamatan');
+Schedule::call(fn () => Keselamatan::semakBerkala())->hourly()->name('semak-keselamatan');
 
 // Fasa Keselamatan S4: uji pemulihan sandaran terkini ke DB sementara, setiap Rabu
 Schedule::command('sandaran:uji')->weeklyOn(3, '13:00')->withoutOverlapping();

@@ -37,7 +37,7 @@ class JenisDokumen extends Model
     public function fields()
     {
         return $this->hasMany(DokumenField::class, 'jenis_dokumen_id', 'jenis_dokumen_id')
-                    ->orderBy('susunan');
+            ->orderBy('susunan');
     }
 
     public function dokumen()

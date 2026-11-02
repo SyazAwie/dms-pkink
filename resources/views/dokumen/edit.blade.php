@@ -32,18 +32,18 @@
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label class="dms-label">No. Rujukan</label>
-                        <input type="text" class="dms-input dms-locked" value="{{ $dokumen->no_rujukan }}" disabled>
+                        <label class="dms-label" for="no_rujukan">No. Rujukan</label>
+                        <input type="text" id="no_rujukan" class="dms-input dms-locked" value="{{ $dokumen->no_rujukan }}" disabled>
                     </div>
                     <div class="col-md-6">
-                        <label class="dms-label">Jenis Dokumen</label>
-                        <input type="text" class="dms-input dms-locked" value="{{ $dokumen->jenisDokumen->nama_dokumen ?? '-' }}" disabled>
+                        <label class="dms-label" for="jenis_dokumen_nama">Jenis Dokumen</label>
+                        <input type="text" id="jenis_dokumen_nama" class="dms-input dms-locked" value="{{ $dokumen->jenisDokumen->nama_dokumen ?? '-' }}" disabled>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <label class="dms-label">Tarikh Dokumen <span class="text-danger">*</span></label>
-                    <input type="date"
+                    <label class="dms-label" for="tarikh_dokumen">Tarikh Dokumen <span class="text-danger">*</span></label>
+                    <input id="tarikh_dokumen" type="date"
                            name="tarikh_dokumen"
                            class="dms-input @error('tarikh_dokumen') is-invalid @enderror"
                            value="{{ old('tarikh_dokumen', $dokumen->tarikh_dokumen?->format('Y-m-d')) }}">
@@ -52,8 +52,8 @@
                 </div>
 
                 <div class="mb-2">
-                    <label class="dms-label">Perkara <span class="dms-optional">(Pilihan)</span></label>
-                    <input type="text"
+                    <label class="dms-label" for="perkara">Perkara <span class="dms-optional">(Pilihan)</span></label>
+                    <input id="perkara" type="text"
                            name="perkara"
                            class="dms-input @error('perkara') is-invalid @enderror"
                            value="{{ old('perkara', $dokumen->perkara) }}"
@@ -64,7 +64,7 @@
                 <hr class="dms-divider">
 
                 <!-- ============ Medan Dokumen (EAV) ============ -->
-                <label class="dms-label mb-2">Medan Dokumen</label>
+                <div class="dms-label mb-2">Medan Dokumen</div>
 
                 @include('dokumen.partials.medan-senarai', [
                     'medanSenarai' => $dokumen->jenisDokumen->fields,
@@ -76,7 +76,7 @@
                 <hr class="dms-divider">
 
                 <!-- ============ Fail Imbasan ============ -->
-                <label class="dms-label mb-2">Fail Imbasan Sedia Ada</label>
+                <div class="dms-label mb-2">Fail Imbasan Sedia Ada</div>
                 @foreach($dokumen->scans as $scan)
                     <div class="fail-baris">
                         <i class="bi bi-file-earmark-text"></i>
@@ -90,8 +90,8 @@
                 @endforeach
 
                 <div class="mt-3 mb-2">
-                    <label class="dms-label">Tambah Fail Imbasan Baharu <span class="dms-optional">(Pilihan)</span></label>
-                    <input type="file"
+                    <label class="dms-label" for="fail_scan">Tambah Fail Imbasan Baharu <span class="dms-optional">(Pilihan)</span></label>
+                    <input id="fail_scan" type="file"
                            name="fail_scan[]"
                            class="dms-input @error('fail_scan') is-invalid @enderror"
                            accept=".pdf,.jpg,.jpeg,.png"

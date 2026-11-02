@@ -31,6 +31,7 @@ class UserController extends Controller
     {
         $senarai_bahagian = Bahagian::all();
         $senarai_role = Role::all();
+
         return view('users.create', compact('senarai_bahagian', 'senarai_role'));
     }
 
@@ -116,7 +117,7 @@ class UserController extends Controller
 
             // Jangan benarkan sistem kehilangan Super Admin terakhir
             $idSuperadmin = Role::where('kod_roles', 'SUPERADMIN')->value('roles_id');
-            if ($user->hasRole('SUPERADMIN') && !in_array((int) $idSuperadmin, $idPerananBaharu, true)) {
+            if ($user->hasRole('SUPERADMIN') && ! in_array((int) $idSuperadmin, $idPerananBaharu, true)) {
                 $bilSuperadmin = User::whereHas('roles', fn ($q) => $q->where('kod_roles', 'SUPERADMIN'))->count();
                 if ($bilSuperadmin <= 1) {
                     return back()->withInput()->withErrors([
@@ -185,6 +186,7 @@ class UserController extends Controller
         }
 
         $user->delete();
+
         return redirect()->route('users.index')->with('success', 'Kakitangan telah dipadam.');
     }
 
@@ -195,7 +197,7 @@ class UserController extends Controller
      */
     private function pastikanBolehUrus(User $sasaran): void
     {
-        if ($sasaran->hasRole('SUPERADMIN') && !Auth::user()->hasRole('SUPERADMIN')) {
+        if ($sasaran->hasRole('SUPERADMIN') && ! Auth::user()->hasRole('SUPERADMIN')) {
             abort(403, 'Hanya Super Admin boleh mengurus akaun Super Admin.');
         }
     }

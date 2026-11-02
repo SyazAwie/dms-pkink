@@ -17,13 +17,13 @@ class OcrPraprosesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->folder = sys_get_temp_dir() . '/dms_ujian_ocr_' . uniqid();
+        $this->folder = sys_get_temp_dir().'/dms_ujian_ocr_'.uniqid();
         mkdir($this->folder);
     }
 
     protected function tearDown(): void
     {
-        array_map('unlink', glob($this->folder . '/*') ?: []);
+        array_map('unlink', glob($this->folder.'/*') ?: []);
         @rmdir($this->folder);
         parent::tearDown();
     }
@@ -92,7 +92,7 @@ class OcrPraprosesTest extends TestCase
             "5\t1\t2\t1\t1\t1\t0\t0\t0\t0\t60\tPerakuan",
         ]));
 
-        [$teks, $skor] = (fn () => $this->uraiTsv($tsv))->call(new OcrService());
+        [$teks, $skor] = (fn () => $this->uraiTsv($tsv))->call(new OcrService);
 
         $this->assertSame("Nama Pemohon: ALI\nTarikh: 12/8/2026\nPerakuan", $teks);
         $this->assertSame(80.0, $skor);

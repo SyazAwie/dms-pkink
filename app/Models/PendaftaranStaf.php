@@ -14,7 +14,9 @@ use Illuminate\Database\Eloquent\Model;
 class PendaftaranStaf extends Model
 {
     public const MENUNGGU = 'Menunggu';
+
     public const DILULUSKAN = 'Diluluskan';
+
     public const DITOLAK = 'Ditolak';
 
     protected $table = 'pendaftaran_staf';

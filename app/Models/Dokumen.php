@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Dokumen extends Model
 {
@@ -24,7 +25,8 @@ class Dokumen extends Model
         'no_rujukan',
         'tarikh_dokumen',
         'perkara',
-        'status',
+        // `status` (lajur lama, sentiasa 'Archived' ikut lalai DB) sengaja tidak digunakan: status
+        // sebenar dokumen ialah borang.status_permohonan. Lajur dibuang dalam Fasa H (SQL).
         'bahagian_id',
         'created_by',
     ];
@@ -57,7 +59,7 @@ class Dokumen extends Model
     public static function kiraTamatSimpanan($tarikhDokumen, $tempohTahun): ?string
     {
         return $tarikhDokumen && $tempohTahun
-            ? \Illuminate\Support\Carbon::parse($tarikhDokumen)->addYears((int) $tempohTahun)->toDateString()
+            ? Carbon::parse($tarikhDokumen)->addYears((int) $tempohTahun)->toDateString()
             : null;
     }
 
@@ -84,7 +86,7 @@ class Dokumen extends Model
             }
 
             // Tiada peranan berkaitan: tiada dokumen dipaparkan
-            if (!$ada) {
+            if (! $ada) {
                 $q->whereRaw('1 = 0');
             }
         });

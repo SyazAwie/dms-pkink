@@ -3,9 +3,11 @@
 namespace App\Support;
 
 use App\Models\Borang;
+use App\Models\DokumenScan;
 use App\Models\PendaftaranStaf;
 use App\Models\User;
 use App\Notifications\NotifikasiDms;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -30,12 +32,18 @@ class Notifikasi
     /** Bilangan maksimum notifikasi yang dinilai untuk loceng (ditapis ikut peranan aktif). */
     private const HAD_LOCENG = 100;
 
+    /** Bilangan maksimum item yang dipaparkan dalam loceng. */
+    public const HAD_PAPARAN_LOCENG = 10;
+
+    /** Notifikasi yang sudah dibaca kekal dalam loceng selama tempoh ini (jam). */
+    public const JAM_DIBACA_LOCENG = 24;
+
     public static function permohonanDihantar(Borang $borang): void
     {
         [$rujukan, $nama, $url] = self::maklumatDokumen($borang);
 
         self::kepadaGiliran('PENYOKONG', $borang, new NotifikasiDms('permohonan_baharu', 'Permohonan menunggu sokongan',
-            "{$rujukan} ({$nama}) daripada " . ($borang->pemohon?->nama_staff ?? 'pemohon') . '.',
+            "{$rujukan} ({$nama}) daripada ".($borang->pemohon?->nama_staff ?? 'pemohon').'.',
             $url, 'bi-inbox', 'kuning', ['PENYOKONG']));
     }
 
@@ -45,7 +53,7 @@ class Notifikasi
         $oleh = $borang->penyokong?->nama_staff;
 
         self::kepadaPemohon($borang, new NotifikasiDms('disokong', 'Permohonan anda disokong',
-            "{$rujukan} ({$nama}) telah disokong" . ($oleh ? " oleh {$oleh}" : '') . ' dan kini menunggu kelulusan.',
+            "{$rujukan} ({$nama}) telah disokong".($oleh ? " oleh {$oleh}" : '').' dan kini menunggu kelulusan.',
             $url, 'bi-hand-thumbs-up', 'biru'));
 
         self::kepadaGiliran('PELULUS', $borang, new NotifikasiDms('menunggu_kelulusan', 'Permohonan menunggu kelulusan',
@@ -59,7 +67,7 @@ class Notifikasi
         $oleh = $borang->pelulus?->nama_staff;
 
         self::kepadaPemohon($borang, new NotifikasiDms('diluluskan', 'Permohonan anda diluluskan',
-            "{$rujukan} ({$nama}) telah diluluskan" . ($oleh ? " oleh {$oleh}" : '') . '.',
+            "{$rujukan} ({$nama}) telah diluluskan".($oleh ? " oleh {$oleh}" : '').'.',
             $url, 'bi-check-circle', 'hijau'));
     }
 
@@ -70,7 +78,7 @@ class Notifikasi
         $ulasan = $borang->ulasan_pelulus ?: $borang->ulasan_penyokong;
 
         self::kepadaPemohon($borang, new NotifikasiDms('ditolak', 'Permohonan anda ditolak',
-            "{$rujukan} ({$nama}) ditolak" . ($oleh ? " oleh {$oleh}" : '') . ($ulasan ? ": \"{$ulasan}\"" : '.') . ' Semak dan hantar semula.',
+            "{$rujukan} ({$nama}) ditolak".($oleh ? " oleh {$oleh}" : '').($ulasan ? ": \"{$ulasan}\"" : '.').' Semak dan hantar semula.',
             $url, 'bi-x-circle', 'merah'));
     }
 
@@ -88,7 +96,7 @@ class Notifikasi
     }
 
     /** OCR yang dijalankan di latar (queue OCR, T2) telah selesai atau gagal. */
-    public static function ocrFailSelesai(User $user, \App\Models\DokumenScan $scan, bool $berjaya): void
+    public static function ocrFailSelesai(User $user, DokumenScan $scan, bool $berjaya): void
     {
         $rujukan = $scan->dokumen?->no_rujukan ?? 'Dokumen';
         $notifikasi = $berjaya
@@ -103,14 +111,36 @@ class Notifikasi
     /**
      * Notifikasi pengguna yang kelihatan dalam peranan aktifnya (terkini dahulu).
      *
-     * @return Collection<int, \Illuminate\Notifications\DatabaseNotification>
+     * @return Collection<int, DatabaseNotification>
      */
     public static function kelihatan(User $user, bool $belumDibacaSahaja = false, int $had = self::HAD_LOCENG): Collection
     {
-        $peranan = $user->kodPeranan();
         $query = $belumDibacaSahaja ? $user->unreadNotifications() : $user->notifications();
 
-        return $query->latest()->limit($had)->get()
+        return self::tapisPeranan($user, $query->latest()->limit($had)->get());
+    }
+
+    /**
+     * Notifikasi untuk loceng topbar: semua yang belum dibaca (supaya tidak terlepas) dan yang
+     * sudah dibaca hanya jika diterima dalam JAM_DIBACA_LOCENG terakhir, paling banyak
+     * HAD_PAPARAN_LOCENG item. Selebihnya kekal di halaman Notifikasi.
+     *
+     * @return Collection<int, DatabaseNotification>
+     */
+    public static function untukLoceng(User $user): Collection
+    {
+        $query = $user->notifications()->where(fn ($q) => $q->whereNull('read_at')
+            ->orWhere('created_at', '>=', now()->subHours(self::JAM_DIBACA_LOCENG)));
+
+        return self::tapisPeranan($user, $query->latest()->limit(self::HAD_LOCENG)->get())
+            ->take(self::HAD_PAPARAN_LOCENG)->values();
+    }
+
+    private static function tapisPeranan(User $user, Collection $notifikasi): Collection
+    {
+        $peranan = $user->kodPeranan();
+
+        return $notifikasi
             ->filter(fn ($n) => empty($n->data['peranan']) || array_intersect($n->data['peranan'], $peranan))
             ->values();
     }
@@ -154,7 +184,7 @@ class Notifikasi
                 Notification::send($senarai, $notifikasi);
             }
         } catch (\Throwable $e) {
-            Log::warning("Notifikasi \"{$notifikasi->jenis}\" gagal dihantar: " . $e->getMessage());
+            Log::warning("Notifikasi \"{$notifikasi->jenis}\" gagal dihantar: ".$e->getMessage());
         }
     }
 }

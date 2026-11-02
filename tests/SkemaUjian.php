@@ -104,7 +104,7 @@ trait SkemaUjian
             $t->string('no_rujukan')->nullable();
             $t->date('tarikh_dokumen')->nullable();
             $t->string('perkara')->nullable();
-            $t->string('status', 50)->nullable();
+            $t->string('status', 50)->default('Archived'); // lajur lama, tidak digunakan kod
             $t->date('tarikh_tamat_simpanan')->nullable();
             $t->string('status_pelupusan', 30)->nullable();
             $t->dateTime('tarikh_pelupusan')->nullable();

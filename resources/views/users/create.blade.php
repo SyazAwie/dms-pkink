@@ -33,7 +33,7 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-4">
-                        <label class="dms-label">No. Kad Pengenalan <span class="text-danger">*</span></label>
+                        <label class="dms-label" for="ic_pekerja">No. Kad Pengenalan <span class="text-danger">*</span></label>
                         <input type="text"
                                name="ic_pekerja"
                                id="ic_pekerja"
@@ -47,7 +47,7 @@
                         @error('ic_pekerja') <div class="dms-error">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6 mb-4">
-                        <label class="dms-label">Emel Rasmi <span class="text-danger">*</span></label>
+                        <label class="dms-label" for="email">Emel Rasmi <span class="text-danger">*</span></label>
                         <input type="email"
                                name="email"
                                id="email"
@@ -60,7 +60,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="dms-label">Nama Penuh <span class="text-danger">*</span></label>
+                    <label class="dms-label" for="nama_staff">Nama Penuh <span class="text-danger">*</span></label>
                     <input type="text"
                            name="nama_staff"
                            id="nama_staff"
@@ -73,7 +73,7 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-4">
-                        <label class="dms-label">Jawatan / Gred <span class="dms-optional">(Pilihan)</span></label>
+                        <label class="dms-label" for="jawatan">Jawatan / Gred <span class="dms-optional">(Pilihan)</span></label>
                         <input type="text"
                                name="jawatan"
                                id="jawatan"
@@ -85,7 +85,7 @@
                         @error('jawatan') <div class="dms-error">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6 mb-4">
-                        <label class="dms-label">No. Telefon <span class="dms-optional">(Pilihan)</span></label>
+                        <label class="dms-label" for="no_telefon">No. Telefon <span class="dms-optional">(Pilihan)</span></label>
                         <input type="tel"
                                name="no_telefon"
                                id="no_telefon"
@@ -100,7 +100,7 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-4">
-                        <label class="dms-label">Penempatan Bahagian <span class="text-danger">*</span></label>
+                        <label class="dms-label" for="bahagian_id">Penempatan Bahagian <span class="text-danger">*</span></label>
                         <select name="bahagian_id" id="bahagian_id" class="dms-input dms-select @error('bahagian_id') is-invalid @enderror">
                             <option value="">-- Pilih Bahagian --</option>
                             @foreach($senarai_bahagian as $b)
@@ -110,7 +110,7 @@
                         @error('bahagian_id') <div class="dms-error">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6 mb-4">
-                        <label class="dms-label">Kata Laluan Sementara <span class="text-danger">*</span></label>
+                        <label class="dms-label" for="password">Kata Laluan Sementara <span class="text-danger">*</span></label>
                         <div class="dms-input-group">
                             <input type="password"
                                    name="password"
@@ -128,8 +128,8 @@
 
                 @if(Auth::user()->hasRole('SUPERADMIN'))
                 <div class="mb-2">
-                    <label class="dms-label">Peranan Sistem <span class="text-danger">*</span></label>
-                    <div class="role-chip-group">
+                    <div class="dms-label" id="label_peranan">Peranan Sistem <span class="text-danger">*</span></div>
+                    <div class="role-chip-group" role="group" aria-labelledby="label_peranan">
                         @foreach($senarai_role as $role)
                         <label class="role-chip" for="role_{{ $role->roles_id }}">
                             <input class="role-chip-input" type="checkbox" name="roles[]" value="{{ $role->roles_id }}" id="role_{{ $role->roles_id }}">
@@ -145,7 +145,7 @@
                 </div>
                 @else
                 <div class="mb-2">
-                    <label class="dms-label">Peranan Sistem</label>
+                    <div class="dms-label">Peranan Sistem</div>
                     <div class="role-note"><i class="bi bi-info-circle"></i> <span>Kakitangan baharu akan diberi peranan lalai <strong>STAFF</strong> (Kakitangan Biasa). Hanya Super Admin boleh menetapkan peranan lain.</span></div>
                 </div>
                 @endif

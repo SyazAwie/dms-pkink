@@ -6,6 +6,7 @@ use App\Support\Notifikasi;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Notifikasi dalam sistem (loceng topbar & halaman Notifikasi). Senarai ditapis ikut
@@ -30,7 +31,7 @@ class NotifikasiController extends Controller
 
         return response()->json([
             'belum_dibaca' => Notifikasi::kelihatan($user, true)->count(),
-            'terkini' => Notifikasi::kelihatan($user, false, 30)->take(6)->map(fn ($n) => [
+            'terkini' => Notifikasi::untukLoceng($user)->map(fn ($n) => [
                 'id' => $n->id,
                 'tajuk' => $n->data['tajuk'] ?? 'Notifikasi',
                 'mesej' => $n->data['mesej'] ?? '',
@@ -61,7 +62,7 @@ class NotifikasiController extends Controller
         $data = $request->validate([
             'endpoint' => ['required', 'url', 'max:1024', function ($atribut, $nilai, $gagal) {
                 if (! self::endpointPushSah((string) $nilai)) {
-                    \Illuminate\Support\Facades\Log::info('Langganan peranti ditolak: hos ' . (parse_url((string) $nilai, PHP_URL_HOST) ?: '(tiada)'));
+                    Log::info('Langganan peranti ditolak: hos '.(parse_url((string) $nilai, PHP_URL_HOST) ?: '(tiada)'));
                     $gagal('Alamat langganan bukan daripada perkhidmatan notifikasi pelayar yang dikenali.');
                 }
             }],

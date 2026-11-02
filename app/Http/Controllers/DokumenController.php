@@ -233,8 +233,10 @@ class DokumenController extends Controller
         $idTerpilih = old('jenis_dokumen_id', $request->integer('jenis') ?: null);
         $jenisTerpilih = $idTerpilih ? JenisDokumen::with('fields')->find($idTerpilih) : null;
         $nilaiAutoIsi = $jenisTerpilih ? JenisMedan::nilaiAutoIsi($jenisTerpilih->fields, Auth::user()) : [];
+        // Dibuka dari halaman Isi Borang (?jenis=ID): tajuk "Isi Borang: {kategori}" (R6)
+        $dariIsiBorang = $jenisTerpilih !== null && $request->filled('jenis');
 
-        return view('dokumen.create', compact('jenisDokumenSenarai', 'jenisTerpilih', 'nilaiAutoIsi'));
+        return view('dokumen.create', compact('jenisDokumenSenarai', 'jenisTerpilih', 'nilaiAutoIsi', 'dariIsiBorang'));
     }
 
     // Simpan dokumen + nilai medan EAV + fail imbasan

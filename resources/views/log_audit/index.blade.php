@@ -30,8 +30,8 @@
     <form action="{{ route('log-audit.index') }}" method="GET" class="filter-panel">
         <div class="row g-3 align-items-end">
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Pengguna</label>
-                <select name="pengguna" class="dms-input">
+                <label class="dms-label" for="pengguna">Pengguna</label>
+                <select id="pengguna" name="pengguna" class="dms-input">
                     <option value="">Semua Pengguna</option>
                     @foreach($penggunaSenarai as $p)
                         <option value="{{ $p->user_id }}" {{ request('pengguna') == $p->user_id ? 'selected' : '' }}>{{ $p->nama_staff }}</option>
@@ -39,8 +39,8 @@
                 </select>
             </div>
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Jadual</label>
-                <select name="jadual" class="dms-input">
+                <label class="dms-label" for="jadual">Jadual</label>
+                <select id="jadual" name="jadual" class="dms-input">
                     <option value="">Semua Jadual</option>
                     @foreach($jadualSenarai as $j)
                         <option value="{{ $j }}" {{ request('jadual') === $j ? 'selected' : '' }}>{{ $j }}</option>
@@ -48,8 +48,8 @@
                 </select>
             </div>
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Tindakan</label>
-                <select name="tindakan" class="dms-input">
+                <label class="dms-label" for="tindakan">Tindakan</label>
+                <select id="tindakan" name="tindakan" class="dms-input">
                     <option value="">Semua Tindakan</option>
                     @foreach($tindakanSenarai as $t)
                         <option value="{{ $t }}" {{ request('tindakan') === $t ? 'selected' : '' }}>{{ $t }}</option>
@@ -57,18 +57,18 @@
                 </select>
             </div>
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">ID Rekod</label>
-                <input type="number" min="1" name="rekod" value="{{ request('rekod') }}" class="dms-input" placeholder="Cth: 12">
+                <label class="dms-label" for="rekod">ID Rekod</label>
+                <input id="rekod" type="number" min="1" name="rekod" value="{{ request('rekod') }}" class="dms-input" placeholder="Cth: 12">
             </div>
 
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Dari</label>
-                <input type="date" name="dari" value="{{ request('dari') }}" class="dms-input @error('dari') is-invalid @enderror">
+                <label class="dms-label" for="dari">Dari</label>
+                <input id="dari" type="date" name="dari" value="{{ request('dari') }}" class="dms-input @error('dari') is-invalid @enderror">
                 @error('dari') <div class="dms-error">{{ $message }}</div> @enderror
             </div>
             <div class="col-lg-3 col-md-6">
-                <label class="dms-label">Hingga</label>
-                <input type="date" name="hingga" value="{{ request('hingga') }}" class="dms-input @error('hingga') is-invalid @enderror">
+                <label class="dms-label" for="hingga">Hingga</label>
+                <input id="hingga" type="date" name="hingga" value="{{ request('hingga') }}" class="dms-input @error('hingga') is-invalid @enderror">
                 @error('hingga') <div class="dms-error">{{ $message }}</div> @enderror
             </div>
             <div class="col-lg-6 d-flex gap-2">

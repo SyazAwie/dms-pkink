@@ -70,7 +70,7 @@ class SemakanUiTest extends TestCase
         $staf = $this->buatPengguna(['STAFF']);
         $jenis = JenisDokumen::create(['kod_dokumen' => 'MOHON', 'nama_dokumen' => 'Borang Permohonan']);
         $buat = fn (string $no) => Dokumen::create(['jenis_dokumen_id' => $jenis->jenis_dokumen_id, 'no_rujukan' => $no,
-            'tarikh_dokumen' => '2026-10-27', 'created_by' => $staf->user_id, 'status' => 'Archived']);
+            'tarikh_dokumen' => '2026-10-27', 'created_by' => $staf->user_id]); // status = lalai DB 'Archived'
         $buat('MOHON/2026/0001');
         $dihantar = $buat('MOHON/2026/0002');
         Borang::create(['dokumen_id' => $dihantar->dokumen_id, 'pemohon_id' => $staf->user_id,

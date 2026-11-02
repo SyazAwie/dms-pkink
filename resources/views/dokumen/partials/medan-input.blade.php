@@ -53,12 +53,14 @@
     </div>
 @else
 <div class="mb-3 medan-eav" data-jenis="{{ $field->jenis_data }}" data-kod="{{ $field->kod_field }}" {!! $atributSyarat !!}>
-    <label class="dms-label" @if(!in_array($field->jenis_data, ['radio', 'ya_tidak', 'kotak_semak', 'jadual'], true)) for="medan_{{ $fid }}" @endif>
+    {{-- Kumpulan (radio/kotak semak/jadual) tiada satu kawalan untuk dipaut: tajuk biasa + aria-label pada kumpulan --}}
+    @php $tagLabel = in_array($field->jenis_data, ['radio', 'ya_tidak', 'kotak_semak', 'jadual'], true) ? 'div' : 'label'; @endphp
+    <{{ $tagLabel }} class="dms-label" @if($tagLabel === 'label') for="medan_{{ $fid }}" @endif>
         {{ $field->nama_field }}
         @if($wajibMedan)<span class="text-danger">*</span>@endif
         @if($autoIsi ?? false)<span class="badge tag-profil">Daripada profil</span>
         @elseif($diisiAi ?? false)<span class="badge tag-ai">Diisi AI</span>@endif
-    </label>
+    </{{ $tagLabel }}>
 
     @switch($field->jenis_data)
         @case('nombor')

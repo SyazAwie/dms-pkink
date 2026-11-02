@@ -37,6 +37,7 @@ final class MedanJadual
     ];
 
     public const MAKS_BARIS = 100;
+
     public const MAKS_TEKS_SEL = 1000;
 
     /** Kunci label baris tetap dalam setiap objek baris. */
@@ -72,7 +73,7 @@ final class MedanJadual
     public static function peraturan(DokumenField $medan): array
     {
         $kunci = "medan_data.{$medan->dokumen_field_id}";
-        $utama = [$medan->is_required ? 'required' : 'nullable', 'array', 'max:' . self::MAKS_BARIS];
+        $utama = [$medan->is_required ? 'required' : 'nullable', 'array', 'max:'.self::MAKS_BARIS];
         if ($medan->is_required) {
             $utama[] = function (string $attribute, mixed $value, Closure $fail) use ($medan) {
                 if (self::untukSimpan($medan, $value) === null) {
@@ -86,12 +87,12 @@ final class MedanJadual
             $peraturan = JenisMedan::peraturan(self::medanLajur($lajur))['medan_data.0'];
             $peraturan[0] = 'nullable';
             if (($lajur['jenis'] ?? 'teks') === 'teks') {
-                $peraturan[] = 'max:' . self::MAKS_TEKS_SEL;
+                $peraturan[] = 'max:'.self::MAKS_TEKS_SEL;
             }
             $hasil["{$kunci}.*.{$lajur['kod']}"] = $peraturan;
         }
         if ($tetap = self::barisTetap($medan)) {
-            $hasil["{$kunci}.*." . self::KUNCI_BARIS] = ['nullable', 'string', Rule::in($tetap)];
+            $hasil["{$kunci}.*.".self::KUNCI_BARIS] = ['nullable', 'string', Rule::in($tetap)];
         }
 
         return $hasil;
@@ -105,7 +106,7 @@ final class MedanJadual
         $hasil = [];
 
         foreach (is_array($nilai) ? $nilai : [] as $baris) {
-            if (!is_array($baris)) {
+            if (! is_array($baris)) {
                 continue;
             }
             $sel = [];
@@ -115,12 +116,12 @@ final class MedanJadual
                 $sel[$l['kod']] = $v;
                 $adaNilai = $adaNilai || $v !== null;
             }
-            if (!$adaNilai) {
+            if (! $adaNilai) {
                 continue;
             }
             if ($tetap) {
                 $label = (string) ($baris[self::KUNCI_BARIS] ?? '');
-                if (!in_array($label, $tetap, true)) {
+                if (! in_array($label, $tetap, true)) {
                     continue;
                 }
                 $sel = [self::KUNCI_BARIS => $label] + $sel;
@@ -165,41 +166,41 @@ final class MedanJadual
     {
         $lajur = self::lajur($medan);
         $baris = json_decode($nilai, true);
-        if (!is_array($baris) || !$lajur) {
+        if (! is_array($baris) || ! $lajur) {
             return e($nilai);
         }
         $tetap = (bool) self::barisTetap($medan);
 
         $html = '<div class="medan-jadual-wrap"><table class="medan-jadual-papar"><thead><tr>';
-        $html .= '<th>' . ($tetap ? '' : 'Bil') . '</th>';
+        $html .= '<th>'.($tetap ? '' : 'Bil').'</th>';
         foreach ($lajur as $l) {
-            $html .= '<th>' . e($l['nama']) . '</th>';
+            $html .= '<th>'.e($l['nama']).'</th>';
         }
         $html .= '</tr></thead><tbody>';
         foreach (array_values(array_filter($baris, 'is_array')) as $i => $b) {
-            $html .= '<tr><td class="medan-jadual-label">' . ($tetap ? e((string) ($b[self::KUNCI_BARIS] ?? '')) : $i + 1) . '</td>';
+            $html .= '<tr><td class="medan-jadual-label">'.($tetap ? e((string) ($b[self::KUNCI_BARIS] ?? '')) : $i + 1).'</td>';
             foreach ($lajur as $l) {
                 $sel = $b[$l['kod']] ?? null;
-                $html .= '<td>' . (is_scalar($sel) ? (string) JenisMedan::papar(self::medanLajur($l), (string) $sel) : '') . '</td>';
+                $html .= '<td>'.(is_scalar($sel) ? (string) JenisMedan::papar(self::medanLajur($l), (string) $sel) : '').'</td>';
             }
             $html .= '</tr>';
         }
 
-        return $html . '</tbody></table></div>';
+        return $html.'</tbody></table></div>';
     }
 
     public static function panduanAi(DokumenField $medan): string
     {
         $kunci = array_map(
-            fn ($l) => '"' . $l['kod'] . '" (' . $l['nama'] . ': ' . JenisMedan::panduanAi(self::medanLajur($l)) . ')',
+            fn ($l) => '"'.$l['kod'].'" ('.$l['nama'].': '.JenisMedan::panduanAi(self::medanLajur($l)).')',
             self::lajur($medan)
         );
-        $panduan = 'senarai JSON objek, satu objek bagi setiap baris jadual, dengan kunci ' . implode(', ', $kunci);
+        $panduan = 'senarai JSON objek, satu objek bagi setiap baris jadual, dengan kunci '.implode(', ', $kunci);
         if ($tetap = self::barisTetap($medan)) {
-            $panduan .= '; setiap objek juga ada kunci "' . self::KUNCI_BARIS . '" dengan salah satu label baris [' . implode(', ', $tetap) . ']';
+            $panduan .= '; setiap objek juga ada kunci "'.self::KUNCI_BARIS.'" dengan salah satu label baris ['.implode(', ', $tetap).']';
         }
 
-        return $panduan . '; pulangkan [] jika jadual kosong';
+        return $panduan.'; pulangkan [] jika jadual kosong';
     }
 
     /** Baris cadangan AI → JSON simpanan; sel tidak sah menjadi kosong. */
@@ -208,11 +209,11 @@ final class MedanJadual
         if (is_string($nilai)) {
             $nilai = json_decode($nilai, true);
         }
-        if (!is_array($nilai)) {
+        if (! is_array($nilai)) {
             return null;
         }
         // Satu objek (bukan senarai) dianggap satu baris
-        if ($nilai !== [] && !array_is_list($nilai)) {
+        if ($nilai !== [] && ! array_is_list($nilai)) {
             $nilai = [$nilai];
         }
 
@@ -223,7 +224,7 @@ final class MedanJadual
 
         $baris = [];
         foreach ($nilai as $b) {
-            if (!is_array($b)) {
+            if (! is_array($b)) {
                 continue;
             }
             $bersih = [];

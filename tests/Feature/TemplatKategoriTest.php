@@ -77,7 +77,7 @@ class TemplatKategoriTest extends TestCase
 
         $res->assertSee('<option value="templat:minit_mesyuarat">Minit Mesyuarat (12 medan)</option>', false)
             ->assertSee('<option value="templat:memo">', false)
-            ->assertSee('<option value="salin:' . $sedia->jenis_dokumen_id . '">Borang Pendaftaran Emel (BRG-EMEL, 1 medan)</option>', false)
+            ->assertSee('<option value="salin:'.$sedia->jenis_dokumen_id.'">Borang Pendaftaran Emel (BRG-EMEL, 1 medan)</option>', false)
             ->assertSee('<datalist id="senaraiKategori">', false)
             ->assertSee('<option value="Minit Mesyuarat"></option>', false)
             ->assertSee('<option value="Digital Kumpulan"></option>', false);

@@ -15,7 +15,7 @@ class PeraturanProfil
     {
         return [
             'jawatan' => ['nullable', 'string', 'max:150', "regex:/^[\\pL\\pN\\s'’.,\\-@\\/()&]+$/u"],
-            'no_telefon' => ['nullable', 'string', 'max:20', 'regex:' . JenisMedan::REGEX_TELEFON],
+            'no_telefon' => ['nullable', 'string', 'max:20', 'regex:'.JenisMedan::REGEX_TELEFON],
         ];
     }
 

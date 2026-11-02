@@ -21,7 +21,9 @@ class MedanAutoIsiTest extends TestCase
     use SkemaUjian;
 
     private User $admin;
+
     private User $staf;
+
     private JenisDokumen $jenis;
 
     protected function setUp(): void
