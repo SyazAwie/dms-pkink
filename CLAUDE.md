@@ -20,7 +20,7 @@ Sistem Arkib Digital (DMS) PKINK: a Laravel 13 / PHP 8.3 document-management sys
 - Tests: `composer test` (clears config, then `php artisan test`). Single test: `php artisan test --filter=NamaTest`
 - Format: `vendor/bin/pint` (add `--dirty` to format only changed files)
 - After editing `.env`/config: `php artisan config:clear`
-- Frontend: no build step is needed. `layouts/app.blade.php` loads Bootstrap 5.3, Bootstrap Icons and Chart.js from the jsDelivr CDN. The Vite/Tailwind scaffold in `package.json` is unused leftover code.
+- Frontend: no build step is needed. `layouts/app.blade.php` loads Bootstrap 5.3, Bootstrap Icons and Chart.js from the jsDelivr CDN. There is no `package.json`/Vite (the unused scaffold was removed in Fasa R5).
 
 ## Database: no Laravel migrations
 

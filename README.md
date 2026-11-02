@@ -67,7 +67,7 @@ Perbadanan Kemajuan Iktisad Negeri Kelantan (PKINK) menguruskan dokumen rasmi (i
 | **Pelayan Web (Local Dev)** | Laravel Herd (nginx + PHP-FPM) atau `php artisan serve` | Persekitaran pembangunan di Windows |
 | **Pelayan Pangkalan Data (Local Dev)** | XAMPP, **MySQL sahaja** | Apache/PHP XAMPP tidak digunakan |
 | **Pengurus Pangkalan Data** | HeidiSQL | Skema diurus manual (tiada migration Laravel, lihat 4.0) |
-| **Frontend** | Blade | Tiada langkah build; scaffold Vite/Tailwind dalam `package.json` tidak digunakan |
+| **Frontend** | Blade | Tiada langkah build (Bootstrap, Bootstrap Icons, Chart.js dari CDN jsDelivr) |
 | **Rangka Kerja CSS** | Bootstrap 5.3.3 | Dimuat dari CDN jsDelivr dengan SRI (`integrity` + `crossorigin`) |
 | **Ikon** | Bootstrap Icons 1.11.3 | CDN jsDelivr dengan SRI |
 | **Carta/Graf** | Bar HTML/CSS | Chart.js tidak lagi digunakan |
