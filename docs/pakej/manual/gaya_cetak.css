@@ -239,6 +239,7 @@ figcaption {
 }
 .isi-dok thead { display: table-header-group; }
 .isi-dok th { padding: 2mm 2.5mm; text-align: left; color: #fff; background: var(--jenama); }
+.isi-dok th code { color: #fff; background: rgba(255, 255, 255, .18); }
 .isi-dok td { padding: 1.8mm 2.5mm; vertical-align: top; border-bottom: 1px solid var(--garis); }
 .isi-dok tr { break-inside: avoid; }
 /* Ruangan kosong untuk diisi dengan tangan (senarai hubungan, borang log insiden) */
