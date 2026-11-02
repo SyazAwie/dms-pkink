@@ -1,0 +1,444 @@
+Project DMS_PKINK {
+  database_type: 'MySQL'
+  Note: 'Sistem Arkib Digital (DMS) PKINK. Skema daripada dms_pkink_db (22 jadual domain; cache, cache_locks, jobs, failed_jobs, password_reset_tokens tidak dimasukkan).'
+}
+
+Table bahagian {
+  bahagian_id "bigint(20) unsigned" [pk, increment]
+  kod_bahagian varchar(50) [not null]
+  nama_bahagian varchar(255) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp
+  kod_bahagian_aktif varchar(50) [unique, note: 'Lajur dijana: if(deleted_at is null,kod_bahagian,NULL)']
+}
+
+Table users {
+  user_id "bigint(20) unsigned" [pk, increment]
+  ic_pekerja varchar(20) [not null]
+  nama_staff varchar(255) [not null]
+  jawatan varchar(150)
+  email varchar(255) [not null]
+  no_telefon varchar(20)
+  password varchar(255) [not null]
+  perlu_tukar_kata_laluan tinyint(1) [not null, default: 0]
+  kata_laluan_tamat_pada timestamp
+  dua_faktor_rahsia text
+  dua_faktor_kod_pemulihan text
+  dua_faktor_disahkan_pada timestamp
+  dikunci_hingga timestamp
+  sebab_kunci varchar(255)
+  bahagian_id "bigint(20) unsigned"
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp
+  remember_token varchar(100)
+  email_aktif varchar(255) [unique, note: 'Lajur dijana: if(deleted_at is null,email,NULL)']
+  ic_pekerja_aktif varchar(20) [unique, note: 'Lajur dijana: if(deleted_at is null,ic_pekerja,NULL)']
+
+  Note: 'Pengguna sistem. Log masuk dengan No. KP. Banyak peranan melalui user_roles. Soft delete.'
+}
+
+Table roles {
+  roles_id "bigint(20) unsigned" [pk, increment]
+  kod_roles varchar(50) [not null, unique]
+  nama_roles varchar(100) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: '8 peranan: SUPERADMIN, ADMIN, KERANI, PENGURUS, STAFF, PENYOKONG, PELULUS, AUDIT'
+}
+
+Table user_roles {
+  user_roles_id "bigint(20) unsigned" [pk, increment]
+  user_id "bigint(20) unsigned" [not null]
+  role_id "bigint(20) unsigned" [not null]
+
+  indexes {
+    (user_id, role_id) [unique]
+  }
+
+  Note: 'Jadual simpang Many-to-Many users-roles. PERHATIAN: role_id merujuk roles.roles_id'
+}
+
+Table pendaftaran_staf {
+  pendaftaran_staf_id "bigint(20) unsigned" [pk, increment]
+  ic_pekerja varchar(20) [not null]
+  nama_staff varchar(255) [not null]
+  email varchar(255) [not null]
+  bahagian_id "bigint(20) unsigned" [not null]
+  status varchar(20) [not null, default: 'Menunggu']
+  sebab_tolak text
+  disemak_oleh "bigint(20) unsigned"
+  disemak_pada timestamp
+  user_id "bigint(20) unsigned"
+  alamat_ip varchar(45)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  ic_menunggu varchar(20) [unique, note: 'Lajur dijana: if(status = \'Menunggu\',ic_pekerja,NULL)']
+  email_menunggu varchar(255) [unique, note: 'Lajur dijana: if(status = \'Menunggu\',email,NULL)']
+}
+
+Table delegasi_kelulusan {
+  delegasi_id "bigint(20) unsigned" [pk, increment]
+  pemberi_id "bigint(20) unsigned" [not null]
+  penerima_id "bigint(20) unsigned" [not null]
+  kod_peranan varchar(20) [not null]
+  tarikh_mula date [not null]
+  tarikh_tamat date [not null]
+  sebab varchar(255)
+  dicipta_oleh "bigint(20) unsigned"
+  dibatalkan_pada timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Delegasi kuasa sokong/lulus semasa cuti. kod_peranan merujuk roles.kod_roles (logik)'
+}
+
+Table jenis_dokumen {
+  jenis_dokumen_id "bigint(20) unsigned" [pk, increment]
+  kod_dokumen varchar(50) [not null]
+  nama_dokumen varchar(255) [not null]
+  kategori varchar(100)
+  tempoh_simpanan_tahun "smallint(5) unsigned"
+  tindakan_tamat_tempoh varchar(30) [not null, default: 'Semak Semula']
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp
+  kod_dokumen_aktif varchar(50) [unique, note: 'Lajur dijana: if(deleted_at is null,kod_dokumen,NULL)']
+
+  Note: 'Kategori dokumen / borang (EAV: entiti)'
+}
+
+Table dokumen_field {
+  dokumen_field_id "bigint(20) unsigned" [pk, increment]
+  jenis_dokumen_id "bigint(20) unsigned" [not null]
+  nama_field varchar(100) [not null]
+  kod_field varchar(100) [not null]
+  jenis_data varchar(50) [not null, default: 'text']
+  pilihan longtext
+  tetapan longtext
+  is_required tinyint(1) [not null, default: 0]
+  susunan int(11) [not null, default: 1]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp
+  kod_field_aktif varchar(160) [unique, note: 'Lajur dijana: if(deleted_at is null,concat(jenis_dokumen_id,\'|\',kod_field),NULL)']
+
+  Note: 'Definisi medan bagi setiap kategori (EAV: atribut). pilihan & tetapan = JSON'
+}
+
+Table templat_borang {
+  templat_borang_id "bigint(20) unsigned" [pk, increment]
+  jenis_dokumen_id "bigint(20) unsigned" [not null]
+  versi "smallint(5) unsigned" [not null, default: 1]
+  nama_asal varchar(255) [not null]
+  lokasi_fail varchar(500) [not null]
+  saiz_fail "bigint(20) unsigned"
+  jenis_mime varchar(100)
+  hash_sha256 char(64)
+  bilangan_muka "smallint(5) unsigned"
+  ocr_json longtext
+  kedudukan_medan longtext
+  status_ocr varchar(50) [not null, default: 'Pending']
+  aktif tinyint(1) [not null, default: 1]
+  catatan varchar(255)
+  created_by "bigint(20) unsigned"
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp
+
+  Note: 'Templat borang kosong berversi bagi kategori; kedudukan_medan = JSON susunan borang siap. created_by -> users.user_id (logik, tiada FK)'
+}
+
+Table dokumen {
+  dokumen_id "bigint(20) unsigned" [pk, increment]
+  jenis_dokumen_id "bigint(20) unsigned" [not null]
+  bahagian_id "bigint(20) unsigned"
+  no_rujukan varchar(100) [not null, unique]
+  tarikh_dokumen date [not null]
+  perkara varchar(255)
+  status varchar(50) [not null, default: 'Archived']
+  tarikh_tamat_simpanan date
+  status_pelupusan varchar(30)
+  tarikh_pelupusan datetime
+  pelupusan_oleh "bigint(20) unsigned"
+  catatan_pelupusan varchar(255)
+  created_by "bigint(20) unsigned"
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp
+
+  Note: 'Dokumen sebenar. no_rujukan {KOD}/{TAHUN}/{NNNN}. Soft delete'
+}
+
+Table dokumen_data {
+  dokumen_data_id "bigint(20) unsigned" [pk, increment]
+  dokumen_id "bigint(20) unsigned" [not null]
+  dokumen_field_id "bigint(20) unsigned" [not null]
+  nilai_data longtext
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (dokumen_id, dokumen_field_id) [unique]
+  }
+
+  Note: 'Nilai medan bagi setiap dokumen (EAV: nilai). Satu baris setiap pasangan dokumen + medan'
+}
+
+Table dokumen_scan {
+  dokumen_scan_id "bigint(20) unsigned" [pk, increment]
+  dokumen_id "bigint(20) unsigned" [not null]
+  nama_fail varchar(255) [not null]
+  lokasi_fail varchar(500) [not null]
+  saiz_fail "bigint(20) unsigned"
+  jenis_mime varchar(100)
+  hash_sha256 char(64)
+  tarikh_scan datetime [not null, default: `CURRENT_TIMESTAMP`]
+  status_ocr varchar(50) [not null, default: 'Pending']
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table dokumen_ocr {
+  dokumen_ocr_id "bigint(20) unsigned" [pk, increment]
+  dokumen_scan_id "bigint(20) unsigned" [not null]
+  teks_dibaca longtext
+  skor_padanan decimal(5,2)
+  status_semakan varchar(50) [not null, default: 'Belum Disemak']
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table pembetulan_ai {
+  pembetulan_ai_id "bigint(20) unsigned" [pk, increment]
+  dokumen_id "bigint(20) unsigned" [not null]
+  jenis_dokumen_id "bigint(20) unsigned" [not null]
+  dokumen_field_id "bigint(20) unsigned" [not null]
+  nilai_ai text
+  nilai_disimpan text
+  sama tinyint(1) [not null, default: 0]
+  model_ai varchar(100)
+  user_id "bigint(20) unsigned"
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Nilai cadangan AI berbanding nilai akhir yang disimpan staf'
+}
+
+Table borang {
+  borang_id "bigint(20) unsigned" [pk, increment]
+  dokumen_id "bigint(20) unsigned" [not null]
+  pemohon_id "bigint(20) unsigned" [not null]
+  pegawai_penyokong_id "bigint(20) unsigned"
+  pegawai_pelulus_id "bigint(20) unsigned"
+  pegawai_penolak_id "bigint(20) unsigned"
+  status_permohonan varchar(50) [not null, default: 'Archived']
+  tarikh_permohonan datetime [default: `CURRENT_TIMESTAMP`]
+  tarikh_sokongan datetime
+  tarikh_kelulusan datetime
+  tarikh_tolak datetime
+  ulasan_penyokong text
+  ulasan_pelulus text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Permohonan kelulusan: SATU borang bagi setiap dokumen (1:1, dikuatkuasa aplikasi). Merujuk users 4 kali: pemohon, penyokong, pelulus, penolak'
+}
+
+Table borang_sejarah {
+  borang_sejarah_id "bigint(20) unsigned" [pk, increment]
+  borang_id "bigint(20) unsigned" [not null]
+  tindakan varchar(30) [not null]
+  status_selepas varchar(50) [not null]
+  user_id "bigint(20) unsigned"
+  bagi_pihak_id "bigint(20) unsigned"
+  ulasan text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Sejarah setiap tindakan kelulusan (hantar/sokong/lulus/tolak); bagi_pihak_id = delegasi'
+}
+
+Table log_audit {
+  log_audit_id "bigint(20) unsigned" [pk, increment]
+  user_id "bigint(20) unsigned"
+  tindakan varchar(100) [not null]
+  nama_jadual varchar(100) [not null]
+  rekod_id "bigint(20) unsigned"
+  data_lama longtext
+  data_baharu longtext
+  alamat_ip varchar(45)
+  peranti_pengguna text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Jejak audit. (nama_jadual, rekod_id) merujuk rekod dalam MANA-MANA jadual (polimorfik, tiada FK)'
+}
+
+Table log_masuk {
+  log_masuk_id "bigint(20) unsigned" [pk, increment]
+  user_id "bigint(20) unsigned"
+  berjaya tinyint(1) [not null, default: 0]
+  sebab varchar(50)
+  alamat_ip varchar(45)
+  peranti_pengguna text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table ip_disekat {
+  ip_disekat_id "bigint(20) unsigned" [pk, increment]
+  alamat_ip varchar(45) [not null]
+  sebab varchar(255)
+  automatik tinyint(1) [not null, default: 0]
+  disekat_oleh "bigint(20) unsigned"
+  tamat_pada timestamp
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table sessions {
+  id varchar(255) [pk]
+  user_id "bigint(20) unsigned"
+  ip_address varchar(45)
+  user_agent text
+  payload longtext [not null]
+  last_activity int(11) [not null]
+}
+
+Table notifications {
+  id char(36) [pk]
+  type varchar(255) [not null]
+  notifiable_type varchar(255) [not null]
+  notifiable_id "bigint(20) unsigned" [not null]
+  data text [not null]
+  read_at timestamp
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Notifikasi Laravel; notifiable_id -> users.user_id bila notifiable_type = App\\Models\\User (polimorfik)'
+}
+
+Table push_subscriptions {
+  id "bigint(20) unsigned" [pk, increment]
+  subscribable_type varchar(255) [not null]
+  subscribable_id "bigint(20) unsigned" [not null]
+  endpoint varchar(1024) [not null, unique]
+  public_key varchar(255)
+  auth_token varchar(255)
+  content_encoding varchar(255)
+  created_at timestamp
+  updated_at timestamp
+
+  Note: 'Langganan Web Push; subscribable_id -> users.user_id (polimorfik)'
+}
+
+Ref: borang.dokumen_id > dokumen.dokumen_id [delete: cascade]
+
+Ref: borang.pegawai_pelulus_id > users.user_id [delete: set null]
+
+Ref: borang.pegawai_penolak_id > users.user_id [delete: set null]
+
+Ref: borang.pegawai_penyokong_id > users.user_id [delete: set null]
+
+Ref: borang.pemohon_id > users.user_id [delete: cascade]
+
+Ref: borang_sejarah.bagi_pihak_id > users.user_id [delete: set null]
+
+Ref: borang_sejarah.borang_id > borang.borang_id [delete: cascade]
+
+Ref: borang_sejarah.user_id > users.user_id [delete: set null]
+
+Ref: delegasi_kelulusan.dicipta_oleh > users.user_id [delete: set null]
+
+Ref: delegasi_kelulusan.pemberi_id > users.user_id [delete: cascade]
+
+Ref: delegasi_kelulusan.penerima_id > users.user_id [delete: cascade]
+
+Ref: dokumen.bahagian_id > bahagian.bahagian_id [delete: set null]
+
+Ref: dokumen.created_by > users.user_id [delete: set null]
+
+Ref: dokumen.jenis_dokumen_id > jenis_dokumen.jenis_dokumen_id [delete: restrict]
+
+Ref: dokumen.pelupusan_oleh > users.user_id [delete: set null]
+
+Ref: dokumen_data.dokumen_field_id > dokumen_field.dokumen_field_id [delete: restrict]
+
+Ref: dokumen_data.dokumen_id > dokumen.dokumen_id [delete: cascade]
+
+Ref: dokumen_field.jenis_dokumen_id > jenis_dokumen.jenis_dokumen_id [delete: cascade]
+
+Ref: dokumen_ocr.dokumen_scan_id > dokumen_scan.dokumen_scan_id [delete: cascade]
+
+Ref: dokumen_scan.dokumen_id > dokumen.dokumen_id [delete: cascade]
+
+Ref: ip_disekat.disekat_oleh > users.user_id [delete: set null]
+
+Ref: log_audit.user_id > users.user_id [delete: set null]
+
+Ref: log_masuk.user_id > users.user_id [delete: set null]
+
+Ref: pembetulan_ai.dokumen_field_id > dokumen_field.dokumen_field_id [delete: cascade]
+
+Ref: pembetulan_ai.dokumen_id > dokumen.dokumen_id [delete: cascade]
+
+Ref: pembetulan_ai.jenis_dokumen_id > jenis_dokumen.jenis_dokumen_id [delete: cascade]
+
+Ref: pembetulan_ai.user_id > users.user_id [delete: set null]
+
+Ref: pendaftaran_staf.bahagian_id > bahagian.bahagian_id [delete: restrict]
+
+Ref: pendaftaran_staf.disemak_oleh > users.user_id [delete: restrict]
+
+Ref: pendaftaran_staf.user_id > users.user_id [delete: restrict]
+
+Ref: sessions.user_id > users.user_id [delete: set null]
+
+Ref: templat_borang.jenis_dokumen_id > jenis_dokumen.jenis_dokumen_id [delete: cascade]
+
+Ref: users.bahagian_id > bahagian.bahagian_id [delete: restrict]
+
+Ref: user_roles.role_id > roles.roles_id [delete: cascade]
+
+Ref: user_roles.user_id > users.user_id [delete: cascade]
+
+TableGroup Organisasi_dan_Akses {
+  bahagian
+  users
+  roles
+  user_roles
+  pendaftaran_staf
+  delegasi_kelulusan
+}
+
+TableGroup Templat_Dokumen_EAV {
+  jenis_dokumen
+  dokumen_field
+  templat_borang
+}
+
+TableGroup Dokumen_Sebenar {
+  dokumen
+  dokumen_data
+}
+
+TableGroup Imbasan_OCR_AI {
+  dokumen_scan
+  dokumen_ocr
+  pembetulan_ai
+}
+
+TableGroup Aliran_Kelulusan {
+  borang
+  borang_sejarah
+}
+
+TableGroup Audit_dan_Keselamatan {
+  log_audit
+  log_masuk
+  ip_disekat
+}
+
+TableGroup Sokongan_Laravel {
+  sessions
+  notifications
+  push_subscriptions
+}

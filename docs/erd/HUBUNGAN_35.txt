@@ -1,0 +1,46 @@
+﻿SENARAI 35 HUBUNGAN (sambung garis dalam draw.io)
+Gaya garis: Entity Relation (crow's foot). || = tepat satu, |o = sifar atau satu, o{ = sifar atau banyak.
+FK boleh NULL = ya -> hujung induk |o ; tidak -> ||
+
+1  | borang.dokumen_id -> dokumen | tidak | dokumen ||--o| borang (1:1 logik) | "mempunyai permohonan"
+2  | borang.pemohon_id -> users | tidak | users ||--o{ borang | "memohon"
+3  | borang.pegawai_penyokong_id -> users | ya | users |o--o{ borang | "menyokong"
+4  | borang.pegawai_pelulus_id -> users | ya | users |o--o{ borang | "meluluskan"
+5  | borang.pegawai_penolak_id -> users | ya | users |o--o{ borang | "menolak"
+6  | borang_sejarah.borang_id -> borang | tidak | borang ||--o{ borang_sejarah | "sejarah tindakan"
+7  | borang_sejarah.user_id -> users | ya | users |o--o{ borang_sejarah | "bertindak"
+8  | borang_sejarah.bagi_pihak_id -> users | ya | users |o--o{ borang_sejarah | "bagi pihak (delegasi)"
+9  | delegasi_kelulusan.pemberi_id -> users | tidak | users ||--o{ delegasi_kelulusan | "mewakilkan"
+10 | delegasi_kelulusan.penerima_id -> users | tidak | users ||--o{ delegasi_kelulusan | "menerima delegasi"
+11 | delegasi_kelulusan.dicipta_oleh -> users | ya | users |o--o{ delegasi_kelulusan | "mencipta"
+12 | dokumen.jenis_dokumen_id -> jenis_dokumen | tidak | jenis_dokumen ||--o{ dokumen | "mengkategorikan"
+13 | dokumen.bahagian_id -> bahagian | ya | bahagian |o--o{ dokumen | "memiliki"
+14 | dokumen.created_by -> users | ya | users |o--o{ dokumen | "memuat naik"
+15 | dokumen.pelupusan_oleh -> users | ya | users |o--o{ dokumen | "melupuskan"
+16 | dokumen_data.dokumen_id -> dokumen | tidak | dokumen ||--o{ dokumen_data | "nilai EAV"
+17 | dokumen_data.dokumen_field_id -> dokumen_field | tidak | dokumen_field ||--o{ dokumen_data | "nilai bagi medan"
+18 | dokumen_field.jenis_dokumen_id -> jenis_dokumen | tidak | jenis_dokumen ||--o{ dokumen_field | "mentakrifkan medan"
+19 | dokumen_ocr.dokumen_scan_id -> dokumen_scan | tidak | dokumen_scan ||--o{ dokumen_ocr | "hasil OCR"
+20 | dokumen_scan.dokumen_id -> dokumen | tidak | dokumen ||--o{ dokumen_scan | "fail imbasan"
+21 | ip_disekat.disekat_oleh -> users | ya | users |o--o{ ip_disekat | "menyekat"
+22 | log_audit.user_id -> users | ya | users |o--o{ log_audit | "melakukan"
+23 | log_masuk.user_id -> users | ya | users |o--o{ log_masuk | "cubaan log masuk"
+24 | pembetulan_ai.dokumen_id -> dokumen | tidak | dokumen ||--o{ pembetulan_ai | "pembetulan AI"
+25 | pembetulan_ai.dokumen_field_id -> dokumen_field | tidak | dokumen_field ||--o{ pembetulan_ai | "medan dibetulkan"
+26 | pembetulan_ai.jenis_dokumen_id -> jenis_dokumen | tidak | jenis_dokumen ||--o{ pembetulan_ai | "kategori"
+27 | pembetulan_ai.user_id -> users | ya | users |o--o{ pembetulan_ai | "membetulkan"
+28 | pendaftaran_staf.bahagian_id -> bahagian | tidak | bahagian ||--o{ pendaftaran_staf | "dipohon untuk"
+29 | pendaftaran_staf.disemak_oleh -> users | ya | users |o--o{ pendaftaran_staf | "menyemak"
+30 | pendaftaran_staf.user_id -> users | ya | users |o--o | pendaftaran_staf
+31 | sessions.user_id -> users | ya | users |o--o{ sessions | "sesi"
+32 | templat_borang.jenis_dokumen_id -> jenis_dokumen | tidak | jenis_dokumen ||--o{ templat_borang | "templat (berversi)"
+33 | users.bahagian_id -> bahagian | ya | bahagian |o--o{ users | "menempatkan"
+34 | user_roles.user_id -> users | tidak | users ||--o{ user_roles | "mempunyai peranan"
+35 | user_roles.role_id -> roles | tidak | roles ||--o{ user_roles | "diberikan kepada"
+
+HUBUNGAN LOGIK (tiada FK dalam DB; lukis garis putus-putus):
+- templat_borang.created_by -> users
+- notifications.notifiable_id -> users (polimorfik)
+- push_subscriptions.subscribable_id -> users (polimorfik)
+- delegasi_kelulusan.kod_peranan -> roles.kod_roles
+- log_audit (nama_jadual, rekod_id) -> mana-mana jadual: tulis sebagai nota, jangan lukis garis

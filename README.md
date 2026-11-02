@@ -201,7 +201,9 @@ Skema `dms_pkink_db` diurus **secara manual dalam HeidiSQL** (dump SQL + skrip S
 - Perubahan skema diberi sebagai skrip SQL untuk dijalankan dalam HeidiSQL
 - **Keunikan yang selamat soft delete** dikuatkuasakan melalui lajur janaan (generated column) yang bernilai `NULL` bila rekod dipadam: `email_aktif`, `ic_pekerja_aktif`, `kod_bahagian_aktif`, `kod_dokumen_aktif`, `kod_field_aktif`, serta `ic_menunggu` / `email_menunggu` (pendaftaran staf)
 
-Pangkalan data mengandungi **22 jadual**: 14 jadual domain dalam 6 kumpulan (termasuk `templat_borang`, Fasa TB), `notifications`, `push_subscriptions`, dan 6 jadual infra Laravel (termasuk `jobs` & `failed_jobs` untuk queue OCR/AI, T2).
+Pangkalan data mengandungi **27 jadual** (disemak daripada INFORMATION_SCHEMA, 2026-11-02): 19 jadual domain (termasuk `templat_borang` dengan `kedudukan_medan` TB6, `borang_sejarah`, `delegasi_kelulusan`, `log_masuk`, `ip_disekat`, `pembetulan_ai`), `notifications`, `push_subscriptions`, dan 6 jadual infra Laravel (`sessions`, `cache`, `cache_locks`, `password_reset_tokens`, serta `jobs` & `failed_jobs` untuk queue OCR/AI, T2). Jumlah 35 kunci asing.
+
+**ERD:** `docs/erd/` mengandungi ERD yang dijana terus daripada skema sebenar (22 jadual berhubungan): `ERD_DMS_PKINK.dbml` untuk https://dbdiagram.io (disyorkan, garis automatik), `ERD_DMS_PKINK.drawio` untuk draw.io, serta skrip `docs/erd/skrip/` untuk menjana semula selepas skema berubah (lihat `docs/erd/README.md`).
 
 ### 4.1 Kumpulan: Organisasi & Kawalan Akses
 
@@ -608,6 +610,7 @@ Cipta/Kemaskini/Padam pada `bahagian`, `jenis_dokumen`, `users`, `dokumen` dan *
 - **Halaman ralat BM:** 403 (dalam layout aplikasi), dan 404, 405, 409, 419 (sesi tamat), 429, 500, 503 serta fallback 4xx/5xx dalam rangka berdiri sendiri (`errors/rangka.blade.php`), tanpa sesi atau pangkalan data
 - **Komponen seragam** (`layouts/app.blade.php`): butang utama `.save-btn` (13px) dan sekunder `.outline-button` (12px); medan fail BM ("Pilih Fail" / "Tiada fail dipilih"); paginasi Bootstrap 5 ikut warna tema
 - **Responsif:** sidebar boleh dilipat; di telefon, butang berikon menjadi ikon sahaja (kecuali `.kekal-label`), jadual senarai ditatal mendatar (`td.boleh-balut` untuk teks panjang), dan kad ringkasan 2 lajur
+- **Bahagian berlipat** (komponen `components/lipat.blade.php`, `<details>`): halaman panjang (Profil, Pusat Keselamatan, Status Sistem, penapis Log Audit & Sejarah Log Masuk, analitik papan pemuka pentadbir) tertutup secara lalai dengan lencana status pada tajuk, dan dibuka sendiri bila pengguna perlu bertindak (ralat, 2FA wajib, mod kecemasan, ralat Status Sistem, penapis aktif) atau bila pautan `#id` menghala ke dalamnya. Pusat Keselamatan di telefon: ~3416px → 1134px
 
 ---
 
